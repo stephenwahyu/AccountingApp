@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Laravel build/cache/logs
+storage/
+bootstrap/cache/
+
+# Compiled frontend assets
+public/build/
+public/js/
+public/css/
+
+# Vite and Tailwind output
+dist/
+build/
+
+# Generated files
+*.min.js
+*.min.css
+
+# IDE files
+.vscode/
+.idea/
+
+# Git
+.git/
