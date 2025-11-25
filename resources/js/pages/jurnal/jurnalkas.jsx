@@ -117,25 +117,25 @@ export default function JurnalKas({ journals = [] }) {
       id: "01012025-1",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pemasukan Kas",
     },
     {
       id: "01012025-2",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pengeluaran Kas",
     },
     {
       id: "01012025-3",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pengeluaran Kas",
     },
     {
       id: "02012025-1",
       tanggal: "2 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pemasukan Kas",
     },
   ];
 

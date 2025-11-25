@@ -117,25 +117,25 @@ export default function JurnalBankPage({ journals = [] }) {
       id: "01012025-1",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pengeluaran Bank",
     },
     {
       id: "01012025-2",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pengeluaran Bank",
     },
     {
       id: "01012025-3",
       tanggal: "1 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pemasukan Bank",
     },
     {
       id: "02012025-1",
       tanggal: "2 Januari 2025",
       periode: "Januari 2025",
-      tipe: "Umum",
+      tipe: "Pemasukan Bank",
     },
   ];
 
