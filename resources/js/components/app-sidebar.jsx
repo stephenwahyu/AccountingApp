@@ -66,15 +66,15 @@ const data = {
       items: [
         {
           title: "Jurnal Umum",
-          url: "#",
+          url: "/jurnal/umum",
         },
         {
           title: "Jurnal Kas",
-          url: "#",
+          url: "/jurnal/kas",
         },
         {
           title: "Jurnal Bank",
-          url: "#",
+          url: "/jurnal/bank",
         },
       ],
     },
