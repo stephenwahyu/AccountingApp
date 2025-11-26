@@ -1,23 +1,38 @@
 <?php
 
+use App\Http\Controllers\JurnalController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
+// Dashboard
 Route::get('/', function () {
     return inertia('dashboard/dashboard');
-});
-Route::get('/jurnal', function () {
-    return inertia('jurnal/semua');
-});
+})->name('dashboard');
 
-Route::get('/jurnal/umum', function () {
-    return inertia('jurnal/jurnalumum');
-});
-
-Route::get('/jurnal/kas', function () {
-    return inertia('jurnal/jurnalkas');
-});
-
-Route::get('/jurnal/bank', function () {
-    return inertia('jurnal/jurnalbank');
+// Jurnal Routes
+Route::prefix('jurnal')->name('jurnal.')->group(function () {
+    // Semua Jurnal
+    Route::get('/', [JurnalController::class, 'index'])->name('index');
+    
+    // Jurnal Umum
+    Route::get('/umum', [JurnalController::class, 'umum'])->name('umum');
+    Route::get('/umum/create', [JurnalController::class, 'umumCreate'])->name('umum.create');
+    Route::post('/umum', [JurnalController::class, 'umumStore'])->name('umum.store');
+    
+    // Jurnal Kas
+    Route::get('/kas', [JurnalController::class, 'kas'])->name('kas');
+    Route::get('/kas/pemasukan/create', [JurnalController::class, 'kasPemasukanCreate'])->name('kas.pemasukan.create');
+    Route::post('/kas/pemasukan', [JurnalController::class, 'kasPemasukanStore'])->name('kas.pemasukan.store');
+    Route::get('/kas/pengeluaran/create', [JurnalController::class, 'kasPengeluaranCreate'])->name('kas.pengeluaran.create');
+    Route::post('/kas/pengeluaran', [JurnalController::class, 'kasPengeluaranStore'])->name('kas.pengeluaran.store');
+    
+    // Jurnal Bank
+    Route::get('/bank', [JurnalController::class, 'bank'])->name('bank');
+    Route::get('/bank/pemasukan/create', [JurnalController::class, 'bankPemasukanCreate'])->name('bank.pemasukan.create');
+    Route::post('/bank/pemasukan', [JurnalController::class, 'bankPemasukanStore'])->name('bank.pemasukan.store');
+    Route::get('/bank/pengeluaran/create', [JurnalController::class, 'bankPengeluaranCreate'])->name('bank.pengeluaran.create');
+    Route::post('/bank/pengeluaran', [JurnalController::class, 'bankPengeluaranStore'])->name('bank.pengeluaran.store');
+    
+    // Detail & Actions
+    Route::get('/{id}', [JurnalController::class, 'show'])->name('show');
+    Route::delete('/{id}', [JurnalController::class, 'destroy'])->name('destroy');
 });
