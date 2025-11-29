@@ -18,7 +18,18 @@ class JurnalController extends Controller
     {
         $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
             ->orderBy('entry_date', 'desc')
-            ->paginate(10);
+            ->orderBy('entry_number', 'desc')
+            ->get()
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'entry_number' => $journal->entry_number,
+                    'entry_date' => $journal->entry_date->format('d F Y'),
+                    'period' => $journal->fiscalPeriod->period_name,
+                    'journal_type' => $journal->journal_type,
+                    'status' => $journal->status,
+                ];
+            });
 
         return Inertia::render('jurnal/semua', [
             'journals' => $journals
@@ -31,7 +42,18 @@ class JurnalController extends Controller
         $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
             ->where('journal_type', 'Umum')
             ->orderBy('entry_date', 'desc')
-            ->paginate(10);
+            ->orderBy('entry_number', 'desc')
+            ->get()
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'entry_number' => $journal->entry_number,
+                    'entry_date' => $journal->entry_date->format('d F Y'),
+                    'period' => $journal->fiscalPeriod->period_name,
+                    'journal_type' => $journal->journal_type,
+                    'status' => $journal->status,
+                ];
+            });
 
         return Inertia::render('jurnal/jurnalumum', [
             'journals' => $journals
@@ -82,12 +104,13 @@ class JurnalController extends Controller
         try {
             // Generate entry number jika kosong
             if (empty($validated['entry_number'])) {
-                $lastEntry = JournalEntry::whereYear('entry_date', date('Y', strtotime($validated['entry_date'])))
+                $date = date('dmy', strtotime($validated['entry_date']));
+                $lastEntry = JournalEntry::where('entry_number', 'like', $date . '%')
                     ->orderBy('entry_number', 'desc')
                     ->first();
                 
-                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -4)) + 1 : 1;
-                $validated['entry_number'] = date('dmY', strtotime($validated['entry_date'])) . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -1)) + 1 : 1;
+                $validated['entry_number'] = $date . '-' . $nextNumber;
             }
 
             // Create journal entry
@@ -96,20 +119,24 @@ class JurnalController extends Controller
                 'entry_number' => $validated['entry_number'],
                 'penerima' => $validated['penerima'],
                 'journal_type' => 'Umum',
-                'status' => 'Draft',
+                'status' => 'Posted',
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                'user_id' => Auth::id() ?? 1, // Default to user 1 if no auth
+                'user_id' => 1, // Default user
+                'posted_at' => now(),
+                'posted_by' => 1,
             ]);
 
             // Create journal details
             foreach ($validated['details'] as $detail) {
-                JournalDetail::create([
-                    'journal_entry_id' => $journal->id,
-                    'account_id' => $detail['account_id'],
-                    'description' => $detail['description'],
-                    'debit' => $detail['debit'],
-                    'credit' => $detail['credit'],
-                ]);
+                if ($detail['debit'] > 0 || $detail['credit'] > 0) {
+                    JournalDetail::create([
+                        'journal_entry_id' => $journal->id,
+                        'account_id' => $detail['account_id'],
+                        'description' => $detail['description'],
+                        'debit' => $detail['debit'],
+                        'credit' => $detail['credit'],
+                    ]);
+                }
             }
 
             DB::commit();
@@ -127,7 +154,18 @@ class JurnalController extends Controller
         $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
             ->whereIn('journal_type', ['Kas Masuk', 'Kas Keluar'])
             ->orderBy('entry_date', 'desc')
-            ->paginate(10);
+            ->orderBy('entry_number', 'desc')
+            ->get()
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'entry_number' => $journal->entry_number,
+                    'entry_date' => $journal->entry_date->format('d F Y'),
+                    'period' => $journal->fiscalPeriod->period_name,
+                    'journal_type' => $journal->journal_type === 'Kas Masuk' ? 'Pemasukan Kas' : 'Pengeluaran Kas',
+                    'status' => $journal->status,
+                ];
+            });
 
         return Inertia::render('jurnal/jurnalkas', [
             'journals' => $journals
@@ -177,12 +215,13 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             if (empty($validated['entry_number'])) {
-                $lastEntry = JournalEntry::whereYear('entry_date', date('Y', strtotime($validated['entry_date'])))
+                $date = date('dmy', strtotime($validated['entry_date']));
+                $lastEntry = JournalEntry::where('entry_number', 'like', 'KM-' . $date . '%')
                     ->orderBy('entry_number', 'desc')
                     ->first();
                 
-                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -4)) + 1 : 1;
-                $validated['entry_number'] = 'KM-' . date('dmY', strtotime($validated['entry_date'])) . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -1)) + 1 : 1;
+                $validated['entry_number'] = 'KM-' . $date . '-' . $nextNumber;
             }
 
             $journal = JournalEntry::create([
@@ -190,21 +229,25 @@ class JurnalController extends Controller
                 'entry_number' => $validated['entry_number'],
                 'penerima' => $validated['penerima'],
                 'journal_type' => 'Kas Masuk',
-                'status' => 'Draft',
+                'status' => 'Posted',
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                'user_id' => Auth::id() ?? 1,
+                'user_id' => 1,
+                'posted_at' => now(),
+                'posted_by' => 1,
             ]);
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                JournalDetail::create([
-                    'journal_entry_id' => $journal->id,
-                    'account_id' => $detail['account_id'],
-                    'description' => $detail['description'],
-                    'debit' => 0,
-                    'credit' => $detail['credit'],
-                ]);
-                $totalCredit += $detail['credit'];
+                if ($detail['credit'] > 0) {
+                    JournalDetail::create([
+                        'journal_entry_id' => $journal->id,
+                        'account_id' => $detail['account_id'],
+                        'description' => $detail['description'],
+                        'debit' => 0,
+                        'credit' => $detail['credit'],
+                    ]);
+                    $totalCredit += $detail['credit'];
+                }
             }
 
             // Tambah debit untuk akun kas
@@ -268,12 +311,13 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             if (empty($validated['entry_number'])) {
-                $lastEntry = JournalEntry::whereYear('entry_date', date('Y', strtotime($validated['entry_date'])))
+                $date = date('dmy', strtotime($validated['entry_date']));
+                $lastEntry = JournalEntry::where('entry_number', 'like', 'KK-' . $date . '%')
                     ->orderBy('entry_number', 'desc')
                     ->first();
                 
-                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -4)) + 1 : 1;
-                $validated['entry_number'] = 'KK-' . date('dmY', strtotime($validated['entry_date'])) . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -1)) + 1 : 1;
+                $validated['entry_number'] = 'KK-' . $date . '-' . $nextNumber;
             }
 
             $journal = JournalEntry::create([
@@ -281,21 +325,25 @@ class JurnalController extends Controller
                 'entry_number' => $validated['entry_number'],
                 'penerima' => $validated['penerima'],
                 'journal_type' => 'Kas Keluar',
-                'status' => 'Draft',
+                'status' => 'Posted',
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                'user_id' => Auth::id() ?? 1,
+                'user_id' => 1,
+                'posted_at' => now(),
+                'posted_by' => 1,
             ]);
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                JournalDetail::create([
-                    'journal_entry_id' => $journal->id,
-                    'account_id' => $detail['account_id'],
-                    'description' => $detail['description'],
-                    'debit' => $detail['debit'],
-                    'credit' => 0,
-                ]);
-                $totalDebit += $detail['debit'];
+                if ($detail['debit'] > 0) {
+                    JournalDetail::create([
+                        'journal_entry_id' => $journal->id,
+                        'account_id' => $detail['account_id'],
+                        'description' => $detail['description'],
+                        'debit' => $detail['debit'],
+                        'credit' => 0,
+                    ]);
+                    $totalDebit += $detail['debit'];
+                }
             }
 
             // Tambah kredit untuk akun kas
@@ -322,7 +370,18 @@ class JurnalController extends Controller
         $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
             ->whereIn('journal_type', ['Bank Masuk', 'Bank Keluar'])
             ->orderBy('entry_date', 'desc')
-            ->paginate(10);
+            ->orderBy('entry_number', 'desc')
+            ->get()
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'entry_number' => $journal->entry_number,
+                    'entry_date' => $journal->entry_date->format('d F Y'),
+                    'period' => $journal->fiscalPeriod->period_name,
+                    'journal_type' => $journal->journal_type === 'Bank Masuk' ? 'Pemasukan Bank' : 'Pengeluaran Bank',
+                    'status' => $journal->status,
+                ];
+            });
 
         return Inertia::render('jurnal/jurnalbank', [
             'journals' => $journals
@@ -372,12 +431,13 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             if (empty($validated['entry_number'])) {
-                $lastEntry = JournalEntry::whereYear('entry_date', date('Y', strtotime($validated['entry_date'])))
+                $date = date('dmy', strtotime($validated['entry_date']));
+                $lastEntry = JournalEntry::where('entry_number', 'like', 'BM-' . $date . '%')
                     ->orderBy('entry_number', 'desc')
                     ->first();
                 
-                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -4)) + 1 : 1;
-                $validated['entry_number'] = 'BM-' . date('dmY', strtotime($validated['entry_date'])) . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -1)) + 1 : 1;
+                $validated['entry_number'] = 'BM-' . $date . '-' . $nextNumber;
             }
 
             $journal = JournalEntry::create([
@@ -385,21 +445,25 @@ class JurnalController extends Controller
                 'entry_number' => $validated['entry_number'],
                 'penerima' => $validated['penerima'],
                 'journal_type' => 'Bank Masuk',
-                'status' => 'Draft',
+                'status' => 'Posted',
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                'user_id' => Auth::id() ?? 1,
+                'user_id' => 1,
+                'posted_at' => now(),
+                'posted_by' => 1,
             ]);
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                JournalDetail::create([
-                    'journal_entry_id' => $journal->id,
-                    'account_id' => $detail['account_id'],
-                    'description' => $detail['description'],
-                    'debit' => 0,
-                    'credit' => $detail['credit'],
-                ]);
-                $totalCredit += $detail['credit'];
+                if ($detail['credit'] > 0) {
+                    JournalDetail::create([
+                        'journal_entry_id' => $journal->id,
+                        'account_id' => $detail['account_id'],
+                        'description' => $detail['description'],
+                        'debit' => 0,
+                        'credit' => $detail['credit'],
+                    ]);
+                    $totalCredit += $detail['credit'];
+                }
             }
 
             JournalDetail::create([
@@ -462,12 +526,13 @@ class JurnalController extends Controller
         DB::beginTransaction();
         try {
             if (empty($validated['entry_number'])) {
-                $lastEntry = JournalEntry::whereYear('entry_date', date('Y', strtotime($validated['entry_date'])))
+                $date = date('dmy', strtotime($validated['entry_date']));
+                $lastEntry = JournalEntry::where('entry_number', 'like', 'BK-' . $date . '%')
                     ->orderBy('entry_number', 'desc')
                     ->first();
                 
-                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -4)) + 1 : 1;
-                $validated['entry_number'] = 'BK-' . date('dmY', strtotime($validated['entry_date'])) . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $nextNumber = $lastEntry ? intval(substr($lastEntry->entry_number, -1)) + 1 : 1;
+                $validated['entry_number'] = 'BK-' . $date . '-' . $nextNumber;
             }
 
             $journal = JournalEntry::create([
@@ -475,21 +540,25 @@ class JurnalController extends Controller
                 'entry_number' => $validated['entry_number'],
                 'penerima' => $validated['penerima'],
                 'journal_type' => 'Bank Keluar',
-                'status' => 'Draft',
+                'status' => 'Posted',
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                'user_id' => Auth::id() ?? 1,
+                'user_id' => 1,
+                'posted_at' => now(),
+                'posted_by' => 1,
             ]);
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                JournalDetail::create([
-                    'journal_entry_id' => $journal->id,
-                    'account_id' => $detail['account_id'],
-                    'description' => $detail['description'],
-                    'debit' => $detail['debit'],
-                    'credit' => 0,
-                ]);
-                $totalDebit += $detail['debit'];
+                if ($detail['debit'] > 0) {
+                    JournalDetail::create([
+                        'journal_entry_id' => $journal->id,
+                        'account_id' => $detail['account_id'],
+                        'description' => $detail['description'],
+                        'debit' => $detail['debit'],
+                        'credit' => 0,
+                    ]);
+                    $totalDebit += $detail['debit'];
+                }
             }
 
             JournalDetail::create([

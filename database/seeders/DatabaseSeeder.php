@@ -22,6 +22,7 @@ class DatabaseSeeder extends Seeder
             AccountCategorySeeder::class,
             CashFlowActivitySeeder::class,
             AccountSeeder::class,
+            FiscalPeriodSeeder::class,
         ]);
     }
 }
