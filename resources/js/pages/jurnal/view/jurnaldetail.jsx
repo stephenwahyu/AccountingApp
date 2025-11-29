@@ -1,8 +1,14 @@
 import React from "react";
-import { Head, router } from "@inertiajs/react";
+import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -11,302 +17,229 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Pencil, Trash2, Printer } from "lucide-react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
 
 export default function ViewDetailJurnal({ journal }) {
-  const breadcrumbs = [
-    { title: "Jurnal", href: "/jurnal" },
-    { 
-      title: journal.journal_type === "Umum" ? "Jurnal Umum" :
-             journal.journal_type.includes("Kas") ? "Jurnal Kas" : "Jurnal Bank",
-      href: journal.journal_type === "Umum" ? "/jurnal/umum" :
-            journal.journal_type.includes("Kas") ? "/jurnal/kas" : "/jurnal/bank"
-    },
-    { title: journal.entry_number, href: "#" },
-  ];
+    const breadcrumbs = [
+        { title: "Jurnal", href: route('jurnal.index') },
+        { 
+          title: journal.journal_type === "Umum" ? "Jurnal Umum" :
+                 journal.journal_type.includes("Kas") ? "Jurnal Kas" : "Jurnal Bank",
+          href: journal.journal_type === "Umum" ? route('jurnal.umum') :
+                journal.journal_type.includes("Kas") ? route('jurnal.kas') : route('jurnal.bank')
+        },
+        { title: journal.entry_number, href: "#" },
+      ];
 
-  const totalDebit = journal.details.reduce(
+  const totalDebit = journal.journal_details.reduce(
     (sum, detail) => sum + parseFloat(detail.debit || 0),
     0
   );
 
-  const totalCredit = journal.details.reduce(
+  const totalCredit = journal.journal_details.reduce(
     (sum, detail) => sum + parseFloat(detail.credit || 0),
     0
   );
 
-  const handleBack = () => {
-    if (journal.journal_type === "Umum") {
-      router.visit("/jurnal/umum");
-    } else if (journal.journal_type.includes("Kas")) {
-      router.visit("/jurnal/kas");
-    } else {
-      router.visit("/jurnal/bank");
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "Posted":
+        return "success";
+      case "Draft":
+        return "secondary";
+      case "Cancelled":
+        return "destructive";
+      default:
+        return "outline";
     }
   };
 
   const handleEdit = () => {
-    if (journal.journal_type === "Umum") {
-      router.visit(`/jurnal/umum/${journal.id}/edit`);
-    } else if (journal.journal_type === "Kas Masuk") {
-      router.visit(`/jurnal/kas/pemasukan/${journal.id}/edit`);
-    } else if (journal.journal_type === "Kas Keluar") {
-      router.visit(`/jurnal/kas/pengeluaran/${journal.id}/edit`);
-    } else if (journal.journal_type === "Bank Masuk") {
-      router.visit(`/jurnal/bank/pemasukan/${journal.id}/edit`);
-    } else if (journal.journal_type === "Bank Keluar") {
-      router.visit(`/jurnal/bank/pengeluaran/${journal.id}/edit`);
+    let editRoute;
+    switch (journal.journal_type) {
+        case 'Umum':
+            editRoute = route('jurnal.umum.edit', journal.id);
+            break;
+        case 'Kas Masuk':
+            editRoute = route('jurnal.kas.pemasukan.edit', journal.id);
+            break;
+        case 'Kas Keluar':
+            editRoute = route('jurnal.kas.pengeluaran.edit', journal.id);
+            break;
+        case 'Bank Masuk':
+            editRoute = route('jurnal.bank.pemasukan.edit', journal.id);
+            break;
+        case 'Bank Keluar':
+            editRoute = route('jurnal.bank.pengeluaran.edit', journal.id);
+            break;
+        default:
+            return;
     }
+    router.visit(editRoute);
   };
 
   const handleDelete = () => {
     if (confirm("Apakah Anda yakin ingin menghapus jurnal ini?")) {
-      router.delete(`/jurnal/${journal.id}`);
+      router.delete(route("jurnal.destroy", journal.id));
     }
   };
+
+  const handlePrint = () => {
+      window.print();
+  }
 
   return (
     <>
       <Head title={`Detail Jurnal - ${journal.entry_number}`} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <div className="flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-6 @container">
+          <div className="flex flex-col @lg:flex-row items-start @lg:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleBack}
-                className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <div className="flex flex-col gap-1">
-                <h1 className="text-2xl font-bold">Rincian Jurnal {journal.journal_type}</h1>
-                <p className="text-muted-foreground">ID: {journal.entry_number}</p>
-              </div>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => window.history.back()}
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                </Button>
+                <div>
+                    <h1 className="text-2xl font-bold">Detail Jurnal</h1>
+                    <p className="text-muted-foreground">
+                        {journal.entry_number}
+                    </p>
+                </div>
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="bg-[#ef4444] hover:bg-[#dc2626] text-white border-0"
-                onClick={handleEdit}
-              >
+            <div className="flex gap-2 w-full @lg:w-auto">
+              <Button variant="outline" className="w-full @lg:w-auto" onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-2" />
+                Cetak
+              </Button>
+              <Button variant="outline" className="w-full @lg:w-auto" onClick={handleEdit}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDelete}
-              >
+              <Button variant="destructive" className="w-full @lg:w-auto" onClick={handleDelete} disabled={journal.status === 'Posted'}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Hapus
               </Button>
             </div>
           </div>
+          
+          <Card className="print-section">
+            <CardHeader>
+                <div className="flex flex-col @lg:flex-row justify-between gap-4">
+                    <div>
+                        <CardTitle className="mb-1">Jurnal {journal.journal_type}</CardTitle>
+                        <CardDescription>{journal.entry_number}</CardDescription>
+                    </div>
+                    <div className="text-left @lg:text-right">
+                        <p className="text-sm text-muted-foreground">Tanggal Jurnal</p>
+                        <p className="font-medium">{format(new Date(journal.entry_date), "d MMMM yyyy", { locale: id })}</p>
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="grid gap-6">
+                <div className="grid grid-cols-2 @lg:grid-cols-4 gap-4 text-sm">
+                    <div className="grid gap-1.5">
+                        <span className="text-muted-foreground">Status</span>
+                        <Badge variant={getStatusVariant(journal.status)} className="w-fit">{journal.status}</Badge>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <span className="text-muted-foreground">Periode Fiskal</span>
+                        <span className="font-medium">{journal.fiscal_period.period_name}</span>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <span className="text-muted-foreground">Penerima/Dibayar Kepada</span>
+                        <span className="font-medium">{journal.penerima || '-'}</span>
+                    </div>
+                    <div className="grid gap-1.5">
+                        <span className="text-muted-foreground">Dibuat Oleh</span>
+                        <span className="font-medium">{journal.user.name}</span>
+                    </div>
+                </div>
 
-          {/* Form Fields - Read Only */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Tanggal Entri</label>
-              <Input
-                type="text"
-                value={new Date(journal.entry_date).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                })}
-                disabled
-                className="bg-muted"
-              />
-            </div>
+                <div className="border rounded-md">
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead className="w-[100px] @md:w-[200px]">Akun</TableHead>
+                        <TableHead>Uraian</TableHead>
+                        <TableHead className="text-right w-[120px] @md:w-[150px]">Debit</TableHead>
+                        <TableHead className="text-right w-[120px] @md:w-[150px]">Kredit</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {journal.journal_details.map((detail) => (
+                        <TableRow key={detail.id}>
+                            <TableCell>
+                                <div className="font-medium">{detail.account.account_code}</div>
+                                <div className="text-xs text-muted-foreground">{detail.account.account_name}</div>
+                            </TableCell>
+                            <TableCell>{detail.description || "-"}</TableCell>
+                            <TableCell className="text-right font-mono">
+                                {new Intl.NumberFormat('id-ID').format(detail.debit)}
+                            </TableCell>
+                            <TableCell className="text-right font-mono">
+                                {new Intl.NumberFormat('id-ID').format(detail.credit)}
+                            </TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                    </Table>
+                </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Nomor Entri</label>
-              <Input
-                type="text"
-                value={journal.entry_number}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Periode</label>
-              <Input
-                type="text"
-                value={journal.fiscal_period?.period_name || "-"}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Tipe</label>
-              <Input
-                type="text"
-                value={journal.journal_type}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2 col-span-2">
-              <label className="text-sm font-medium">Penerima</label>
-              <Input
-                type="text"
-                value={journal.penerima || "-"}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-          </div>
-
-          {/* Table - Read Only */}
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">No.</TableHead>
-                  <TableHead className="w-1/4">Akun</TableHead>
-                  <TableHead>Uraian</TableHead>
-                  <TableHead className="w-40 text-right">Debit</TableHead>
-                  <TableHead className="w-40 text-right">Kredit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {journal.details.map((detail, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{index + 1}.</TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <div className="font-medium">
-                          {detail.account?.account_code}
+                 <div className="flex justify-end">
+                    <div className="w-full max-w-sm space-y-2">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total Debit</span>
+                            <span className="font-medium font-mono">{new Intl.NumberFormat('id-ID').format(totalDebit)}</span>
                         </div>
-                        <div className="text-muted-foreground">
-                          {detail.account?.account_name}
+                         <div className="flex justify-between">
+                            <span className="text-muted-foreground">Total Kredit</span>
+                            <span className="font-medium font-mono">{new Intl.NumberFormat('id-ID').format(totalCredit)}</span>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{detail.description || "-"}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      {detail.debit > 0 ? detail.debit.toLocaleString("id-ID") : "0"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {detail.credit > 0 ? detail.credit.toLocaleString("id-ID") : "0"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Total */}
-          <div className="border rounded-lg p-4">
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="text-lg font-bold">Total</div>
-              <div className="text-right">
-                <div className="text-lg font-bold">
-                  {totalDebit.toLocaleString("id-ID")}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-bold">
-                  {totalCredit.toLocaleString("id-ID")}
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="default"
-                disabled
-                className="bg-green-500 hover:bg-green-600"
-              >
-                SEIMBANG
-              </Button>
-            </div>
-          </div>
-
-          {/* Status and Metadata */}
-          <div className="border rounded-lg p-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Status</div>
-                <div className="font-medium">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      journal.status === "Posted"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {journal.status}
-                  </span>
-                </div>
-              </div>
-              
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">Dibuat oleh</div>
-                <div className="font-medium">{journal.user?.name || "-"}</div>
-              </div>
-
-              {journal.posted_by && (
-                <>
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Tanggal Posting
+                        <div className="flex justify-between border-t pt-2">
+                            <span className="font-bold">Selisih</span>
+                            <span className="font-bold font-mono">{new Intl.NumberFormat('id-ID').format(totalDebit - totalCredit)}</span>
+                        </div>
                     </div>
-                    <div className="font-medium">
-                      {new Date(journal.posted_at).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Diposting oleh
-                    </div>
-                    <div className="font-medium">{journal.posted_by_user?.name || "-"}</div>
-                  </div>
-                </>
-              )}
+                </div>
 
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">
-                  Tanggal Dibuat
-                </div>
-                <div className="font-medium">
-                  {new Date(journal.created_at).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
+            </CardContent>
+          </Card>
 
-              <div>
-                <div className="text-sm text-muted-foreground mb-1">
-                  Terakhir Diubah
-                </div>
-                <div className="font-medium">
-                  {new Date(journal.updated_at).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
+        <style jsx global>{`
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+                .print-section, .print-section * {
+                    visibility: visible;
+                }
+                .print-section {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                }
+                .app-layout-main {
+                    padding: 0 !important;
+                }
+                h1, h2, h3, h4, h5, h6 {
+                    break-after: avoid;
+                }
+                p, blockquote, pre {
+                    break-inside: avoid;
+                }
+                table, thead, tbody, tfoot, tr, td, th {
+                    break-inside: avoid;
+                }
+            }
+        `}</style>
       </AppLayouts>
     </>
   );

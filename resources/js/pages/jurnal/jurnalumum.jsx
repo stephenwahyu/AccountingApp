@@ -1,7 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -24,210 +31,264 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreVertical, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { MoreVertical, ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
 
 const breadcrumbs = [
   { title: "Jurnal", href: "/jurnal" },
   { title: "Jurnal Umum", href: "/jurnal/umum" },
 ];
 
-export default function JurnalUmum({ journals = [] }) {
+export default function JurnalUmum({ journals: initialJournals = [] }) {
+  const [journals, setJournals] = useState(initialJournals);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Dummy data untuk demo
-  const dummyJournals = journals.length > 0 ? journals : [
-    {
-      id: "01012025-1",
-      entry_date: "1 Januari 2025",
-      period: "Januari 2025",
-      journal_type: "Umum",
-    },
-    {
-      id: "01012025-2",
-      entry_date: "1 Januari 2025",
-      period: "Januari 2025",
-      journal_type: "Umum",
-    },
-    {
-      id: "01012025-3",
-      entry_date: "1 Januari 2025",
-      period: "Januari 2025",
-      journal_type: "Umum",
-    },
-    {
-      id: "02012025-1",
-      entry_date: "2 Januari 2025",
-      period: "Januari 2025",
-      journal_type: "Umum",
-    },
-  ];
-
-  const totalRows = dummyJournals.length;
-  const totalPages = Math.ceil(totalRows / rowsPerPage);
-
   const handleTabChange = (value) => {
     router.visit(value);
+  };
+
+  const filteredJournals = useMemo(() => {
+    return journals.filter((journal) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        journal.entry_number.toLowerCase().includes(searchTermLower) ||
+        journal.entry_date.toLowerCase().includes(searchTermLower) ||
+        journal.period.toLowerCase().includes(searchTermLower);
+
+      const matchesStatus =
+        statusFilter === "all" || journal.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [journals, searchTerm, statusFilter]);
+
+  const totalRows = filteredJournals.length;
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+  const paginatedJournals = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredJournals.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredJournals, currentPage, rowsPerPage]);
+
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "Posted":
+        return "success";
+      case "Draft":
+        return "secondary";
+      case "Cancelled":
+        return "destructive";
+      default:
+        return "outline";
+    }
   };
 
   return (
     <>
       <Head title="Jurnal - Jurnal Umum" />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <div className="flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-bold">Jurnal</h1>
-            <p className="text-muted-foreground">Jurnal Umum</p>
-          </div>
-
-          {/* Tabs Navigation with Action Button */}
+        <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
-            <Tabs value="/jurnal/umum" onValueChange={handleTabChange}>
-              <TabsList className="bg-transparent h-auto p-0 gap-0">
-                <TabsTrigger
-                  value="/jurnal"
-                  className="data-[state=active]:bg-[#ef4444] data-[state=active]:text-white bg-[#fca5a5] text-white rounded-none first:rounded-l-md last:rounded-r-md border-0 shadow-none"
-                >
-                  Semua
-                </TabsTrigger>
-                <TabsTrigger
-                  value="/jurnal/umum"
-                  className="data-[state=active]:bg-[#ef4444] data-[state=active]:text-white bg-[#fca5a5] text-white rounded-none first:rounded-l-md last:rounded-r-md border-0 shadow-none"
-                >
-                  Jurnal Umum
-                </TabsTrigger>
-                <TabsTrigger
-                  value="/jurnal/kas"
-                  className="data-[state=active]:bg-[#ef4444] data-[state=active]:text-white bg-[#fca5a5] text-white rounded-none first:rounded-l-md last:rounded-r-md border-0 shadow-none"
-                >
-                  Jurnal Kas
-                </TabsTrigger>
-                <TabsTrigger
-                  value="/jurnal/bank"
-                  className="data-[state=active]:bg-[#ef4444] data-[state=active]:text-white bg-[#fca5a5] text-white rounded-none first:rounded-l-md last:rounded-r-md border-0 shadow-none"
-                >
-                  Jurnal Bank
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Button className="bg-[#ef4444] hover:bg-[#dc2626] text-white">
-              <Plus className="h-4 w-4 mr-2" />
-              Tambah Jurnal Umum
-            </Button>
+            <div>
+                <h1 className="text-2xl font-bold">Jurnal Umum</h1>
+                <p className="text-muted-foreground">
+                Berikut adalah daftar semua jurnal umum yang telah tercatat.
+                </p>
+            </div>
+            <Link href={route("jurnal.umum.create")}>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Tambah Jurnal
+              </Button>
+            </Link>
           </div>
 
-          {/* Table */}
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">No.</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Tanggal Jurnal</TableHead>
-                  <TableHead>Periode</TableHead>
-                  <TableHead>Tipe Jurnal</TableHead>
-                  <TableHead className="w-20">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {dummyJournals.map((journal, index) => (
-                  <TableRow key={journal.id}>
-                    <TableCell>{index + 1}.</TableCell>
-                    <TableCell>{journal.id}</TableCell>
-                    <TableCell>{journal.entry_date}</TableCell>
-                    <TableCell>{journal.period}</TableCell>
-                    <TableCell>{journal.journal_type}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Lihat Detail</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            Hapus
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <Tabs value="/jurnal/umum" onValueChange={handleTabChange}>
+            <TabsList>
+              <TabsTrigger value="/jurnal">Semua</TabsTrigger>
+              <TabsTrigger value="/jurnal/umum">Jurnal Umum</TabsTrigger>
+              <TabsTrigger value="/jurnal/kas">Jurnal Kas</TabsTrigger>
+              <TabsTrigger value="/jurnal/bank">Jurnal Bank</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {rowsPerPage} of {totalRows} baris.
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm">Rows per page</span>
-                <Select value={rowsPerPage.toString()} onValueChange={(value) => setRowsPerPage(Number(value))}>
-                  <SelectTrigger className="w-[70px] h-9 bg-[#ef4444] text-white border-0">
-                    <SelectValue />
+          <Card>
+            <CardHeader>
+              <CardTitle>Daftar Jurnal Umum</CardTitle>
+              <CardDescription>
+                Anda dapat mencari, memfilter, dan mengelola jurnal umum dari
+                sini.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Cari jurnal..."
+                    className="pl-8"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <Select
+                  value={statusFilter}
+                  onValueChange={setStatusFilter}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="20">20</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="Posted">Posted</SelectItem>
+                    <SelectItem value="Draft">Draft</SelectItem>
+                    <SelectItem value="Cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm">
-                  Halaman {currentPage} dari {totalPages}
-                </span>
-                <div className="flex gap-1">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 bg-[#fca5a5] text-white border-0 hover:bg-[#ef4444]"
-                    onClick={() => setCurrentPage(1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    <ChevronLeft className="h-4 w-4 -ml-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 bg-[#fca5a5] text-white border-0 hover:bg-[#ef4444]"
-                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 bg-[#ef4444] text-white border-0 hover:bg-[#ef4444]"
-                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 bg-[#ef4444] text-white border-0 hover:bg-[#ef4444]"
-                    onClick={() => setCurrentPage(totalPages)}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                    <ChevronRight className="h-4 w-4 -ml-3" />
-                  </Button>
+              <div className="border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-16">No.</TableHead>
+                      <TableHead>No. Jurnal</TableHead>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Periode</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="w-16 text-right">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedJournals.length > 0 ? (
+                      paginatedJournals.map((journal, index) => (
+                        <TableRow key={journal.id}>
+                          <TableCell>
+                            {(currentPage - 1) * rowsPerPage + index + 1}.
+                          </TableCell>
+                          <TableCell className="font-medium">
+                            {journal.entry_number}
+                          </TableCell>
+                          <TableCell>{journal.entry_date}</TableCell>
+                          <TableCell>{journal.period}</TableCell>
+                          <TableCell>
+                            <Badge variant={getStatusVariant(journal.status)}>
+                              {journal.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                >
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link href={route('jurnal.show', journal.id)}>
+                                    Lihat Detail
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>Edit</DropdownMenuItem>
+                                <DropdownMenuItem className="text-destructive">
+                                  Hapus
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center h-24">
+                          Tidak ada data jurnal.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Menampilkan {paginatedJournals.length} dari {totalRows} baris.
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">Baris per halaman</span>
+                    <Select
+                      value={rowsPerPage.toString()}
+                      onValueChange={(value) => {
+                        setRowsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}
+                    >
+                      <SelectTrigger className="w-[70px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">
+                      Halaman {currentPage} dari {totalPages}
+                    </span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-4 w-4 -ml-2.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage((prev) => prev - 1)}
+                        disabled={currentPage === 1}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage((prev) => prev + 1)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCurrentPage(totalPages)}
+                        disabled={currentPage === totalPages}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-4 w-4 -ml-2.5" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </AppLayouts>
     </>

@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { Head, router } from "@inertiajs/react";
+import React, { useMemo } from "react";
+import { Head, Link, useForm } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,291 +27,282 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Printer, X, Save } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Combobox } from "@/components/ui/combobox";
+import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 
 export default function FormPemasukanBank({ journal = null, accounts = [], periods = [], bankAccounts = [] }) {
   const isEdit = !!journal;
-  
   const breadcrumbs = [
     { title: "Jurnal", href: "/jurnal" },
     { title: "Jurnal Bank", href: "/jurnal/bank" },
     { title: isEdit ? "Edit Pemasukan Bank" : "Tambah Pemasukan Bank", href: "#" },
   ];
 
-  const [formData, setFormData] = useState({
-    entry_date: journal?.entry_date || new Date().toISOString().split('T')[0],
+  const { data, setData, post, put, processing, errors } = useForm({
+    entry_date: journal?.entry_date ? new Date(journal.entry_date) : new Date(),
     entry_number: journal?.entry_number || "",
-    fiscal_period_id: journal?.fiscal_period_id || "",
-    penerima: journal?.penerima || "", // Diisi "Diterima Dari"
-    bank_account_id: journal?.details?.find(d => bankAccounts.some(ba => ba.id === d.account_id))?.account_id || "",
-    details: journal?.details?.filter(d => !bankAccounts.some(ba => ba.id === d.account_id)) || [
-      { account_id: "", description: "", credit: 0 },
+    fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
+    penerima: journal?.penerima || "",
+    bank_account_id: journal?.bank_account_id?.toString() || "",
+    details: journal?.details?.filter(d => d.credit > 0).map(d => ({...d, credit: d.credit.toString()})) || [
+      { account_id: "", description: "", credit: "" },
     ],
   });
 
+  const accountOptions = accounts
+    .filter(acc => !acc.is_cash_account) // Assuming bank accounts are also cash accounts
+    .map((acc) => ({
+      value: acc.id.toString(),
+      label: `${acc.account_code} - ${acc.account_name}`,
+  }));
+
+  const bankAccountOptions = bankAccounts.map((acc) => ({
+    value: acc.id.toString(),
+    label: `${acc.account_code} - ${acc.account_name}`,
+  }));
+
   const addRow = () => {
-    setFormData({
-      ...formData,
-      details: [
-        ...formData.details,
-        { account_id: "", description: "", credit: 0 },
-      ],
-    });
+    setData("details", [...data.details, { account_id: "", description: "", credit: "" }]);
   };
 
   const updateDetail = (index, field, value) => {
-    const newDetails = [...formData.details];
+    const newDetails = [...data.details];
     newDetails[index][field] = value;
-    setFormData({ ...formData, details: newDetails });
+    setData("details", newDetails);
   };
 
   const removeRow = (index) => {
-    if (formData.details.length > 1) {
-      const newDetails = formData.details.filter((_, i) => i !== index);
-      setFormData({ ...formData, details: newDetails });
+    if (data.details.length > 1) {
+      setData("details", data.details.filter((_, i) => i !== index));
     }
   };
 
-  // Total Kredit pada detail = Total Debit pada Bank
-  const totalAmount = formData.details.reduce(
-    (sum, detail) => sum + parseFloat(detail.credit || 0),
-    0
+  const totalCredit = useMemo(
+    () => data.details.reduce((sum, detail) => sum + parseFloat(detail.credit || 0), 0),
+    [data.details]
   );
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (totalAmount > 0 && formData.bank_account_id) {
+    if (totalCredit > 0 && data.bank_account_id) {
       if (isEdit) {
-        router.put(`/jurnal/bank/pemasukan/${journal.id}`, formData);
+        put(route("jurnal.bank.pemasukan.update", journal.id));
       } else {
-        router.post("/jurnal/bank/pemasukan", formData);
+        post(route("jurnal.bank.pemasukan.store"));
       }
     }
-  };
-
-  const handleCancel = () => {
-    router.visit("/jurnal/bank");
   };
 
   return (
     <>
       <Head title={isEdit ? "Edit Pemasukan Bank" : "Tambah Pemasukan Bank"} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Header Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-bold tracking-tight">
-                {isEdit ? "Edit Penerimaan Bank" : "Input Penerimaan Bank"}
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">
+                {isEdit ? "Edit Pemasukan Bank" : "Tambah Pemasukan Bank"}
               </h1>
-              <p className="text-muted-foreground text-sm">
-                Catat transaksi uang masuk ke rekening bank.
+              <p className="text-muted-foreground">
+                Isi form di bawah ini untuk {isEdit ? "mengubah" : "mencatat"} pemasukan bank.
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleCancel}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Batal
+              <Button type="button" variant="outline" asChild>
+                <Link href={route("jurnal.bank")}>
+                  <X className="h-4 w-4 mr-2" />
+                  Batal
+                </Link>
               </Button>
-              <Button
-                type="submit"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                disabled={totalAmount === 0 || !formData.bank_account_id}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {isEdit ? "Simpan Perubahan" : "Simpan Transaksi"}
+              <Button type="submit" disabled={totalCredit === 0 || !data.bank_account_id || processing}>
+                {processing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isEdit ? "Simpan Perubahan" : "Simpan"}
               </Button>
+               {isEdit && (
+                 <Button type="button" variant="outline">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Cetak
+                 </Button>
+              )}
             </div>
           </div>
 
-          {/* Form Utama */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border rounded-lg p-4 bg-card">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tanggal Transaksi</label>
-              <Input
-                type="date"
-                value={formData.entry_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, entry_date: e.target.value })
-                }
-                required
-              />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Detail Transaksi</CardTitle>
+                        <CardDescription>Masukkan akun-akun sumber pemasukan.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                         <div className="border rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                    <TableHead className="w-[300px]">Akun Kredit</TableHead>
+                                    <TableHead>Uraian</TableHead>
+                                    <TableHead className="w-[180px]">Jumlah</TableHead>
+                                    <TableHead className="w-12"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {data.details.map((detail, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>
+                                            <Combobox
+                                                options={accountOptions}
+                                                value={detail.account_id}
+                                                onSelect={(value) => updateDetail(index, "account_id", value)}
+                                                placeholder="Pilih Akun"
+                                                searchPlaceholder="Cari akun..."
+                                                emptyPlaceholder="Akun tidak ditemukan."
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                        <Input
+                                            type="text"
+                                            placeholder="Uraian singkat"
+                                            value={detail.description}
+                                            onChange={(e) => updateDetail(index, "description", e.target.value)}
+                                        />
+                                        </TableCell>
+                                        <TableCell>
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={detail.credit}
+                                            onChange={(e) => updateDetail(index, "credit", e.target.value)}
+                                            className="text-right"
+                                        />
+                                        </TableCell>
+                                        <TableCell>
+                                        {data.details.length > 1 && (
+                                            <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => removeRow(index)}
+                                            className="text-muted-foreground hover:text-destructive"
+                                            >
+                                            <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        </TableCell>
+                                    </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                        {errors.details && <p className="text-sm text-destructive mt-2">{errors.details}</p>}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={addRow}
+                            className="mt-4 gap-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Tambah Baris
+                        </Button>
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-6 items-center bg-muted/50 py-4 px-6">
+                        <div className="grid grid-cols-2 gap-4 w-[400px] text-right">
+                             <div>
+                                <p className="text-sm text-muted-foreground">Total Pemasukan</p>
+                                <p className="font-semibold text-lg">
+                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCredit)}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-muted-foreground">Disimpan ke Akun Bank (Debit)</p>
+                                 <p className="font-semibold text-lg">
+                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCredit)}
+                                </p>
+                            </div>
+                        </div>
+                    </CardFooter>
+                </Card>
             </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nomor Bukti / Referensi</label>
-              <Input
-                type="text"
-                placeholder="(Otomatis jika kosong)"
-                value={formData.entry_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, entry_number: e.target.value })
-                }
-                disabled={isEdit}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Periode Akuntansi</label>
-              <Select
-                value={formData.fiscal_period_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, fiscal_period_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {periods.map((period) => (
-                    <SelectItem key={period.id} value={period.id.toString()}>
-                      {period.period_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Diterima Dari</label>
-              <Input
-                type="text"
-                placeholder="Nama Penyetor / Pelanggan"
-                value={formData.penerima}
-                onChange={(e) =>
-                  setFormData({ ...formData, penerima: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Akun Bank (Debit) */}
-          <div className="flex items-center gap-4 p-4 bg-blue-50/50 border border-blue-100 rounded-lg">
-            <div className="flex-1">
-              <label className="text-sm font-bold text-blue-700 mb-1 block">Masuk ke Bank (Debit)</label>
-              <Select
-                value={formData.bank_account_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, bank_account_id: value })
-                }
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Pilih Akun Bank" />
-                </SelectTrigger>
-                <SelectContent>
-                  {bankAccounts.map((account) => (
-                    <SelectItem key={account.id} value={account.id.toString()}>
-                      {account.account_code} - {account.account_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="text-right min-w-[200px]">
-              <div className="text-sm text-muted-foreground">Total Masuk</div>
-              <div className="text-2xl font-bold text-blue-700">
-                Rp {totalAmount.toLocaleString("id-ID")}
-              </div>
-            </div>
-          </div>
-
-          {/* Tabel Rincian (Kredit) */}
-          <div className="border rounded-lg overflow-hidden bg-white">
-            <div className="p-2 bg-muted/30 border-b">
-              <h3 className="font-semibold text-sm">Rincian Sumber Dana (Kredit)</h3>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12 text-center">No</TableHead>
-                  <TableHead className="min-w-[250px]">Akun Pendapatan / Sumber</TableHead>
-                  <TableHead className="min-w-[200px]">Keterangan</TableHead>
-                  <TableHead className="w-[200px] text-right">Nominal (Kredit)</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {formData.details.map((detail, index) => (
-                  <TableRow key={index}>
-                    <TableCell className="text-center">{index + 1}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={detail.account_id}
-                        onValueChange={(value) =>
-                          updateDetail(index, "account_id", value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Akun Lawan" />
+            <div className="lg:col-span-1">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Informasi Jurnal</CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid gap-6">
+                    <div className="grid gap-2">
+                        <Label htmlFor="entry_date">Tanggal Entri</Label>
+                        <DatePicker
+                        date={data.entry_date}
+                        setDate={(date) => setData("entry_date", date)}
+                        id="entry_date"
+                        />
+                         {errors.entry_date && <p className="text-sm text-destructive">{errors.entry_date}</p>}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="entry_number">Nomor Entri</Label>
+                        <Input
+                        id="entry_number"
+                        placeholder="Akan dibuat otomatis"
+                        value={data.entry_number}
+                        onChange={(e) => setData("entry_number", e.target.value)}
+                        disabled
+                        />
+                        {errors.entry_number && <p className="text-sm text-destructive">{errors.entry_number}</p>}
+                    </div>
+                     <div className="grid gap-2">
+                        <Label htmlFor="bank_account_id">Setor ke Bank</Label>
+                        <Select
+                            value={data.bank_account_id}
+                            onValueChange={(value) => setData("bank_account_id", value)}
+                            >
+                            <SelectTrigger id="bank_account_id">
+                                <SelectValue placeholder="Pilih Akun Bank" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {bankAccountOptions.map((account) => (
+                                <SelectItem key={account.value} value={account.value}>
+                                    {account.label}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.bank_account_id && <p className="text-sm text-destructive">{errors.bank_account_id}</p>}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="fiscal_period_id">Periode</Label>
+                        <Select
+                        value={data.fiscal_period_id}
+                        onValueChange={(value) => setData("fiscal_period_id", value)}
+                        >
+                        <SelectTrigger id="fiscal_period_id">
+                            <SelectValue placeholder="Pilih Periode" />
                         </SelectTrigger>
                         <SelectContent>
-                          {accounts
-                            .filter((acc) => !acc.is_cash_account) // Filter akun non-kas/bank
-                            .map((account) => (
-                              <SelectItem
-                                key={account.id}
-                                value={account.id.toString()}
-                              >
-                                {account.account_code} - {account.account_name}
-                              </SelectItem>
+                            {periods.map((period) => (
+                            <SelectItem key={period.id} value={period.id.toString()}>
+                                {period.period_name}
+                            </SelectItem>
                             ))}
                         </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="text"
-                        placeholder="Uraian transaksi..."
-                        value={detail.description}
-                        onChange={(e) =>
-                          updateDetail(index, "description", e.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        className="text-right"
-                        placeholder="0"
-                        min="0"
-                        value={detail.credit}
-                        onChange={(e) =>
-                          updateDetail(index, "credit", e.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {formData.details.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeRow(index)}
-                          className="text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            <div className="p-2 border-t bg-muted/30">
-                <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={addRow}
-                className="gap-2 text-muted-foreground hover:text-foreground"
-                >
-                <Plus className="h-4 w-4" />
-                Tambah Baris
-                </Button>
+                        </Select>
+                        {errors.fiscal_period_id && <p className="text-sm text-destructive">{errors.fiscal_period_id}</p>}
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="penerima">Diterima Dari</Label>
+                        <Input
+                        id="penerima"
+                        placeholder="Nama pemberi dana (Opsional)"
+                        value={data.penerima}
+                        onChange={(e) => setData("penerima", e.target.value)}
+                        />
+                        {errors.penerima && <p className="text-sm text-destructive">{errors.penerima}</p>}
+                    </div>
+                    </CardContent>
+                </Card>
             </div>
           </div>
         </form>

@@ -1,8 +1,17 @@
-import React, { useState } from "react";
-import { Head, router } from "@inertiajs/react";
+import React, { useState, useMemo } from "react";
+import { Head, Link, useForm } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,7 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Printer, X } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
+import { Combobox } from "@/components/ui/combobox";
+import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function FormJurnalUmum({ journal = null, accounts = [], periods = [] }) {
   const isEdit = !!journal;
@@ -28,48 +40,58 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
     { title: isEdit ? "Edit Jurnal Umum" : "Tambah Jurnal Umum", href: "#" },
   ];
 
-  const [formData, setFormData] = useState({
-    entry_date: journal?.entry_date || "",
+  const { data, setData, post, put, processing, errors } = useForm({
+    entry_date: journal?.entry_date ? new Date(journal.entry_date) : new Date(),
     entry_number: journal?.entry_number || "",
-    fiscal_period_id: journal?.fiscal_period_id || "",
+    fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
     details: journal?.details || [
-      { account_id: "", description: "", debit: 0, credit: 0 },
-      { account_id: "", description: "", debit: 0, credit: 0 },
+      { account_id: "", description: "", debit: "", credit: "" },
+      { account_id: "", description: "", debit: "", credit: "" },
     ],
   });
 
+  const accountOptions = accounts.map((acc) => ({
+    value: acc.id.toString(),
+    label: `${acc.account_code} - ${acc.account_name}`,
+  }));
+
   const addRow = () => {
-    setFormData({
-      ...formData,
-      details: [
-        ...formData.details,
-        { account_id: "", description: "", debit: 0, credit: 0 },
-      ],
-    });
+    setData(
+      "details",
+      [...data.details, { account_id: "", description: "", debit: "", credit: "" }]
+    );
   };
 
   const updateDetail = (index, field, value) => {
-    const newDetails = [...formData.details];
+    const newDetails = [...data.details];
     newDetails[index][field] = value;
-    setFormData({ ...formData, details: newDetails });
+
+    // Set opposite field to 0 if a value is entered
+    if (field === 'debit' && value !== '') {
+        newDetails[index]['credit'] = '';
+    } else if (field === 'credit' && value !== '') {
+        newDetails[index]['debit'] = '';
+    }
+
+    setData("details", newDetails);
   };
 
   const removeRow = (index) => {
-    if (formData.details.length > 2) {
-      const newDetails = formData.details.filter((_, i) => i !== index);
-      setFormData({ ...formData, details: newDetails });
+    if (data.details.length > 2) {
+      const newDetails = data.details.filter((_, i) => i !== index);
+      setData("details", newDetails);
     }
   };
 
-  const totalDebit = formData.details.reduce(
-    (sum, detail) => sum + parseFloat(detail.debit || 0),
-    0
+  const totalDebit = useMemo(() => 
+    data.details.reduce((sum, detail) => sum + parseFloat(detail.debit || 0), 0),
+    [data.details]
   );
 
-  const totalCredit = formData.details.reduce(
-    (sum, detail) => sum + parseFloat(detail.credit || 0),
-    0
+  const totalCredit = useMemo(() =>
+    data.details.reduce((sum, detail) => sum + parseFloat(detail.credit || 0), 0),
+    [data.details]
   );
 
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
@@ -78,257 +100,229 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
     e.preventDefault();
     if (isBalanced) {
       if (isEdit) {
-        router.put(`/jurnal/umum/${journal.id}`, formData);
+        put(route("jurnal.umum.update", journal.id));
       } else {
-        router.post("/jurnal/umum", formData);
+        post(route("jurnal.umum.store"));
       }
     }
-  };
-
-  const handleCancel = () => {
-    router.visit("/jurnal/umum");
   };
 
   return (
     <>
       <Head title={isEdit ? "Edit Jurnal Umum" : "Tambah Jurnal Umum"} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col gap-2">
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center justify-between mb-6">
+            <div>
               <h1 className="text-2xl font-bold">
-                {isEdit ? "Edit Jurnal Umum" : "Menambah Jurnal Umum"}
+                {isEdit ? "Edit Jurnal Umum" : "Tambah Jurnal Umum"}
               </h1>
-              {isEdit && (
-                <p className="text-muted-foreground">
-                  ID: {journal.entry_number}
-                </p>
-              )}
+              <p className="text-muted-foreground">
+                Isi form di bawah ini untuk {isEdit ? "mengubah" : "menambah"} jurnal umum.
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-[#ef4444] hover:bg-[#dc2626] text-white border-0"
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Cetak
+              <Button type="button" variant="outline" asChild>
+                <Link href={route("jurnal.umum")}>
+                  <X className="h-4 w-4 mr-2" />
+                  Batal
+                </Link>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-[#ef4444] hover:bg-[#dc2626] text-white border-0"
-                onClick={handleCancel}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Batal
+              <Button type="submit" disabled={!isBalanced || processing}>
+                {processing ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-2" />
+                )}
+                {isEdit ? "Simpan Perubahan" : "Simpan"}
               </Button>
-              <Button
-                type="submit"
-                className="bg-[#ef4444] hover:bg-[#dc2626] text-white"
-                disabled={!isBalanced}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                {isEdit ? "Simpan" : "Tambah"}
-              </Button>
+              {isEdit && (
+                 <Button type="button" variant="outline">
+                    <Printer className="h-4 w-4 mr-2" />
+                    Cetak
+                 </Button>
+              )}
             </div>
           </div>
 
-          {/* Form Fields */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Tanggal Entri</label>
-              <Input
-                type="date"
-                value={formData.entry_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, entry_date: e.target.value })
-                }
-                required
-              />
-            </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Informasi Jurnal</CardTitle>
+              <CardDescription>
+                Masukkan detail utama jurnal umum.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid md:grid-cols-2 gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="entry_date">Tanggal Entri</Label>
+                <DatePicker
+                  date={data.entry_date}
+                  setDate={(date) => setData("entry_date", date)}
+                  id="entry_date"
+                />
+                {errors.entry_date && <p className="text-sm text-destructive">{errors.entry_date}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="entry_number">Nomor Entri</Label>
+                <Input
+                  id="entry_number"
+                  placeholder="Akan dibuat otomatis"
+                  value={data.entry_number}
+                  onChange={(e) => setData("entry_number", e.target.value)}
+                  disabled
+                />
+                 {errors.entry_number && <p className="text-sm text-destructive">{errors.entry_number}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="fiscal_period_id">Periode</Label>
+                <Select
+                  value={data.fiscal_period_id}
+                  onValueChange={(value) => setData("fiscal_period_id", value)}
+                >
+                  <SelectTrigger id="fiscal_period_id">
+                    <SelectValue placeholder="Pilih Periode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {periods.map((period) => (
+                      <SelectItem key={period.id} value={period.id.toString()}>
+                        {period.period_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.fiscal_period_id && <p className="text-sm text-destructive">{errors.fiscal_period_id}</p>}
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="penerima">Penerima</Label>
+                <Input
+                  id="penerima"
+                  placeholder="Nama Penerima (Opsional)"
+                  value={data.penerima}
+                  onChange={(e) => setData("penerima", e.target.value)}
+                />
+                {errors.penerima && <p className="text-sm text-destructive">{errors.penerima}</p>}
+              </div>
+            </CardContent>
+          </Card>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Nomor Entri</label>
-              <Input
-                type="text"
-                placeholder="Auto-generated"
-                value={formData.entry_number}
-                onChange={(e) =>
-                  setFormData({ ...formData, entry_number: e.target.value })
-                }
-                disabled={!isEdit}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Periode</label>
-              <Select
-                value={formData.fiscal_period_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, fiscal_period_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih Periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {periods.map((period) => (
-                    <SelectItem key={period.id} value={period.id.toString()}>
-                      {period.period_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Penerima</label>
-              <Input
-                type="text"
-                placeholder="Nama Penerima"
-                value={formData.penerima}
-                onChange={(e) =>
-                  setFormData({ ...formData, penerima: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          {/* Table */}
-          <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">No.</TableHead>
-                  <TableHead className="w-1/4">Akun</TableHead>
-                  <TableHead>Uraian</TableHead>
-                  <TableHead className="w-40">Debit</TableHead>
-                  <TableHead className="w-40">Kredit</TableHead>
-                  <TableHead className="w-20">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {formData.details.map((detail, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{index + 1}.</TableCell>
-                    <TableCell>
-                      <Select
-                        value={detail.account_id}
-                        onValueChange={(value) =>
-                          updateDetail(index, "account_id", value)
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih Akun" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accounts.map((account) => (
-                            <SelectItem
-                              key={account.id}
-                              value={account.id.toString()}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Detail Transaksi</CardTitle>
+              <CardDescription>
+                Masukkan akun-akun yang terlibat dalam transaksi ini.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[300px]">Akun</TableHead>
+                      <TableHead>Uraian</TableHead>
+                      <TableHead className="w-[180px]">Debit</TableHead>
+                      <TableHead className="w-[180px]">Kredit</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.details.map((detail, index) => (
+                      <TableRow key={index}>
+                        <TableCell>
+                          <Combobox
+                            options={accountOptions}
+                            value={detail.account_id}
+                            onSelect={(value) => updateDetail(index, "account_id", value)}
+                            placeholder="Pilih Akun"
+                            searchPlaceholder="Cari akun..."
+                            emptyPlaceholder="Akun tidak ditemukan."
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="text"
+                            placeholder="Uraian singkat"
+                            value={detail.description}
+                            onChange={(e) =>
+                              updateDetail(index, "description", e.target.value)
+                            }
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={detail.debit}
+                            onChange={(e) =>
+                              updateDetail(index, "debit", e.target.value)
+                            }
+                            className="text-right"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={detail.credit}
+                            onChange={(e) =>
+                              updateDetail(index, "credit", e.target.value)
+                            }
+                            className="text-right"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {data.details.length > 2 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeRow(index)}
+                              className="text-muted-foreground hover:text-destructive"
                             >
-                              {account.account_code} - {account.account_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="text"
-                        placeholder="Uraian"
-                        value={detail.description}
-                        onChange={(e) =>
-                          updateDetail(index, "description", e.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={detail.debit}
-                        onChange={(e) =>
-                          updateDetail(index, "debit", e.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        placeholder="0"
-                        value={detail.credit}
-                        onChange={(e) =>
-                          updateDetail(index, "credit", e.target.value)
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {formData.details.length > 2 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeRow(index)}
-                          className="h-8 w-8"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Add Row Button */}
-          <div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={addRow}
-              className="gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Tambah Kolom
-            </Button>
-          </div>
-
-          {/* Total and Balance */}
-          <div className="border rounded-lg p-4">
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div />
-              <div className="text-right">
-                <div className="text-sm font-medium mb-2">Total Debit</div>
-                <div className="text-lg font-bold">
-                  {totalDebit.toLocaleString("id-ID")}
-                </div>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-              <div className="text-right">
-                <div className="text-sm font-medium mb-2">Total Kredit</div>
-                <div className="text-lg font-bold">
-                  {totalCredit.toLocaleString("id-ID")}
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
+              {errors['details'] && <p className="text-sm text-destructive mt-2">{errors['details']}</p>}
               <Button
                 type="button"
-                variant={isBalanced ? "default" : "destructive"}
-                disabled
-                className={
-                  isBalanced
-                    ? "bg-green-500 hover:bg-green-600"
-                    : "bg-red-500 hover:bg-red-600"
-                }
+                variant="outline"
+                onClick={addRow}
+                className="mt-4 gap-2"
               >
-                {isBalanced ? "SEIMBANG" : "TIDAK SEIMBANG"}
+                <Plus className="h-4 w-4" />
+                Tambah Baris
               </Button>
-            </div>
-          </div>
+            </CardContent>
+            <CardFooter className="flex justify-end gap-6 items-center bg-muted/50 py-4 px-6">
+                <div className={cn(
+                    "rounded-md px-3 py-1 text-sm font-medium",
+                    isBalanced
+                        ? "bg-success/10 text-success-foreground"
+                        : "bg-destructive/10 text-destructive-foreground"
+                )}>
+                    {isBalanced ? "SEIMBANG" : "TIDAK SEIMBANG"}
+                </div>
+                <div className="grid grid-cols-2 gap-4 w-[400px] text-right">
+                    <div>
+                        <p className="text-sm text-muted-foreground">Total Debit</p>
+                        <p className="font-semibold text-lg">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalDebit)}
+                        </p>
+                    </div>
+                     <div>
+                        <p className="text-sm text-muted-foreground">Total Kredit</p>
+                        <p className="font-semibold text-lg">
+                            {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCredit)}
+                        </p>
+                    </div>
+                </div>
+            </CardFooter>
+          </Card>
         </form>
       </AppLayouts>
     </>

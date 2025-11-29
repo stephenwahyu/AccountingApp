@@ -578,41 +578,866 @@ class JurnalController extends Controller
         }
     }
 
-    // Lihat detail jurnal
-    public function show($id)
-    {
-        $journal = JournalEntry::with([
-            'fiscalPeriod',
-            'user',
-            'postedByUser',
-            'journalDetails.account'
-        ])->findOrFail($id);
+        public function show(JournalEntry $journal)
 
-        return Inertia::render('jurnal/view/jurnaldetail', [
-            'journal' => $journal
-        ]);
-    }
+        {
 
-    // Hapus jurnal
-    public function destroy($id)
-    {
-        DB::beginTransaction();
-        try {
-            $journal = JournalEntry::findOrFail($id);
-            
-            if ($journal->status === 'Posted') {
-                return back()->withErrors(['error' => 'Tidak dapat menghapus jurnal yang sudah diposting']);
+            $journal->load([
+
+                'fiscalPeriod',
+
+                'user',
+
+                'postedByUser',
+
+                'journalDetails.account'
+
+            ]);
+
+    
+
+            return Inertia::render('jurnal/view/jurnaldetail', [
+
+                'journal' => $journal
+
+            ]);
+
+        }
+
+    
+
+        // Edit Jurnal Umum
+
+        public function umumEdit(JournalEntry $journal)
+
+        {
+
+            $accounts = Account::where('is_active', true)
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $periods = FiscalPeriod::where('status', 'Open')
+
+                ->orderBy('start_date', 'desc')
+
+                ->get(['id', 'period_name']);
+
+    
+
+            return Inertia::render('jurnal/forms/jurnalumum', [
+
+                'journal' => $journal->load('journalDetails'),
+
+                'accounts' => $accounts,
+
+                'periods' => $periods
+
+            ]);
+
+        }
+
+    
+
+        // Update Jurnal Umum
+
+        public function umumUpdate(Request $request, JournalEntry $journal)
+
+        {
+
+            $validated = $request->validate([
+
+                'entry_date' => 'required|date',
+
+                'fiscal_period_id' => 'required|exists:fiscal_periods,id',
+
+                'penerima' => 'nullable|string',
+
+                'details' => 'required|array|min:2',
+
+                'details.*.account_id' => 'required|exists:accounts,id',
+
+                'details.*.description' => 'nullable|string',
+
+                'details.*.debit' => 'required|numeric|min:0',
+
+                'details.*.credit' => 'required|numeric|min:0',
+
+            ]);
+
+    
+
+            $totalDebit = collect($validated['details'])->sum('debit');
+
+            $totalCredit = collect($validated['details'])->sum('credit');
+
+    
+
+            if ($totalDebit != $totalCredit) {
+
+                return back()->withErrors(['details' => 'Total Debit dan Kredit harus seimbang']);
+
             }
 
-            $journal->journalDetails()->delete();
-            $journal->delete();
+    
 
-            DB::commit();
+            DB::beginTransaction();
 
-            return back()->with('success', 'Jurnal berhasil dihapus');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->withErrors(['error' => 'Gagal menghapus jurnal: ' . $e->getMessage()]);
+            try {
+
+                $journal->update([
+
+                    'entry_date' => $validated['entry_date'],
+
+                    'penerima' => $validated['penerima'],
+
+                    'fiscal_period_id' => $validated['fiscal_period_id'],
+
+                ]);
+
+    
+
+                $journal->journalDetails()->delete();
+
+    
+
+                foreach ($validated['details'] as $detail) {
+
+                    if ($detail['debit'] > 0 || $detail['credit'] > 0) {
+
+                        JournalDetail::create([
+
+                            'journal_entry_id' => $journal->id,
+
+                            'account_id' => $detail['account_id'],
+
+                            'description' => $detail['description'],
+
+                            'debit' => $detail['debit'],
+
+                            'credit' => $detail['credit'],
+
+                        ]);
+
+                    }
+
+                }
+
+    
+
+                DB::commit();
+
+    
+
+                return redirect()->route('jurnal.umum')->with('success', 'Jurnal Umum berhasil diperbarui');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal memperbarui jurnal: ' . $e->getMessage()]);
+
+            }
+
         }
+
+    
+
+        // Edit Pemasukan Kas
+
+        public function kasPemasukanEdit(JournalEntry $journal)
+
+        {
+
+            $accounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', false)
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $cashAccounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', true)
+
+                ->where('account_name', 'like', '%Kas%')
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $periods = FiscalPeriod::where('status', 'Open')
+
+                ->orderBy('start_date', 'desc')
+
+                ->get(['id', 'period_name']);
+
+    
+
+            return Inertia::render('jurnal/forms/jurnalkas/pemasukan', [
+
+                'journal' => $journal->load('journalDetails'),
+
+                'accounts' => $accounts,
+
+                'cashAccounts' => $cashAccounts,
+
+                'periods' => $periods
+
+            ]);
+
+        }
+
+    
+
+        // Update Pemasukan Kas
+
+        public function kasPemasukanUpdate(Request $request, JournalEntry $journal)
+
+        {
+
+            $validated = $request->validate([
+
+                'entry_date' => 'required|date',
+
+                'fiscal_period_id' => 'required|exists:fiscal_periods,id',
+
+                'penerima' => 'nullable|string',
+
+                'cash_account_id' => 'required|exists:accounts,id',
+
+                'details' => 'required|array|min:1',
+
+                'details.*.account_id' => 'required|exists:accounts,id',
+
+                'details.*.description' => 'nullable|string',
+
+                'details.*.credit' => 'required|numeric|min:0',
+
+            ]);
+
+    
+
+            DB::beginTransaction();
+
+            try {
+
+                $journal->update([
+
+                    'entry_date' => $validated['entry_date'],
+
+                    'penerima' => $validated['penerima'],
+
+                    'fiscal_period_id' => $validated['fiscal_period_id'],
+
+                ]);
+
+    
+
+                $journal->journalDetails()->delete();
+
+    
+
+                $totalCredit = 0;
+
+                foreach ($validated['details'] as $detail) {
+
+                    if ($detail['credit'] > 0) {
+
+                        JournalDetail::create([
+
+                            'journal_entry_id' => $journal->id,
+
+                            'account_id' => $detail['account_id'],
+
+                            'description' => $detail['description'],
+
+                            'debit' => 0,
+
+                            'credit' => $detail['credit'],
+
+                        ]);
+
+                        $totalCredit += $detail['credit'];
+
+                    }
+
+                }
+
+    
+
+                JournalDetail::create([
+
+                    'journal_entry_id' => $journal->id,
+
+                    'account_id' => $validated['cash_account_id'],
+
+                    'description' => 'Penerimaan Kas',
+
+                    'debit' => $totalCredit,
+
+                    'credit' => 0,
+
+                ]);
+
+    
+
+                DB::commit();
+
+    
+
+                return redirect()->route('jurnal.kas')->with('success', 'Pemasukan Kas berhasil diperbarui');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal memperbarui jurnal: ' . $e->getMessage()]);
+
+            }
+
+        }
+
+    
+
+        // Edit Pengeluaran Kas
+
+        public function kasPengeluaranEdit(JournalEntry $journal)
+
+        {
+
+            $accounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', false)
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $cashAccounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', true)
+
+                ->where('account_name', 'like', '%Kas%')
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $periods = FiscalPeriod::where('status', 'Open')
+
+                ->orderBy('start_date', 'desc')
+
+                ->get(['id', 'period_name']);
+
+    
+
+            return Inertia::render('jurnal/forms/jurnalkas/pengeluaran', [
+
+                'journal' => $journal->load('journalDetails'),
+
+                'accounts' => $accounts,
+
+                'cashAccounts' => $cashAccounts,
+
+                'periods' => $periods
+
+            ]);
+
+        }
+
+    
+
+        // Update Pengeluaran Kas
+
+        public function kasPengeluaranUpdate(Request $request, JournalEntry $journal)
+
+        {
+
+            $validated = $request->validate([
+
+                'entry_date' => 'required|date',
+
+                'fiscal_period_id' => 'required|exists:fiscal_periods,id',
+
+                'penerima' => 'nullable|string',
+
+                'cash_account_id' => 'required|exists:accounts,id',
+
+                'details' => 'required|array|min:1',
+
+                'details.*.account_id' => 'required|exists:accounts,id',
+
+                'details.*.description' => 'nullable|string',
+
+                'details.*.debit' => 'required|numeric|min:0',
+
+            ]);
+
+    
+
+            DB::beginTransaction();
+
+            try {
+
+                $journal->update([
+
+                    'entry_date' => $validated['entry_date'],
+
+                    'penerima' => $validated['penerima'],
+
+                    'fiscal_period_id' => $validated['fiscal_period_id'],
+
+                ]);
+
+    
+
+                $journal->journalDetails()->delete();
+
+    
+
+                $totalDebit = 0;
+
+                foreach ($validated['details'] as $detail) {
+
+                    if ($detail['debit'] > 0) {
+
+                        JournalDetail::create([
+
+                            'journal_entry_id' => $journal->id,
+
+                            'account_id' => $detail['account_id'],
+
+                            'description' => $detail['description'],
+
+                            'debit' => $detail['debit'],
+
+                            'credit' => 0,
+
+                        ]);
+
+                        $totalDebit += $detail['debit'];
+
+                    }
+
+                }
+
+    
+
+                JournalDetail::create([
+
+                    'journal_entry_id' => $journal->id,
+
+                    'account_id' => $validated['cash_account_id'],
+
+                    'description' => 'Pengeluaran Kas',
+
+                    'debit' => 0,
+
+                    'credit' => $totalDebit,
+
+                ]);
+
+    
+
+                DB::commit();
+
+    
+
+                return redirect()->route('jurnal.kas')->with('success', 'Pengeluaran Kas berhasil diperbarui');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal memperbarui jurnal: ' . $e->getMessage()]);
+
+            }
+
+        }
+
+    
+
+        // Edit Pemasukan Bank
+
+        public function bankPemasukanEdit(JournalEntry $journal)
+
+        {
+
+            $accounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', false)
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $bankAccounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', true)
+
+                ->where('account_name', 'like', '%Bank%')
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $periods = FiscalPeriod::where('status', 'Open')
+
+                ->orderBy('start_date', 'desc')
+
+                ->get(['id', 'period_name']);
+
+    
+
+            return Inertia::render('jurnal/forms/jurnalbank/pemasukan', [
+
+                'journal' => $journal->load('journalDetails'),
+
+                'accounts' => $accounts,
+
+                'bankAccounts' => $bankAccounts,
+
+                'periods' => $periods
+
+            ]);
+
+        }
+
+    
+
+        // Update Pemasukan Bank
+
+        public function bankPemasukanUpdate(Request $request, JournalEntry $journal)
+
+        {
+
+            $validated = $request->validate([
+
+                'entry_date' => 'required|date',
+
+                'fiscal_period_id' => 'required|exists:fiscal_periods,id',
+
+                'penerima' => 'nullable|string',
+
+                'bank_account_id' => 'required|exists:accounts,id',
+
+                'details' => 'required|array|min:1',
+
+                'details.*.account_id' => 'required|exists:accounts,id',
+
+                'details.*.description' => 'nullable|string',
+
+                'details.*.credit' => 'required|numeric|min:0',
+
+            ]);
+
+    
+
+            DB::beginTransaction();
+
+            try {
+
+                $journal->update([
+
+                    'entry_date' => $validated['entry_date'],
+
+                    'penerima' => $validated['penerima'],
+
+                    'fiscal_period_id' => $validated['fiscal_period_id'],
+
+                ]);
+
+    
+
+                $journal->journalDetails()->delete();
+
+    
+
+                $totalCredit = 0;
+
+                foreach ($validated['details'] as $detail) {
+
+                    if ($detail['credit'] > 0) {
+
+                        JournalDetail::create([
+
+                            'journal_entry_id' => $journal->id,
+
+                            'account_id' => $detail['account_id'],
+
+                            'description' => $detail['description'],
+
+                            'debit' => 0,
+
+                            'credit' => $detail['credit'],
+
+                        ]);
+
+                        $totalCredit += $detail['credit'];
+
+                    }
+
+                }
+
+    
+
+                JournalDetail::create([
+
+                    'journal_entry_id' => $journal->id,
+
+                    'account_id' => $validated['bank_account_id'],
+
+                    'description' => 'Penerimaan Bank',
+
+                    'debit' => $totalCredit,
+
+                    'credit' => 0,
+
+                ]);
+
+    
+
+                DB::commit();
+
+    
+
+                return redirect()->route('jurnal.bank')->with('success', 'Pemasukan Bank berhasil diperbarui');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal memperbarui jurnal: ' . $e->getMessage()]);
+
+            }
+
+        }
+
+    
+
+        // Edit Pengeluaran Bank
+
+        public function bankPengeluaranEdit(JournalEntry $journal)
+
+        {
+
+            $accounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', false)
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $bankAccounts = Account::where('is_active', true)
+
+                ->where('is_cash_account', true)
+
+                ->where('account_name', 'like', '%Bank%')
+
+                ->orderBy('account_code')
+
+                ->get(['id', 'account_code', 'account_name']);
+
+    
+
+            $periods = FiscalPeriod::where('status', 'Open')
+
+                ->orderBy('start_date', 'desc')
+
+                ->get(['id', 'period_name']);
+
+    
+
+            return Inertia::render('jurnal/forms/jurnalbank/pengeluaran', [
+
+                'journal' => $journal->load('journalDetails'),
+
+                'accounts' => $accounts,
+
+                'bankAccounts' => $bankAccounts,
+
+                'periods' => $periods
+
+            ]);
+
+        }
+
+    
+
+        // Update Pengeluaran Bank
+
+        public function bankPengeluaranUpdate(Request $request, JournalEntry $journal)
+
+        {
+
+            $validated = $request->validate([
+
+                'entry_date' => 'required|date',
+
+                'fiscal_period_id' => 'required|exists:fiscal_periods,id',
+
+                'penerima' => 'nullable|string',
+
+                'bank_account_id' => 'required|exists:accounts,id',
+
+                'details' => 'required|array|min:1',
+
+                'details.*.account_id' => 'required|exists:accounts,id',
+
+                'details.*.description' => 'nullable|string',
+
+                'details.*.debit' => 'required|numeric|min:0',
+
+            ]);
+
+    
+
+            DB::beginTransaction();
+
+            try {
+
+                $journal->update([
+
+                    'entry_date' => $validated['entry_date'],
+
+                    'penerima' => $validated['penerima'],
+
+                    'fiscal_period_id' => $validated['fiscal_period_id'],
+
+                ]);
+
+    
+
+                $journal->journalDetails()->delete();
+
+    
+
+                $totalDebit = 0;
+
+                foreach ($validated['details'] as $detail) {
+
+                    if ($detail['debit'] > 0) {
+
+                        JournalDetail::create([
+
+                            'journal_entry_id' => $journal->id,
+
+                            'account_id' => $detail['account_id'],
+
+                            'description' => $detail['description'],
+
+                            'debit' => $detail['debit'],
+
+                            'credit' => 0,
+
+                        ]);
+
+                        $totalDebit += $detail['debit'];
+
+                    }
+
+                }
+
+    
+
+                JournalDetail::create([
+
+                    'journal_entry_id' => $journal->id,
+
+                    'account_id' => $validated['bank_account_id'],
+
+                    'description' => 'Pengeluaran Bank',
+
+                    'debit' => 0,
+
+                    'credit' => $totalDebit,
+
+                ]);
+
+    
+
+                DB::commit();
+
+    
+
+                return redirect()->route('jurnal.bank')->with('success', 'Pengeluaran Bank berhasil diperbarui');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal memperbarui jurnal: ' . $e->getMessage()]);
+
+            }
+
+        }
+
+        
+
+        // Hapus jurnal
+
+        public function destroy($id)
+
+        {
+
+            DB::beginTransaction();
+
+            try {
+
+                $journal = JournalEntry::findOrFail($id);
+
+                
+
+                if ($journal->status === 'Posted') {
+
+                    return back()->withErrors(['error' => 'Tidak dapat menghapus jurnal yang sudah diposting']);
+
+                }
+
+    
+
+                $journal->journalDetails()->delete();
+
+                $journal->delete();
+
+    
+
+                DB::commit();
+
+    
+
+                return back()->with('success', 'Jurnal berhasil dihapus');
+
+            } catch (\Exception $e) {
+
+                DB::rollBack();
+
+                return back()->withErrors(['error' => 'Gagal menghapus jurnal: ' . $e->getMessage()]);
+
+            }
+
+        }
+
     }
-}
+
+    
