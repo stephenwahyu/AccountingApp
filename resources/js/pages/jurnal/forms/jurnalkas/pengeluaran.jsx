@@ -48,8 +48,8 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
     details: journal?.details?.map(d => ({
       account_id: d.account_id.toString(),
       description: d.description || "",
-      debit: d.debit.toString()
-    })) || [{ account_id: "", description: "", debit: "" }],
+      debit: d.debit
+    })) || [{ account_id: "", description: "", debit: 0 }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
@@ -67,7 +67,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
   }));
 
   const addRow = () => {
-    setData("details", [...data.details, { account_id: "", description: "", debit: "" }]);
+    setData("details", [...data.details, { account_id: "", description: "", debit: 0 }]);
   };
 
   const updateDetail = (index, field, value) => {

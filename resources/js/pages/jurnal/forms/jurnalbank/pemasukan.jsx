@@ -44,12 +44,12 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
-    bank_account_id: journal?.cash_account_id?.toString() || "",
+    bank_account_id: journal?.bank_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
-      account_id: d.account_id.toString(), 
+      account_id: d.account_id.toString(),
       description: d.description || "",
-      credit: d.credit.toString()
-    })) || [{ account_id: "", description: "", credit: "" }],
+      credit: d.credit
+    })) || [{ account_id: "", description: "", credit: 0 }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
@@ -67,7 +67,7 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
   }));
 
   const addRow = () => {
-    setData("details", [...data.details, { account_id: "", description: "", credit: "" }]);
+    setData("details", [...data.details, { account_id: "", description: "", credit: 0 }]);
   };
 
   const updateDetail = (index, field, value) => {

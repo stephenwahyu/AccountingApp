@@ -47,10 +47,10 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     penerima: journal?.penerima || "",
     cash_account_id: journal?.cash_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
-      account_id: d.account_id.toString(), 
+      account_id: d.account_id.toString(),
       description: d.description || "",
-      credit: d.credit.toString()
-    })) || [{ account_id: "", description: "", credit: "" }],
+      credit: d.credit
+    })) || [{ account_id: "", description: "", credit: 0 }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
@@ -68,7 +68,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
   }));
 
   const addRow = () => {
-    setData("details", [...data.details, { account_id: "", description: "", credit: "" }]);
+    setData("details", [...data.details, { account_id: "", description: "", credit: 0 }]);
   };
 
   const updateDetail = (index, field, value) => {

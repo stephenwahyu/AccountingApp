@@ -90,7 +90,7 @@ class JurnalController extends Controller
             'details.*.description' => 'nullable|string',
             'details.*.debit' => 'required|numeric|min:0',
             'details.*.credit' => 'required|numeric|min:0',
-            'status' => 'nullable|string|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
 
         // Validasi balance
@@ -99,6 +99,10 @@ class JurnalController extends Controller
 
         if ($totalDebit != $totalCredit) {
             return back()->withErrors(['details' => 'Total Debit dan Kredit harus seimbang']);
+        }
+
+        if ($totalDebit == 0 || $totalCredit == 0) {
+            return back()->withErrors(['details' => 'Total Debit dan Kredit tidak boleh 0']);
         }
 
         DB::beginTransaction();
@@ -110,7 +114,7 @@ class JurnalController extends Controller
                 $entry_number = $this->generateNextEntryNumber('JU', $date);
             }
 
-            $status = $request->input('status') ?: 'Draft';
+            $status = $validated['status'];
 
             // Create journal entry
             $journal = JournalEntry::create([
@@ -120,10 +124,9 @@ class JurnalController extends Controller
                 'journal_type' => 'Umum',
                 'status' => $status,
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                // 'user_id' => Auth::id(),
-                'user_id' => 1,
+                'user_id' => Auth::id() ?? 1,
                 'posted_at' => $status === 'Posted' ? now() : null,
-                'posted_by' => $status === 'Posted' ? Auth::id() : null,
+                'posted_by' => $status === 'Posted' ? Auth::id() ?? 1 : null,
             ]);
 
             // Create journal details
@@ -211,7 +214,7 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.credit' => 'required|numeric|min:0',
-            'status' => 'nullable|string|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
 
         DB::beginTransaction();
@@ -222,7 +225,7 @@ class JurnalController extends Controller
                 $entry_number = $this->generateNextEntryNumber('KM', $date);
             }
 
-            $status = $request->input('status') ?: 'Draft';
+            $status = $validated['status'];
 
             $journal = JournalEntry::create([
                 'entry_date' => $validated['entry_date'],
@@ -308,7 +311,7 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.debit' => 'required|numeric|min:0',
-            'status' => 'nullable|string|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
 
         DB::beginTransaction();
@@ -319,7 +322,7 @@ class JurnalController extends Controller
                 $entry_number = $this->generateNextEntryNumber('KK', $date);
             }
 
-            $status = $request->input('status') ?: 'Draft';
+            $status = $validated['status'];
 
             $journal = JournalEntry::create([
                 'entry_date' => $validated['entry_date'],
@@ -429,7 +432,7 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.credit' => 'required|numeric|min:0',
-            'status' => 'nullable|string|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
 
         DB::beginTransaction();
@@ -440,7 +443,7 @@ class JurnalController extends Controller
                 $entry_number = $this->generateNextEntryNumber('BM', $date);
             }
 
-            $status = $request->input('status') ?: 'Draft';
+            $status = $validated['status'];
 
             $journal = JournalEntry::create([
                 'entry_date' => $validated['entry_date'],
@@ -525,7 +528,7 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.debit' => 'required|numeric|min:0',
-            'status' => 'nullable|string|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
 
         DB::beginTransaction();
@@ -536,7 +539,7 @@ class JurnalController extends Controller
                 $entry_number = $this->generateNextEntryNumber('BK', $date);
             }
 
-            $status = $request->input('status') ?: 'Draft';
+            $status = $validated['status'];
 
             $journal = JournalEntry::create([
                 'entry_date' => $validated['entry_date'],
@@ -591,13 +594,12 @@ class JurnalController extends Controller
                 'fiscalPeriod',
                 'user',
                 'postedByUser',
-                'journalDetails' => function($query) {
+                'journalDetails' => function ($query) {
                     $query->orderBy('id', 'asc');
                 },
-                'journalDetails.account'
+                'journalDetails.account',
             ])->findOrFail($id);
 
-            // Construct clean data array
             $journalData = [
                 'id' => $journal->id,
                 'entry_number' => $journal->entry_number,
@@ -654,16 +656,14 @@ class JurnalController extends Controller
     {
         $accounts = Account::where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name']);
+            ->get(['id', 'account_code', 'account_name', 'is_cash_account']);
 
         $periods = FiscalPeriod::where('status', 'Open')
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
-        // Load details dengan account
         $journal->load('journalDetails.account');
 
-        // Format data untuk frontend
         $journalData = [
             'id' => $journal->id,
             'entry_date' => $journal->entry_date->format('Y-m-d'),
@@ -723,7 +723,7 @@ class JurnalController extends Controller
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
                 'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() : $journal->posted_by,
+                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
             ]);
 
             $journal->journalDetails()->delete();
@@ -806,7 +806,7 @@ class JurnalController extends Controller
     // Update Pemasukan Kas
     public function kasPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && !$request->input('status', $journal->status) === 'Posted') {
+        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
             return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
         }
 
@@ -918,12 +918,12 @@ class JurnalController extends Controller
             'cashAccounts' => $cashAccounts,
             'periods' => $periods,
         ]);
-    }   
+    }
 
     // Update Pengeluaran Kas
     public function kasPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && !$request->input('status', $journal->status) === 'Posted') {
+        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
             return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
         }
 
@@ -1040,7 +1040,7 @@ class JurnalController extends Controller
     // Update Pemasukan Bank
     public function bankPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && !$request->input('status', $journal->status) === 'Posted') {
+        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
             return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
         }
 
@@ -1157,7 +1157,7 @@ class JurnalController extends Controller
     // Update Pengeluaran Bank
     public function bankPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && !$request->input('status', $journal->status) === 'Posted') {
+        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
             return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
         }
 
@@ -1221,8 +1221,14 @@ class JurnalController extends Controller
     // Hapus jurnal
     public function destroy(JournalEntry $journal)
     {
+        $journal->load('fiscalPeriod');
+
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat dihapus karena periode fiskal terkait sudah ditutup.']);
+        }
+
         if ($journal->status === 'Posted') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat dihapus. Pertimbangkan untuk membuat jurnal pembalik.']);
+            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat dihapus.']);
         }
 
         DB::beginTransaction();
@@ -1257,8 +1263,8 @@ class JurnalController extends Controller
 
     private function generateNextEntryNumber($prefix, $date)
     {
-        $prefixedDate = $prefix ? $prefix . '-' . $date : $date;
-        $lastEntry = JournalEntry::where('entry_number', 'like', $prefixedDate . '%')
+        $prefixedDate = $prefix ? $prefix.'-'.$date : $date;
+        $lastEntry = JournalEntry::where('entry_number', 'like', $prefixedDate.'%')
             ->orderBy('entry_number', 'desc')
             ->first();
 
@@ -1269,6 +1275,6 @@ class JurnalController extends Controller
             $nextNumber = $lastNumber + 1;
         }
 
-        return $prefixedDate . '-' . $nextNumber;
+        return $prefixedDate.'-'.$nextNumber;
     }
 }

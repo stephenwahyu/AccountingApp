@@ -45,7 +45,12 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
-    details: journal?.details || [
+    details: journal?.details?.map(d => ({
+      ...d,
+      account_id: d.account_id.toString(),
+      debit: parseFloat(d.debit || 0),
+      credit: parseFloat(d.credit || 0)
+    })) || [
       { account_id: "", description: "", debit: 0, credit: 0 },
       { account_id: "", description: "", debit: 0, credit: 0 },
     ],

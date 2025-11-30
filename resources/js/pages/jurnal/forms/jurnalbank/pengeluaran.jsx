@@ -44,12 +44,12 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
-    bank_account_id: journal?.cash_account_id?.toString() || "",
+    bank_account_id: journal?.bank_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
       account_id: d.account_id.toString(),
       description: d.description || "",
-      debit: d.debit.toString()
-    })) || [{ account_id: "", description: "", debit: "" }],
+      debit: d.debit
+    })) || [{ account_id: "", description: "", debit: 0 }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
@@ -67,7 +67,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
   }));
 
   const addRow = () => {
-    setData("details", [...data.details, { account_id: "", description: "", debit: "" }]);
+    setData("details", [...data.details, { account_id: "", description: "", debit: 0 }]);
   };
 
   const updateDetail = (index, field, value) => {
