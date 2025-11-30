@@ -30,11 +30,11 @@ class FiscalPeriodSeeder extends Seeder
 
         foreach ($months as $index => $month) {
             $monthNum = str_pad($index + 1, 2, '0', STR_PAD_LEFT);
-            
+
             DB::table('fiscal_periods')->insert([
-                'period_name' => $month['name'] . ' ' . $year,
-                'start_date' => $year . '-' . $monthNum . '-' . $month['start'],
-                'end_date' => $year . '-' . $monthNum . '-' . $month['end'],
+                'period_name' => $month['name'].' '.$year,
+                'start_date' => $year.'-'.$monthNum.'-'.$month['start'],
+                'end_date' => $year.'-'.$monthNum.'-'.$month['end'],
                 'fiscal_year' => $year,
                 'status' => 'Open',
                 'created_at' => now(),

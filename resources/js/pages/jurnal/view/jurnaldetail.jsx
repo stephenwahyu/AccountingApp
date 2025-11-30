@@ -23,13 +23,25 @@ import { format } from "date-fns";
 import { id } from "date-fns/locale";
 
 export default function ViewDetailJurnal({ journal }) {
+    const getBreadcrumbTitle = (type) => {
+        if (type === 'Umum') return 'Jurnal Umum';
+        if (type?.includes('Kas')) return 'Jurnal Kas';
+        if (type?.includes('Bank')) return 'Jurnal Bank';
+        return 'Jurnal'; // Fallback default
+    };
+
+    const getBreadcrumbHref = (type) => {
+        if (type === 'Umum') return route('jurnal.umum');
+        if (type?.includes('Kas')) return route('jurnal.kas');
+        if (type?.includes('Bank')) return route('jurnal.bank');
+        return route('jurnal.index'); // Fallback default
+    };
+
     const breadcrumbs = [
         { title: "Jurnal", href: route('jurnal.index') },
         { 
-          title: journal.journal_type === "Umum" ? "Jurnal Umum" :
-                 journal.journal_type.includes("Kas") ? "Jurnal Kas" : "Jurnal Bank",
-          href: journal.journal_type === "Umum" ? route('jurnal.umum') :
-                journal.journal_type.includes("Kas") ? route('jurnal.kas') : route('jurnal.bank')
+          title: getBreadcrumbTitle(journal.journal_type),
+          href: getBreadcrumbHref(journal.journal_type)
         },
         { title: journal.entry_number, href: "#" },
       ];
@@ -137,7 +149,7 @@ export default function ViewDetailJurnal({ journal }) {
                     </div>
                     <div className="text-left @lg:text-right">
                         <p className="text-sm text-muted-foreground">Tanggal Jurnal</p>
-                        <p className="font-medium">{format(new Date(journal.entry_date), "d MMMM yyyy", { locale: id })}</p>
+                        <p className="font-medium">{journal.entry_date ? format(new Date(journal.entry_date), "d MMMM yyyy", { locale: id }) : '-'}</p>
                     </div>
                 </div>
             </CardHeader>
@@ -149,7 +161,7 @@ export default function ViewDetailJurnal({ journal }) {
                     </div>
                     <div className="grid gap-1.5">
                         <span className="text-muted-foreground">Periode Fiskal</span>
-                        <span className="font-medium">{journal.fiscal_period.period_name}</span>
+                        <span className="font-medium">{journal.fiscal_period?.period_name || '-'}</span>
                     </div>
                     <div className="grid gap-1.5">
                         <span className="text-muted-foreground">Penerima/Dibayar Kepada</span>
@@ -157,11 +169,11 @@ export default function ViewDetailJurnal({ journal }) {
                     </div>
                     <div className="grid gap-1.5">
                         <span className="text-muted-foreground">Dibuat Oleh</span>
-                        <span className="font-medium">{journal.user.name}</span>
+                        <span className="font-medium">{journal.user?.name || '-'}</span>
                     </div>
                 </div>
 
-                <div className="border rounded-md">
+                <div className="border rounded-md overflow-x-auto">
                     <Table>
                     <TableHeader>
                         <TableRow>
@@ -212,7 +224,7 @@ export default function ViewDetailJurnal({ journal }) {
           </Card>
 
         </div>
-        <style jsx global>{`
+        <style jsx="true" global="true">{`
             @media print {
                 body * {
                     visibility: hidden;

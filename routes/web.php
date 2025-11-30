@@ -12,14 +12,14 @@ Route::get('/', function () {
 Route::prefix('jurnal')->name('jurnal.')->group(function () {
     // Semua Jurnal
     Route::get('/', [JurnalController::class, 'index'])->name('index');
-    
+
     // Jurnal Umum
     Route::get('/umum', [JurnalController::class, 'umum'])->name('umum');
     Route::get('/umum/create', [JurnalController::class, 'umumCreate'])->name('umum.create');
     Route::post('/umum', [JurnalController::class, 'umumStore'])->name('umum.store');
     Route::get('/umum/{journal}/edit', [JurnalController::class, 'umumEdit'])->name('umum.edit');
     Route::put('/umum/{journal}', [JurnalController::class, 'umumUpdate'])->name('umum.update');
-    
+
     // Jurnal Kas
     Route::get('/kas', [JurnalController::class, 'kas'])->name('kas');
     Route::get('/kas/pemasukan/create', [JurnalController::class, 'kasPemasukanCreate'])->name('kas.pemasukan.create');
@@ -30,7 +30,7 @@ Route::prefix('jurnal')->name('jurnal.')->group(function () {
     Route::post('/kas/pengeluaran', [JurnalController::class, 'kasPengeluaranStore'])->name('kas.pengeluaran.store');
     Route::get('/kas/pengeluaran/{journal}/edit', [JurnalController::class, 'kasPengeluaranEdit'])->name('kas.pengeluaran.edit');
     Route::put('/kas/pengeluaran/{journal}', [JurnalController::class, 'kasPengeluaranUpdate'])->name('kas.pengeluaran.update');
-    
+
     // Jurnal Bank
     Route::get('/bank', [JurnalController::class, 'bank'])->name('bank');
     Route::get('/bank/pemasukan/create', [JurnalController::class, 'bankPemasukanCreate'])->name('bank.pemasukan.create');
@@ -41,8 +41,9 @@ Route::prefix('jurnal')->name('jurnal.')->group(function () {
     Route::post('/bank/pengeluaran', [JurnalController::class, 'bankPengeluaranStore'])->name('bank.pengeluaran.store');
     Route::get('/bank/pengeluaran/{journal}/edit', [JurnalController::class, 'bankPengeluaranEdit'])->name('bank.pengeluaran.edit');
     Route::put('/bank/pengeluaran/{journal}', [JurnalController::class, 'bankPengeluaranUpdate'])->name('bank.pengeluaran.update');
-    
+
     // Detail & Actions
     Route::get('/{id}', [JurnalController::class, 'show'])->name('show');
+    Route::post('/{journal}/post', [JurnalController::class, 'postJournal'])->name('post');
     Route::delete('/{id}', [JurnalController::class, 'destroy'])->name('destroy');
 });

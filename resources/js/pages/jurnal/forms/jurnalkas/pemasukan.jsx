@@ -51,6 +51,8 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     ],
   });
 
+  const [submittedStatus, setSubmittedStatus] = React.useState(null);
+
   const accountOptions = accounts
     .filter(acc => !acc.is_cash_account)
     .map((acc) => ({
@@ -84,23 +86,30 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     [data.details]
   );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (totalCredit > 0 && data.cash_account_id) {
-      if (isEdit) {
-        put(route("jurnal.kas.pemasukan.update", journal.id));
-      } else {
-        post(route("jurnal.kas.pemasukan.store"));
-      }
-    }
+  const handleSubmit = (status) => {
+    if (totalCredit <= 0 || !data.cash_account_id) return;
+    setSubmittedStatus(status);
+
+    const submitAction = isEdit ? put : post;
+    const url = isEdit
+      ? route("jurnal.kas.pemasukan.update", journal.id)
+      : route("jurnal.kas.pemasukan.store");
+
+    submitAction(url, {
+      transform: () => ({
+        ...data,
+        status: status,
+      }),
+      onFinish: () => setSubmittedStatus(null),
+    });
   };
 
   return (
     <>
       <Head title={isEdit ? "Edit Pemasukan Kas" : "Tambah Pemasukan Kas"} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <form onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between mb-6">
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold">
                 {isEdit ? "Edit Pemasukan Kas" : "Tambah Pemasukan Kas"}
@@ -109,23 +118,23 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                 Isi form di bawah ini untuk {isEdit ? "mengubah" : "mencatat"} pemasukan kas.
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" asChild>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button type="button" variant="outline" asChild className="w-full sm:w-auto">
                 <Link href={route("jurnal.kas")}>
                   <X className="h-4 w-4 mr-2" />
                   Batal
                 </Link>
               </Button>
-              <Button type="submit" disabled={totalCredit === 0 || !data.cash_account_id || processing}>
-                {processing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isEdit ? "Simpan Perubahan" : "Simpan"}
+              <Button onClick={() => handleSubmit('Draft')} disabled={totalCredit === 0 || !data.cash_account_id || processing} variant="secondary" className="w-full sm:w-auto">
+                {processing && submittedStatus === 'Draft' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Simpan Draft
+              </Button>
+              <Button onClick={() => handleSubmit('Posted')} disabled={totalCredit === 0 || !data.cash_account_id || processing} className="w-full sm:w-auto">
+                {processing && submittedStatus === 'Posted' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Simpan & Posting
               </Button>
                {isEdit && (
-                 <Button type="button" variant="outline">
+                 <Button type="button" variant="outline" className="w-full sm:w-auto">
                     <Printer className="h-4 w-4 mr-2" />
                     Cetak
                  </Button>
@@ -141,13 +150,13 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                         <CardDescription>Masukkan akun-akun sumber pemasukan.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                         <div className="border rounded-md">
+                         <div className="border rounded-md overflow-x-auto">
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                    <TableHead className="w-[300px]">Akun Kredit</TableHead>
+                                    <TableHead className="w-[200px] md:w-[300px]">Akun Kredit</TableHead>
                                     <TableHead>Uraian</TableHead>
-                                    <TableHead className="w-[180px]">Jumlah</TableHead>
+                                    <TableHead className="w-[150px] md:w-[180px]">Jumlah</TableHead>
                                     <TableHead className="w-12"></TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -210,8 +219,8 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                             Tambah Baris
                         </Button>
                     </CardContent>
-                    <CardFooter className="flex justify-end gap-6 items-center bg-muted/50 py-4 px-6">
-                        <div className="grid grid-cols-2 gap-4 w-[400px] text-right">
+                    <CardFooter className="flex flex-col sm:flex-row justify-end gap-6 items-stretch sm:items-center bg-muted/50 py-4 px-6">
+                        <div className="grid grid-cols-2 gap-4 w-full sm:w-[400px] text-right">
                              <div>
                                 <p className="text-sm text-muted-foreground">Total Pemasukan</p>
                                 <p className="font-semibold text-lg">

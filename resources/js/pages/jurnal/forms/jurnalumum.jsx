@@ -46,10 +46,12 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
     details: journal?.details || [
-      { account_id: "", description: "", debit: "", credit: "" },
-      { account_id: "", description: "", debit: "", credit: "" },
+      { account_id: "", description: "", debit: 0, credit: 0 },
+      { account_id: "", description: "", debit: 0, credit: 0 },
     ],
   });
+
+  const [submittedStatus, setSubmittedStatus] = useState(null);
 
   const accountOptions = accounts.map((acc) => ({
     value: acc.id.toString(),
@@ -59,7 +61,7 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
   const addRow = () => {
     setData(
       "details",
-      [...data.details, { account_id: "", description: "", debit: "", credit: "" }]
+      [...data.details, { account_id: "", description: "", debit: 0, credit: 0 }]
     );
   };
 
@@ -69,9 +71,9 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
 
     // Set opposite field to 0 if a value is entered
     if (field === 'debit' && value !== '') {
-        newDetails[index]['credit'] = '';
+        newDetails[index]['credit'] = 0;
     } else if (field === 'credit' && value !== '') {
-        newDetails[index]['debit'] = '';
+        newDetails[index]['debit'] = 0;
     }
 
     setData("details", newDetails);
@@ -96,23 +98,28 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
 
   const isBalanced = totalDebit === totalCredit && totalDebit > 0;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (isBalanced) {
-      if (isEdit) {
-        put(route("jurnal.umum.update", journal.id));
-      } else {
-        post(route("jurnal.umum.store"));
-      }
-    }
+  const handleSubmit = (status) => {
+    if (!isBalanced) return;
+    setSubmittedStatus(status);
+
+    const submitAction = isEdit ? put : post;
+    const url = isEdit ? route("jurnal.umum.update", journal.id) : route("jurnal.umum.store");
+
+    submitAction(url, {
+        transform: () => ({
+            ...data,
+            status: status,
+        }),
+        onFinish: () => setSubmittedStatus(null),
+    });
   };
 
   return (
     <>
       <Head title={isEdit ? "Edit Jurnal Umum" : "Tambah Jurnal Umum"} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <form onSubmit={handleSubmit}>
-          <div className="flex items-center justify-between mb-6">
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold">
                 {isEdit ? "Edit Jurnal Umum" : "Tambah Jurnal Umum"}
@@ -121,23 +128,23 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
                 Isi form di bawah ini untuk {isEdit ? "mengubah" : "menambah"} jurnal umum.
               </p>
             </div>
-            <div className="flex gap-2">
-              <Button type="button" variant="outline" asChild>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button type="button" variant="outline" asChild className="w-full sm:w-auto">
                 <Link href={route("jurnal.umum")}>
                   <X className="h-4 w-4 mr-2" />
                   Batal
                 </Link>
               </Button>
-              <Button type="submit" disabled={!isBalanced || processing}>
-                {processing ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Save className="h-4 w-4 mr-2" />
-                )}
-                {isEdit ? "Simpan Perubahan" : "Simpan"}
+              <Button onClick={() => handleSubmit('Draft')} disabled={!isBalanced || processing} variant="secondary" className="w-full sm:w-auto">
+                {processing && submittedStatus === 'Draft' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Simpan Draft
+              </Button>
+              <Button onClick={() => handleSubmit('Posted')} disabled={!isBalanced || processing} className="w-full sm:w-auto">
+                {processing && submittedStatus === 'Posted' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Simpan & Posting
               </Button>
               {isEdit && (
-                 <Button type="button" variant="outline">
+                 <Button type="button" variant="outline" className="w-full sm:w-auto">
                     <Printer className="h-4 w-4 mr-2" />
                     Cetak
                  </Button>
@@ -213,14 +220,14 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="border rounded-md">
+              <div className="border rounded-md overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[300px]">Akun</TableHead>
+                      <TableHead className="w-[200px] md:w-[300px]">Akun</TableHead>
                       <TableHead>Uraian</TableHead>
-                      <TableHead className="w-[180px]">Debit</TableHead>
-                      <TableHead className="w-[180px]">Kredit</TableHead>
+                      <TableHead className="w-[150px] md:w-[180px]">Debit</TableHead>
+                      <TableHead className="w-[150px] md:w-[180px]">Kredit</TableHead>
                       <TableHead className="w-12"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -298,7 +305,7 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
                 Tambah Baris
               </Button>
             </CardContent>
-            <CardFooter className="flex justify-end gap-6 items-center bg-muted/50 py-4 px-6">
+            <CardFooter className="flex flex-col sm:flex-row justify-end gap-6 items-stretch sm:items-center bg-muted/50 py-4 px-6">
                 <div className={cn(
                     "rounded-md px-3 py-1 text-sm font-medium",
                     isBalanced
@@ -307,7 +314,7 @@ export default function FormJurnalUmum({ journal = null, accounts = [], periods 
                 )}>
                     {isBalanced ? "SEIMBANG" : "TIDAK SEIMBANG"}
                 </div>
-                <div className="grid grid-cols-2 gap-4 w-[400px] text-right">
+                <div className="grid grid-cols-2 gap-4 w-full sm:w-[400px] text-right">
                     <div>
                         <p className="text-sm text-muted-foreground">Total Debit</p>
                         <p className="font-semibold text-lg">

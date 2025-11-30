@@ -144,13 +144,13 @@ export default function JurnalKas({ journals: initialJournals = [] }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="relative w-full max-w-sm">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-4">
+                <div className="relative w-full">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
                     placeholder="Cari jurnal..."
-                    className="pl-8"
+                    className="pl-8 w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -159,7 +159,7 @@ export default function JurnalKas({ journals: initialJournals = [] }) {
                   value={statusFilter}
                   onValueChange={setStatusFilter}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full md:w-[180px]">
                     <SelectValue placeholder="Filter Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -173,7 +173,7 @@ export default function JurnalKas({ journals: initialJournals = [] }) {
                   value={typeFilter}
                   onValueChange={setTypeFilter}
                 >
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-full md:w-[180px]">
                     <SelectValue placeholder="Filter Tipe" />
                   </SelectTrigger>
                   <SelectContent>
@@ -183,7 +183,7 @@ export default function JurnalKas({ journals: initialJournals = [] }) {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="border rounded-lg">
+              <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -250,11 +250,11 @@ export default function JurnalKas({ journals: initialJournals = [] }) {
                   </TableBody>
                 </Table>
               </div>
-              <div className="flex items-center justify-between mt-4">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-4">
                 <p className="text-sm text-muted-foreground">
                   Menampilkan {paginatedJournals.length} dari {totalRows} baris.
                 </p>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col md:flex-row items-center gap-4">
                   <div className="flex items-center gap-2">
                     <span className="text-sm">Baris per halaman</span>
                     <Select
