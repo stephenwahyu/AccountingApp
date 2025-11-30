@@ -660,8 +660,30 @@ class JurnalController extends Controller
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
+        // Load details dengan account
+        $journal->load('journalDetails.account');
+
+        // Format data untuk frontend
+        $journalData = [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'details' => $journal->journalDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    'debit' => (float) $detail->debit,
+                    'credit' => (float) $detail->credit,
+                ];
+            })->toArray(),
+        ];
+
         return Inertia::render('jurnal/forms/jurnalumum', [
-            'journal' => $journal->load('journalDetails'),
+            'journal' => $journalData,
             'accounts' => $accounts,
             'periods' => $periods,
         ]);
@@ -670,7 +692,7 @@ class JurnalController extends Controller
     // Update Jurnal Umum
     public function umumUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && !$request->input('status', $journal->status) === 'Posted') {
+        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
             return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
         }
 
@@ -746,8 +768,35 @@ class JurnalController extends Controller
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
+        $journal->load('journalDetails.account');
+
+        // Cari akun kas (yang debit)
+        $cashDetail = $journal->journalDetails->firstWhere('debit', '>', 0);
+        $cashAccountId = $cashDetail ? $cashDetail->account_id : null;
+
+        // Ambil detail kredit (bukan kas)
+        $creditDetails = $journal->journalDetails->where('credit', '>', 0);
+
+        $journalData = [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'cash_account_id' => $cashAccountId,
+            'details' => $creditDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    'credit' => (float) $detail->credit,
+                ];
+            })->values()->toArray(),
+        ];
+
         return Inertia::render('jurnal/forms/jurnalkas/pemasukan', [
-            'journal' => $journal->load('journalDetails'),
+            'journal' => $journalData,
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
             'periods' => $periods,
@@ -836,13 +885,40 @@ class JurnalController extends Controller
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
+        $journal->load('journalDetails.account');
+
+        // Cari akun kas (yang kredit)
+        $cashDetail = $journal->journalDetails->firstWhere('credit', '>', 0);
+        $cashAccountId = $cashDetail ? $cashDetail->account_id : null;
+
+        // Ambil detail debit (bukan kas)
+        $debitDetails = $journal->journalDetails->where('debit', '>', 0);
+
+        $journalData = [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'cash_account_id' => $cashAccountId,
+            'details' => $debitDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    'debit' => (float) $detail->debit,
+                ];
+            })->values()->toArray(),
+        ];
+
         return Inertia::render('jurnal/forms/jurnalkas/pengeluaran', [
-            'journal' => $journal->load('journalDetails'),
+            'journal' => $journalData,
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
             'periods' => $periods,
         ]);
-    }
+    }   
 
     // Update Pengeluaran Kas
     public function kasPengeluaranUpdate(Request $request, JournalEntry $journal)
@@ -926,8 +1002,35 @@ class JurnalController extends Controller
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
+        $journal->load('journalDetails.account');
+
+        // Cari akun bank (yang debit)
+        $bankDetail = $journal->journalDetails->firstWhere('debit', '>', 0);
+        $bankAccountId = $bankDetail ? $bankDetail->account_id : null;
+
+        // Ambil detail kredit (bukan bank)
+        $creditDetails = $journal->journalDetails->where('credit', '>', 0);
+
+        $journalData = [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'bank_account_id' => $bankAccountId,
+            'details' => $creditDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    'credit' => (float) $detail->credit,
+                ];
+            })->values()->toArray(),
+        ];
+
         return Inertia::render('jurnal/forms/jurnalbank/pemasukan', [
-            'journal' => $journal->load('journalDetails'),
+            'journal' => $journalData,
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
             'periods' => $periods,
@@ -1016,8 +1119,35 @@ class JurnalController extends Controller
             ->orderBy('start_date', 'desc')
             ->get(['id', 'period_name']);
 
+        $journal->load('journalDetails.account');
+
+        // Cari akun bank (yang kredit)
+        $bankDetail = $journal->journalDetails->firstWhere('credit', '>', 0);
+        $bankAccountId = $bankDetail ? $bankDetail->account_id : null;
+
+        // Ambil detail debit (bukan bank)
+        $debitDetails = $journal->journalDetails->where('debit', '>', 0);
+
+        $journalData = [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'bank_account_id' => $bankAccountId,
+            'details' => $debitDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    'debit' => (float) $detail->debit,
+                ];
+            })->values()->toArray(),
+        ];
+
         return Inertia::render('jurnal/forms/jurnalbank/pengeluaran', [
-            'journal' => $journal->load('journalDetails'),
+            'journal' => $journalData,
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
             'periods' => $periods,

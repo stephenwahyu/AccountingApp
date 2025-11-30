@@ -45,9 +45,11 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
     cash_account_id: journal?.cash_account_id?.toString() || "",
-    details: journal?.details?.filter(d => d.debit > 0).map(d => ({...d, debit: d.debit.toString()})) || [
-      { account_id: "", description: "", debit: "" },
-    ],
+    details: journal?.details?.map(d => ({
+      account_id: d.account_id.toString(),
+      description: d.description || "",
+      debit: d.debit.toString()
+    })) || [{ account_id: "", description: "", debit: "" }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);

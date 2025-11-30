@@ -44,10 +44,12 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
-    bank_account_id: journal?.bank_account_id?.toString() || "",
-    details: journal?.details?.filter(d => d.credit > 0).map(d => ({...d, credit: d.credit.toString()})) || [
-      { account_id: "", description: "", credit: "" },
-    ],
+    bank_account_id: journal?.cash_account_id?.toString() || "",
+    details: journal?.details?.map(d => ({
+      account_id: d.account_id.toString(), 
+      description: d.description || "",
+      credit: d.credit.toString()
+    })) || [{ account_id: "", description: "", credit: "" }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);

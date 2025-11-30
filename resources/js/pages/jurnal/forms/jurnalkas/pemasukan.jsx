@@ -46,9 +46,11 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
     cash_account_id: journal?.cash_account_id?.toString() || "",
-    details: journal?.details?.filter(d => d.credit > 0).map(d => ({...d, credit: d.credit.toString()})) || [
-      { account_id: "", description: "", credit: "" },
-    ],
+    details: journal?.details?.map(d => ({
+      account_id: d.account_id.toString(), 
+      description: d.description || "",
+      credit: d.credit.toString()
+    })) || [{ account_id: "", description: "", credit: "" }],
   });
 
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
