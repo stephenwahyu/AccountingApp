@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Head, Link, useForm } from "@inertiajs/react";
+import React, { useState, useMemo } from "react";
+import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,17 +34,16 @@ import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 export default function FormPengeluaranKas({ journal = null, accounts = [], periods = [], cashAccounts = [] }) {
   const isEdit = !!journal;
   const breadcrumbs = [
-    { title: "Jurnal", href: "/jurnal" },
-    { title: "Jurnal Kas", href: "/jurnal/kas" },
+    { title: "Jurnal", href: route('jurnal.index') },
+    { title: "Jurnal Kas", href: route('jurnal.kas') },
     { title: isEdit ? "Edit Pengeluaran Kas" : "Tambah Pengeluaran Kas", href: "#" },
   ];
 
-  const { data, setData, post, put, processing, errors } = useForm({
+  const [data, setData] = useState({
     entry_date: journal?.entry_date ? new Date(journal.entry_date) : new Date(),
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
-    status: journal?.status || "Draft",
     cash_account_id: journal?.cash_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
       account_id: d.account_id.toString(),
@@ -52,7 +51,8 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
       debit: d.debit
     })) || [{ account_id: "", description: "", debit: 0 }],
   });
-
+  const [processing, setProcessing] = useState(false);
+  const [errors, setErrors] = useState({});
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
 
   const accountOptions = accounts
@@ -68,18 +68,18 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
   }));
 
   const addRow = () => {
-    setData("details", [...data.details, { account_id: "", description: "", debit: 0 }]);
+    setData(prev => ({...prev, details: [...prev.details, { account_id: "", description: "", debit: 0 }]}));
   };
 
   const updateDetail = (index, field, value) => {
     const newDetails = [...data.details];
     newDetails[index][field] = value;
-    setData("details", newDetails);
+    setData(prev => ({...prev, details: newDetails}));
   };
 
   const removeRow = (index) => {
     if (data.details.length > 1) {
-      setData("details", data.details.filter((_, i) => i !== index));
+      setData(prev => ({...prev, details: prev.details.filter((_, i) => i !== index)}));
     }
   };
 
@@ -90,22 +90,34 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
 
   const handleSubmit = (statusValue) => {
     if (totalDebit <= 0 || !data.cash_account_id) return;
-    setSubmittedStatus(statusValue);
     
-    const options = {
-        transform: (data) => ({
-            ...data,
-            status: statusValue,
-            entry_date: data.entry_date ? data.entry_date.toISOString().slice(0, 10) : null,
-        }),
-        onFinish: () => setSubmittedStatus(null),
+    setProcessing(true);
+    setSubmittedStatus(statusValue);
+    setErrors({});
+    
+    const submitData = {
+        ...data,
+        status: statusValue,
+        entry_date: data.entry_date ? data.entry_date.toISOString().slice(0, 10) : null,
     };
 
-    if (isEdit) {
-      put(route("jurnal.kas.pengeluaran.update", journal.id), options);
-    } else {
-      post(route("jurnal.kas.pengeluaran.store"), options);
-    }
+    const url = isEdit
+      ? route("jurnal.kas.pengeluaran.update", journal.id)
+      : route("jurnal.kas.pengeluaran.store");
+
+    const method = isEdit ? "put" : "post";
+
+    router[method](url, submitData, {
+        onSuccess: () => {
+            setProcessing(false);
+            setSubmittedStatus(null);
+        },
+        onError: (errors) => {
+            setErrors(errors);
+            setProcessing(false);
+            setSubmittedStatus(null);
+        },
+    });
   };
 
   return (
@@ -251,7 +263,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
                         <Label htmlFor="entry_date">Tanggal Entri</Label>
                         <DatePicker
                         date={data.entry_date}
-                        setDate={(date) => setData("entry_date", date)}
+                        setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
                         id="entry_date"
                         />
                         {errors.entry_date && <p className="text-sm text-destructive">{errors.entry_date}</p>}
@@ -262,7 +274,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
                         id="entry_number"
                         placeholder="Akan dibuat otomatis"
                         value={data.entry_number}
-                        onChange={(e) => setData("entry_number", e.target.value)}
+                        onChange={(e) => setData(prev => ({...prev, entry_number: e.target.value}))}
                         disabled
                         />
                          {errors.entry_number && <p className="text-sm text-destructive">{errors.entry_number}</p>}
@@ -271,7 +283,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
                         <Label htmlFor="cash_account_id">Ambil dari Kas</Label>
                         <Select
                             value={data.cash_account_id}
-                            onValueChange={(value) => setData("cash_account_id", value)}
+                            onValueChange={(value) => setData(prev => ({...prev, cash_account_id: value}))}
                             >
                             <SelectTrigger id="cash_account_id">
                                 <SelectValue placeholder="Pilih Akun Kas" />
@@ -290,7 +302,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
                         <Label htmlFor="fiscal_period_id">Periode</Label>
                         <Select
                         value={data.fiscal_period_id}
-                        onValueChange={(value) => setData("fiscal_period_id", value)}
+                        onValueChange={(value) => setData(prev => ({...prev, fiscal_period_id: value}))}
                         >
                         <SelectTrigger id="fiscal_period_id">
                             <SelectValue placeholder="Pilih Periode" />
@@ -311,7 +323,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
                         id="penerima"
                         placeholder="Nama penerima (Opsional)"
                         value={data.penerima}
-                        onChange={(e) => setData("penerima", e.target.value)}
+                        onChange={(e) => setData(prev => ({...prev, penerima: e.target.value}))}
                         />
                          {errors.penerima && <p className="text-sm text-destructive">{errors.penerima}</p>}
                     </div>

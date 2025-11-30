@@ -692,9 +692,10 @@ class JurnalController extends Controller
     // Update Jurnal Umum
     public function umumUpdate(Request $request, JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
-        // }
+        $journal->load('fiscalPeriod');
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat diubah karena periode fiskal terkait sudah ditutup.']);
+        }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -818,9 +819,10 @@ class JurnalController extends Controller
     // Update Pemasukan Kas
     public function kasPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
-        // }
+        $journal->load('fiscalPeriod');
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat diubah karena periode fiskal terkait sudah ditutup.']);
+        }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -939,9 +941,10 @@ class JurnalController extends Controller
     // Update Pengeluaran Kas
     public function kasPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
-        // }
+        $journal->load('fiscalPeriod');
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat diubah karena periode fiskal terkait sudah ditutup.']);
+        }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -1060,9 +1063,10 @@ class JurnalController extends Controller
     // Update Pemasukan Bank
     public function bankPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
-        // }
+        $journal->load('fiscalPeriod');
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat diubah karena periode fiskal terkait sudah ditutup.']);
+        }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -1181,9 +1185,10 @@ class JurnalController extends Controller
     // Update Pengeluaran Bank
     public function bankPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
-        // }
+        $journal->load('fiscalPeriod');
+        if ($journal->fiscalPeriod && $journal->fiscalPeriod->status === 'Closed') {
+            return back()->withErrors(['error' => 'Jurnal tidak dapat diubah karena periode fiskal terkait sudah ditutup.']);
+        }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
