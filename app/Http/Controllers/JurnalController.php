@@ -234,10 +234,9 @@ class JurnalController extends Controller
                 'journal_type' => 'Kas Masuk',
                 'status' => $status,
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                // 'user_id' => Auth::id(),
-                'user_id' => 1,
+                'user_id' => Auth::id() ?? 1,
                 'posted_at' => $status === 'Posted' ? now() : null,
-                'posted_by' => $status === 'Posted' ? Auth::id() : null,
+                'posted_by' => $status === 'Posted' ? Auth::id() ?? 1 : null,
             ]);
 
             $totalCredit = 0;
@@ -331,10 +330,9 @@ class JurnalController extends Controller
                 'journal_type' => 'Kas Keluar',
                 'status' => $status,
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                // 'user_id' => Auth::id(),
-                'user_id' => 1,
+                'user_id' => Auth::id() ?? 1,
                 'posted_at' => $status === 'Posted' ? now() : null,
-                'posted_by' => $status === 'Posted' ? Auth::id() : null,
+                'posted_by' => $status === 'Posted' ? Auth::id() ?? 1 : null,
             ]);
 
             $totalDebit = 0;
@@ -452,10 +450,9 @@ class JurnalController extends Controller
                 'journal_type' => 'Bank Masuk',
                 'status' => $status,
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                // 'user_id' => Auth::id(),
-                'user_id' => 1,
+                'user_id' => Auth::id() ?? 1,
                 'posted_at' => $status === 'Posted' ? now() : null,
-                'posted_by' => $status === 'Posted' ? Auth::id() : null,
+                'posted_by' => $status === 'Posted' ? Auth::id() ?? 1 : null,
             ]);
 
             $totalCredit = 0;
@@ -548,10 +545,9 @@ class JurnalController extends Controller
                 'journal_type' => 'Bank Keluar',
                 'status' => $status,
                 'fiscal_period_id' => $validated['fiscal_period_id'],
-                // 'user_id' => Auth::id(),
-                'user_id' => 1,
+                'user_id' => Auth::id() ?? 1,
                 'posted_at' => $status === 'Posted' ? now() : null,
-                'posted_by' => $status === 'Posted' ? Auth::id() : null,
+                'posted_by' => $status === 'Posted' ? Auth::id() ?? 1 : null,
             ]);
 
             $totalDebit = 0;
@@ -654,6 +650,10 @@ class JurnalController extends Controller
     // Edit Jurnal Umum
     public function umumEdit(JournalEntry $journal)
     {
+        // if ($journal->status === 'Posted') {
+        //     return redirect()->route('jurnal.umum')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
+        // }
+
         $accounts = Account::where('is_active', true)
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name', 'is_cash_account']);
@@ -692,9 +692,9 @@ class JurnalController extends Controller
     // Update Jurnal Umum
     public function umumUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
+        // }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -715,17 +715,25 @@ class JurnalController extends Controller
             return back()->withErrors(['details' => 'Total Debit dan Kredit harus seimbang']);
         }
 
+        if ($totalDebit == 0 || $totalCredit == 0) {
+            return back()->withErrors(['details' => 'Total Debit dan Kredit tidak boleh 0']);
+        }
+
         DB::beginTransaction();
         try {
+            // Check if status is changing from Draft to Posted
+            $isPosting = $journal->status !== 'Posted' && $validated['status'] === 'Posted';
+
             $journal->update([
                 'entry_date' => $validated['entry_date'],
                 'penerima' => $validated['penerima'],
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
-                'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
+                'posted_at' => $isPosting ? now() : $journal->posted_at,
+                'posted_by' => $isPosting ? (Auth::id() ?? 1) : $journal->posted_by,
             ]);
 
+            // Delete old details and create new ones
             $journal->journalDetails()->delete();
 
             foreach ($validated['details'] as $detail) {
@@ -753,6 +761,10 @@ class JurnalController extends Controller
     // Edit Pemasukan Kas
     public function kasPemasukanEdit(JournalEntry $journal)
     {
+        // if ($journal->status === 'Posted') {
+        //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
+        // }
+
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
             ->orderBy('account_code')
@@ -806,9 +818,9 @@ class JurnalController extends Controller
     // Update Pemasukan Kas
     public function kasPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
+        // }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -830,7 +842,7 @@ class JurnalController extends Controller
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
                 'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() : $journal->posted_by,
+                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
             ]);
 
             $journal->journalDetails()->delete();
@@ -870,6 +882,10 @@ class JurnalController extends Controller
     // Edit Pengeluaran Kas
     public function kasPengeluaranEdit(JournalEntry $journal)
     {
+        // if ($journal->status === 'Posted') {
+        //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
+        // }
+
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
             ->orderBy('account_code')
@@ -923,9 +939,9 @@ class JurnalController extends Controller
     // Update Pengeluaran Kas
     public function kasPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
+        // }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -947,7 +963,7 @@ class JurnalController extends Controller
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
                 'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() : $journal->posted_by,
+                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
             ]);
 
             $journal->journalDetails()->delete();
@@ -987,6 +1003,10 @@ class JurnalController extends Controller
     // Edit Pemasukan Bank
     public function bankPemasukanEdit(JournalEntry $journal)
     {
+        // if ($journal->status === 'Posted') {
+        //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
+        // }
+
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
             ->orderBy('account_code')
@@ -1040,9 +1060,9 @@ class JurnalController extends Controller
     // Update Pemasukan Bank
     public function bankPemasukanUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
+        // }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -1064,7 +1084,7 @@ class JurnalController extends Controller
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
                 'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() : $journal->posted_by,
+                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
             ]);
 
             $journal->journalDetails()->delete();
@@ -1104,6 +1124,10 @@ class JurnalController extends Controller
     // Edit Pengeluaran Bank
     public function bankPengeluaranEdit(JournalEntry $journal)
     {
+        // if ($journal->status === 'Posted') {
+        //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
+        // }
+
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
             ->orderBy('account_code')
@@ -1157,9 +1181,9 @@ class JurnalController extends Controller
     // Update Pengeluaran Bank
     public function bankPengeluaranUpdate(Request $request, JournalEntry $journal)
     {
-        if ($journal->status === 'Posted' && $request->input('status') === 'Draft') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah kembali menjadi draft.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat diubah.']);
+        // }
 
         $validated = $request->validate([
             'entry_date' => 'required|date',
@@ -1181,7 +1205,7 @@ class JurnalController extends Controller
                 'fiscal_period_id' => $validated['fiscal_period_id'],
                 'status' => $validated['status'],
                 'posted_at' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? now() : $journal->posted_at,
-                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() : $journal->posted_by,
+                'posted_by' => $validated['status'] === 'Posted' && $journal->status !== 'Posted' ? Auth::id() ?? 1 : $journal->posted_by,
             ]);
 
             $journal->journalDetails()->delete();
@@ -1227,9 +1251,9 @@ class JurnalController extends Controller
             return back()->withErrors(['error' => 'Jurnal tidak dapat dihapus karena periode fiskal terkait sudah ditutup.']);
         }
 
-        if ($journal->status === 'Posted') {
-            return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat dihapus.']);
-        }
+        // if ($journal->status === 'Posted') {
+        //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat dihapus.']);
+        // }
 
         DB::beginTransaction();
         try {

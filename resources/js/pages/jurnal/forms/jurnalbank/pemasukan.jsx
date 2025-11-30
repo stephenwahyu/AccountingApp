@@ -45,6 +45,7 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
     bank_account_id: journal?.bank_account_id?.toString() || "",
+    status: journal?.status || "Draft",
     details: journal?.details?.map(d => ({
       account_id: d.account_id.toString(),
       description: d.description || "",
@@ -55,7 +56,7 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
 
   const accountOptions = accounts
-    .filter(acc => !acc.is_cash_account) // Assuming bank accounts are also cash accounts
+    .filter(acc => !acc.is_cash_account)
     .map((acc) => ({
       value: acc.id.toString(),
       label: `${acc.account_code} - ${acc.account_name}`,
@@ -87,22 +88,24 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
     [data.details]
   );
 
-  const handleSubmit = (status) => {
+  const handleSubmit = (statusValue) => {
     if (totalCredit <= 0 || !data.bank_account_id) return;
-    setSubmittedStatus(status);
+    setSubmittedStatus(statusValue);
 
-    const submitAction = isEdit ? put : post;
-    const url = isEdit
-      ? route("jurnal.bank.pemasukan.update", journal.id)
-      : route("jurnal.bank.pemasukan.store");
-
-    submitAction(url, {
-      transform: () => ({
-        ...data,
-        status: status,
-      }),
-      onFinish: () => setSubmittedStatus(null),
-    });
+    const options = {
+        transform: (data) => ({
+            ...data,
+            status: statusValue,
+            entry_date: data.entry_date ? data.entry_date.toISOString().slice(0, 10) : null,
+        }),
+        onFinish: () => setSubmittedStatus(null),
+    };
+    
+    if (isEdit) {
+        put(route("jurnal.bank.pemasukan.update", journal.id), options);
+    } else {
+        post(route("jurnal.bank.pemasukan.store"), options);
+    }
   };
 
   return (

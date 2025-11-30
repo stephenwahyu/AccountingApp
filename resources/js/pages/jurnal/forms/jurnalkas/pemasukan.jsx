@@ -45,6 +45,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
+    status: journal?.status || "Draft",
     cash_account_id: journal?.cash_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
       account_id: d.account_id.toString(),
@@ -88,22 +89,24 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     [data.details]
   );
 
-  const handleSubmit = (status) => {
+  const handleSubmit = (statusValue) => {
     if (totalCredit <= 0 || !data.cash_account_id) return;
-    setSubmittedStatus(status);
+    setSubmittedStatus(statusValue);
 
-    const submitAction = isEdit ? put : post;
-    const url = isEdit
-      ? route("jurnal.kas.pemasukan.update", journal.id)
-      : route("jurnal.kas.pemasukan.store");
+    const options = {
+        transform: (data) => ({
+            ...data,
+            status: statusValue,
+            entry_date: data.entry_date ? data.entry_date.toISOString().slice(0, 10) : null,
+        }),
+        onFinish: () => setSubmittedStatus(null),
+    };
 
-    submitAction(url, {
-      transform: () => ({
-        ...data,
-        status: status,
-      }),
-      onFinish: () => setSubmittedStatus(null),
-    });
+    if (isEdit) {
+        put(route("jurnal.kas.pemasukan.update", journal.id), options);
+    } else {
+        post(route("jurnal.kas.pemasukan.store"), options);
+    }
   };
 
   return (
