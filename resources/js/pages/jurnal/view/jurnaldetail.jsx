@@ -124,7 +124,7 @@ export default function ViewDetailJurnal({ journal }) {
                     </p>
                 </div>
             </div>
-            <div className="flex gap-2 w-full @lg:w-auto">
+            <div className="flex flex-wrap justify-end gap-2 w-full @lg:w-auto">
               <Button variant="outline" className="w-full @lg:w-auto" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Cetak
@@ -204,7 +204,7 @@ export default function ViewDetailJurnal({ journal }) {
                 </div>
 
                  <div className="flex justify-end">
-                    <div className="w-full max-w-sm space-y-2">
+                    <div className="w-full sm:max-w-sm space-y-2">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Total Debit</span>
                             <span className="font-medium font-mono">{new Intl.NumberFormat('id-ID').format(totalDebit)}</span>

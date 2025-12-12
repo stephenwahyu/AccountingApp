@@ -41,7 +41,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
   ];
 
   const [data, setData] = useState({
-    entry_date: journal?.entry_date ? new Date(journal.entry_date) : new Date(),
+    entry_date: journal?.entry_date ? new Date(journal.entry_date.replace(/-/g, '/')) : new Date(),
     entry_number: journal?.entry_number || "",
     fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
     penerima: journal?.penerima || "",
@@ -100,7 +100,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
     const submitData = {
         ...data,
         status: statusValue,
-        entry_date: data.entry_date ? data.entry_date.toISOString().slice(0, 10) : null,
+        entry_date: data.entry_date ? new Date(data.entry_date.getTime() - (data.entry_date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null,
     };
 
     const url = isEdit
@@ -136,7 +136,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                 Isi form di bawah ini untuk {isEdit ? "mengubah" : "mencatat"} pemasukan kas.
               </p>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap justify-end gap-2 w-full sm:w-auto">
               <Button type="button" variant="outline" asChild className="w-full sm:w-auto">
                 <Link href={route("jurnal.kas")}>
                   <X className="h-4 w-4 mr-2" />

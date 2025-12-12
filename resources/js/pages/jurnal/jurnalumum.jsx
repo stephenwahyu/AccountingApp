@@ -92,7 +92,7 @@ export default function JurnalUmum({ journals: initialJournals = [] }) {
       <Head title="Jurnal - Jurnal Umum" />
       <AppLayouts breadcrumbs={breadcrumbs}>
         <div className="flex flex-col gap-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <h1 className="text-2xl font-bold">Jurnal Umum</h1>
                 <p className="text-muted-foreground">
@@ -100,7 +100,7 @@ export default function JurnalUmum({ journals: initialJournals = [] }) {
                 </p>
             </div>
             <Link href={route("jurnal.umum.create")}>
-              <Button>
+              <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
                 Tambah Jurnal
               </Button>
