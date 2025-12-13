@@ -12,6 +12,8 @@ class Account extends Model
     /** @use HasFactory<\Database\Factories\AccountFactory> */
     use HasFactory;
 
+    protected $fillable = ['account_code', 'account_name', 'account_category_id'];
+
     public function accountCategory(): BelongsTo
     {
         return $this->belongsTo(AccountCategory::class);
@@ -30,6 +32,11 @@ class Account extends Model
     public function children(): HasMany
     {
         return $this->hasMany(Account::class, 'parent_id');
+    }
+
+    public function descendants(): HasMany
+    {
+        return $this->children()->with('descendants');
     }
 
     public function journalDetails(): HasMany

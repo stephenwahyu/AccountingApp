@@ -47,3 +47,32 @@ Route::prefix('jurnal')->name('jurnal.')->group(function () {
     Route::post('/{journal}/post', [JurnalController::class, 'postJournal'])->name('post');
     Route::delete('/{id}', [JurnalController::class, 'destroy'])->name('destroy');
 });
+
+// Bagan Perkiraan Routes
+Route::prefix('bagan-perkiraan')->name('bagan-perkiraan.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BaganPerkiraanController::class, 'index'])->name('index');
+
+    // Akun
+    Route::get('/akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'akun'])->name('akun');
+    Route::get('/akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createAkun'])->name('akun.create');
+    Route::post('/akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeAkun'])->name('akun.store');
+    Route::get('/akun/{account}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editAkun'])->name('akun.edit');
+    Route::put('/akun/{account}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateAkun'])->name('akun.update');
+    Route::delete('/akun/{account}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyAkun'])->name('akun.destroy');
+
+    // Kategori Akun
+    Route::get('/kategori-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'kategoriAkun'])->name('kategori-akun');
+    Route::get('/kategori-akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createKategoriAkun'])->name('kategori-akun.create');
+    Route::post('/kategori-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeKategoriAkun'])->name('kategori-akun.store');
+    Route::get('/kategori-akun/{kategori_akun}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editKategoriAkun'])->name('kategori-akun.edit');
+    Route::put('/kategori-akun/{kategori_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateKategoriAkun'])->name('kategori-akun.update');
+    Route::delete('/kategori-akun/{kategori_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyKategoriAkun'])->name('kategori-akun.destroy');
+
+    // Tipe Akun
+    Route::get('/tipe-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'tipeAkun'])->name('tipe-akun');
+    Route::get('/tipe-akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createTipeAkun'])->name('tipe-akun.create');
+    Route::post('/tipe-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeTipeAkun'])->name('tipe-akun.store');
+    Route::get('/tipe-akun/{tipe_akun}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editTipeAkun'])->name('tipe-akun.edit');
+    Route::put('/tipe-akun/{tipe_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateTipeAkun'])->name('tipe-akun.update');
+    Route::delete('/tipe-akun/{tipe_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyTipeAkun'])->name('tipe-akun.destroy');
+});

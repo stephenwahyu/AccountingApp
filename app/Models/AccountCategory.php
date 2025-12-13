@@ -12,6 +12,8 @@ class AccountCategory extends Model
     /** @use HasFactory<\Database\Factories\AccountCategoryFactory> */
     use HasFactory;
 
+    protected $fillable = ['name', 'account_type_id'];
+
     public function accountType(): BelongsTo
     {
         return $this->belongsTo(AccountType::class);
