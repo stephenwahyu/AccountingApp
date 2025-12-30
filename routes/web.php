@@ -1,12 +1,28 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\BaganPerkiraanController;
+use App\Http\Controllers\BukuBesarController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JurnalController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LaporanKeuanganController;
+use App\Http\Controllers\NeracaSaldoController;
+use App\Http\Controllers\PenggunaController;
+use App\Http\Controllers\PeriodeController;
+
+Route::get('/', [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
+Route::post('/', [AuthController::class, 'storeLogin'])->middleware('guest');
+Route::post('/logout', [AuthController::class, 'destroy'])->middleware('auth')->name('logout');
+
+Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->middleware('guest')->name('password.request');
+Route::post('/forgot-password', [AuthController::class, 'sendOtp'])->middleware('guest')->name('password.email');
+Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->middleware('guest')->name('password.reset');
+Route::post('/reset-password', [AuthController::class, 'storeResetPassword'])->middleware('guest')->name('password.store');
+Route::put('/reset-password', [AuthController::class, 'updatePassword'])->middleware('guest')->name('password.update');
+Route::post('/resend-otp', [AuthController::class, 'resendOtp'])->middleware('guest')->name('password.resend');
 
 // Dashboard
-Route::get('/', function () {
-    return inertia('dashboard/dashboard');
-})->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 // Jurnal Routes
 Route::prefix('jurnal')->name('jurnal.')->group(function () {
@@ -50,29 +66,59 @@ Route::prefix('jurnal')->name('jurnal.')->group(function () {
 
 // Bagan Perkiraan Routes
 Route::prefix('bagan-perkiraan')->name('bagan-perkiraan.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\BaganPerkiraanController::class, 'index'])->name('index');
+    Route::get('/', [BaganPerkiraanController::class, 'index'])->name('index');
 
     // Akun
-    Route::get('/akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'akun'])->name('akun');
-    Route::get('/akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createAkun'])->name('akun.create');
-    Route::post('/akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeAkun'])->name('akun.store');
-    Route::get('/akun/{account}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editAkun'])->name('akun.edit');
-    Route::put('/akun/{account}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateAkun'])->name('akun.update');
-    Route::delete('/akun/{account}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyAkun'])->name('akun.destroy');
+    Route::get('/akun', [BaganPerkiraanController::class, 'akun'])->name('akun');
+    Route::get('/akun/create', [BaganPerkiraanController::class, 'createAkun'])->name('akun.create');
+    Route::post('/akun', [BaganPerkiraanController::class, 'storeAkun'])->name('akun.store');
+    Route::get('/akun/generate-code/{parent?}', [BaganPerkiraanController::class, 'generateAccountCode'])->name('akun.generate-code');
+    Route::get('/akun/{account}/edit', [BaganPerkiraanController::class, 'editAkun'])->name('akun.edit');
+    Route::put('/akun/{account}', [BaganPerkiraanController::class, 'updateAkun'])->name('akun.update');
+    Route::delete('/akun/{account}', [BaganPerkiraanController::class, 'destroyAkun'])->name('akun.destroy');
 
     // Kategori Akun
-    Route::get('/kategori-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'kategoriAkun'])->name('kategori-akun');
-    Route::get('/kategori-akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createKategoriAkun'])->name('kategori-akun.create');
-    Route::post('/kategori-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeKategoriAkun'])->name('kategori-akun.store');
-    Route::get('/kategori-akun/{kategori_akun}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editKategoriAkun'])->name('kategori-akun.edit');
-    Route::put('/kategori-akun/{kategori_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateKategoriAkun'])->name('kategori-akun.update');
-    Route::delete('/kategori-akun/{kategori_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyKategoriAkun'])->name('kategori-akun.destroy');
+    Route::get('/kategori-akun', [BaganPerkiraanController::class, 'kategoriAkun'])->name('kategori-akun');
+    Route::get('/kategori-akun/create', [BaganPerkiraanController::class, 'createKategoriAkun'])->name('kategori-akun.create');
+    Route::post('/kategori-akun', [BaganPerkiraanController::class, 'storeKategoriAkun'])->name('kategori-akun.store');
+    Route::get('/kategori-akun/{kategori_akun}/edit', [BaganPerkiraanController::class, 'editKategoriAkun'])->name('kategori-akun.edit');
+    Route::put('/kategori-akun/{kategori_akun}', [BaganPerkiraanController::class, 'updateKategoriAkun'])->name('kategori-akun.update');
+    Route::delete('/kategori-akun/{kategori_akun}', [BaganPerkiraanController::class, 'destroyKategoriAkun'])->name('kategori-akun.destroy');
 
     // Tipe Akun
-    Route::get('/tipe-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'tipeAkun'])->name('tipe-akun');
-    Route::get('/tipe-akun/create', [\App\Http\Controllers\BaganPerkiraanController::class, 'createTipeAkun'])->name('tipe-akun.create');
-    Route::post('/tipe-akun', [\App\Http\Controllers\BaganPerkiraanController::class, 'storeTipeAkun'])->name('tipe-akun.store');
-    Route::get('/tipe-akun/{tipe_akun}/edit', [\App\Http\Controllers\BaganPerkiraanController::class, 'editTipeAkun'])->name('tipe-akun.edit');
-    Route::put('/tipe-akun/{tipe_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'updateTipeAkun'])->name('tipe-akun.update');
-    Route::delete('/tipe-akun/{tipe_akun}', [\App\Http\Controllers\BaganPerkiraanController::class, 'destroyTipeAkun'])->name('tipe-akun.destroy');
+    Route::get('/tipe-akun', [BaganPerkiraanController::class, 'tipeAkun'])->name('tipe-akun');
+    Route::get('/tipe-akun/create', [BaganPerkiraanController::class, 'createTipeAkun'])->name('tipe-akun.create');
+    Route::post('/tipe-akun', [BaganPerkiraanController::class, 'storeTipeAkun'])->name('tipe-akun.store');
+    Route::get('/tipe-akun/{tipe_akun}/edit', [BaganPerkiraanController::class, 'editTipeAkun'])->name('tipe-akun.edit');
+    Route::put('/tipe-akun/{tipe_akun}', [BaganPerkiraanController::class, 'updateTipeAkun'])->name('tipe-akun.update');
+    Route::delete('/tipe-akun/{tipe_akun}', [BaganPerkiraanController::class, 'destroyTipeAkun'])->name('tipe-akun.destroy');
+});
+
+Route::get('/buku-besar', [BukuBesarController::class, 'index'])->name('buku-besar');
+Route::get('/buku-besar/export', [BukuBesarController::class, 'export'])->name('buku-besar.export');
+Route::get('/neraca-saldo', [NeracaSaldoController::class, 'index'])->name('neraca-saldo');
+Route::get('/neraca-saldo/export', [NeracaSaldoController::class, 'export'])->name('neraca-saldo.export');
+
+Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () {
+    Route::get('/', [LaporanKeuanganController::class, 'index'])->name('index');
+    Route::get('/posisi-keuangan/{id}', [LaporanKeuanganController::class, 'showPosisiKeuangan'])->name('show.posisi-keuangan');
+    Route::get('/laba-rugi/{id}', [LaporanKeuanganController::class, 'showLabaRugi'])->name('show.laba-rugi');
+    Route::get('/perubahan-ekuitas/{id}', [LaporanKeuanganController::class, 'showPerubahanEkuitas'])->name('show.perubahan-ekuitas');
+    Route::get('/arus-kas/{id}', [LaporanKeuanganController::class, 'showArusKas'])->name('show.arus-kas');
+});
+
+Route::prefix('periode')->name('periode.')->group(function () {
+    Route::get('/', [PeriodeController::class, 'index'])->name('index');
+    Route::post('/', [PeriodeController::class, 'store'])->name('store');
+    Route::post('/{period}/close', [PeriodeController::class, 'close'])->name('close');
+    Route::post('/{period}/open', [PeriodeController::class, 'open'])->name('open');
+});
+
+Route::prefix('pengguna')->name('pengguna.')->group(function () {
+    Route::get('/', [PenggunaController::class, 'index'])->name('index');
+    Route::get('/create', [PenggunaController::class, 'create'])->name('create');
+    Route::post('/', [PenggunaController::class, 'store'])->name('store');
+    Route::get('/{user}/edit', [PenggunaController::class, 'edit'])->name('edit');
+    Route::put('/{user}', [PenggunaController::class, 'update'])->name('update');
+    Route::delete('/{user}', [PenggunaController::class, 'destroy'])->name('destroy');
 });
