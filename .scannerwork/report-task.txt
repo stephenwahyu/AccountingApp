@@ -1,0 +1,6 @@
+projectKey=AccApp
+serverUrl=http://localhost:9000
+serverVersion=25.9.0.112764
+dashboardUrl=http://localhost:9000/dashboard?id=AccApp
+ceTaskId=3fb39874-712a-43d3-8348-ee45e94d6b56
+ceTaskUrl=http://localhost:9000/api/ce/task?id=3fb39874-712a-43d3-8348-ee45e94d6b56
