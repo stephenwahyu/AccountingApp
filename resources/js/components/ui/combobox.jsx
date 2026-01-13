@@ -11,7 +11,7 @@ import {
   CommandGroup,
   CommandInput,
   CommandItem,
-  CommandList,
+  CommandList
 } from "@/components/ui/command"
 import {
   Popover,
@@ -19,18 +19,18 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function Combobox({ options, value, onSelect, placeholder, searchPlaceholder, emptyPlaceholder, ...props }) {
+export function Combobox({ options, value, onSelect, placeholder, searchPlaceholder, emptyPlaceholder, disabled = false }) {
   const [open, setOpen] = React.useState(false)
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
           className="w-full justify-between"
-          {...props}
+          disabled={disabled}
         >
           {value
             ? options.find((option) => option.value === value)?.label
@@ -38,7 +38,7 @@ export function Combobox({ options, value, onSelect, placeholder, searchPlacehol
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-999">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -47,9 +47,9 @@ export function Combobox({ options, value, onSelect, placeholder, searchPlacehol
               {options.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.value}
-                  onSelect={(currentValue) => {
-                    onSelect(currentValue === value ? "" : currentValue)
+                  value={`${option.value} ${option.label}`}
+                  onSelect={() => {
+                    onSelect(option.value === value ? "" : option.value)
                     setOpen(false)
                   }}
                 >
