@@ -6,17 +6,42 @@ use App\Models\Account;
 use App\Models\FiscalPeriod;
 use App\Models\JournalDetail;
 use App\Models\JournalEntry;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class JurnalController extends Controller
 {
+    private function getOpenSortedPeriods()
+    {
+        $periodsCollection = FiscalPeriod::where('status', 'Open')
+            ->where('period_type', 'monthly')
+            ->get();
+
+        $getTypeWeight = function ($type) {
+            switch ($type) {
+                case 'monthly': return 1;
+                case 'quarterly': return 2;
+                case 'annually': return 3;
+                default: return 4;
+            }
+        };
+
+        return $periodsCollection->sortBy(function ($period) use ($getTypeWeight) {
+            $endDateKey = Carbon::parse($period->end_date)->format('Ymd');
+            $typeWeight = $getTypeWeight($period->period_type);
+
+            return "{$endDateKey}{$typeWeight}";
+        })->reverse()->values();
+    }
+
     // Tampilkan semua jurnal
     public function index()
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
+        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
             ->orderBy('entry_date', 'desc')
             ->orderBy('entry_number', 'desc')
             ->get()
@@ -39,7 +64,7 @@ class JurnalController extends Controller
     // Tampilkan jurnal umum
     public function umum()
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
+        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
             ->where('journal_type', 'Umum')
             ->orderBy('entry_date', 'desc')
             ->orderBy('entry_number', 'desc')
@@ -64,16 +89,13 @@ class JurnalController extends Controller
     public function umumCreate()
     {
         $accounts = Account::where('is_active', true)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
-
         return Inertia::render('jurnal/forms/jurnalumum', [
             'accounts' => $accounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -92,6 +114,8 @@ class JurnalController extends Controller
             'details.*.credit' => 'required|numeric|min:0',
             'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         // Validasi balance
         $totalDebit = collect($validated['details'])->sum('debit');
@@ -155,7 +179,7 @@ class JurnalController extends Controller
     // Tampilkan jurnal kas
     public function kas()
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
+        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
             ->whereIn('journal_type', ['Kas Masuk', 'Kas Keluar'])
             ->orderBy('entry_date', 'desc')
             ->orderBy('entry_number', 'desc')
@@ -181,23 +205,21 @@ class JurnalController extends Controller
     {
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Kas%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         return Inertia::render('jurnal/forms/jurnalkas/pemasukan', [
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -216,6 +238,8 @@ class JurnalController extends Controller
             'details.*.credit' => 'required|numeric|min:0',
             'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -277,23 +301,21 @@ class JurnalController extends Controller
     {
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Kas%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         return Inertia::render('jurnal/forms/jurnalkas/pengeluaran', [
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -312,6 +334,8 @@ class JurnalController extends Controller
             'details.*.debit' => 'required|numeric|min:0',
             'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -360,7 +384,7 @@ class JurnalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('jurnal.kas')->with('success', 'Pengeluaran Kas berhasil ditambahkan');
+            return redirect()->route('jurnal.kas')->with('success', 'Pengeluaran Kas berhasil diperbarui');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -371,7 +395,7 @@ class JurnalController extends Controller
     // Tampilkan jurnal bank
     public function bank()
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user', 'journalDetails.account'])
+        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
             ->whereIn('journal_type', ['Bank Masuk', 'Bank Keluar'])
             ->orderBy('entry_date', 'desc')
             ->orderBy('entry_number', 'desc')
@@ -397,23 +421,21 @@ class JurnalController extends Controller
     {
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Bank%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         return Inertia::render('jurnal/forms/jurnalbank/pemasukan', [
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -432,6 +454,8 @@ class JurnalController extends Controller
             'details.*.credit' => 'required|numeric|min:0',
             'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -492,23 +516,21 @@ class JurnalController extends Controller
     {
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Bank%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         return Inertia::render('jurnal/forms/jurnalbank/pengeluaran', [
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -527,6 +549,8 @@ class JurnalController extends Controller
             'details.*.debit' => 'required|numeric|min:0',
             'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -574,7 +598,7 @@ class JurnalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('jurnal.bank')->with('success', 'Pengeluaran Bank berhasil ditambahkan');
+            return redirect()->route('jurnal.bank')->with('success', 'Pengeluaran Bank berhasil diperbarui');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -655,12 +679,9 @@ class JurnalController extends Controller
         // }
 
         $accounts = Account::where('is_active', true)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name', 'is_cash_account']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         $journal->load('journalDetails.account');
 
@@ -685,7 +706,7 @@ class JurnalController extends Controller
         return Inertia::render('jurnal/forms/jurnalumum', [
             'journal' => $journalData,
             'accounts' => $accounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -708,6 +729,8 @@ class JurnalController extends Controller
             'details.*.credit' => 'required|numeric|min:0',
             'status' => 'required|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         $totalDebit = collect($validated['details'])->sum('debit');
         $totalCredit = collect($validated['details'])->sum('credit');
@@ -768,18 +791,16 @@ class JurnalController extends Controller
 
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Kas%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         $journal->load('journalDetails.account');
 
@@ -790,29 +811,11 @@ class JurnalController extends Controller
         // Ambil detail kredit (bukan kas)
         $creditDetails = $journal->journalDetails->where('credit', '>', 0);
 
-        $journalData = [
-            'id' => $journal->id,
-            'entry_date' => $journal->entry_date->format('Y-m-d'),
-            'entry_number' => $journal->entry_number,
-            'fiscal_period_id' => $journal->fiscal_period_id,
-            'penerima' => $journal->penerima,
-            'status' => $journal->status,
-            'cash_account_id' => $cashAccountId,
-            'details' => $creditDetails->map(function ($detail) {
-                return [
-                    'id' => $detail->id,
-                    'account_id' => $detail->account_id,
-                    'description' => $detail->description,
-                    'credit' => (float) $detail->credit,
-                ];
-            })->values()->toArray(),
-        ];
-
         return Inertia::render('jurnal/forms/jurnalkas/pemasukan', [
-            'journal' => $journalData,
+            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $creditDetails, 'credit'),
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -833,8 +836,10 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.credit' => 'required|numeric|min:0',
-            'status' => 'required|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -890,18 +895,16 @@ class JurnalController extends Controller
 
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Kas%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         $journal->load('journalDetails.account');
 
@@ -912,29 +915,11 @@ class JurnalController extends Controller
         // Ambil detail debit (bukan kas)
         $debitDetails = $journal->journalDetails->where('debit', '>', 0);
 
-        $journalData = [
-            'id' => $journal->id,
-            'entry_date' => $journal->entry_date->format('Y-m-d'),
-            'entry_number' => $journal->entry_number,
-            'fiscal_period_id' => $journal->fiscal_period_id,
-            'penerima' => $journal->penerima,
-            'status' => $journal->status,
-            'cash_account_id' => $cashAccountId,
-            'details' => $debitDetails->map(function ($detail) {
-                return [
-                    'id' => $detail->id,
-                    'account_id' => $detail->account_id,
-                    'description' => $detail->description,
-                    'debit' => (float) $detail->debit,
-                ];
-            })->values()->toArray(),
-        ];
-
         return Inertia::render('jurnal/forms/jurnalkas/pengeluaran', [
-            'journal' => $journalData,
+            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $debitDetails, 'debit'),
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -955,8 +940,10 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.debit' => 'required|numeric|min:0',
-            'status' => 'required|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -1012,18 +999,16 @@ class JurnalController extends Controller
 
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Bank%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         $journal->load('journalDetails.account');
 
@@ -1034,29 +1019,11 @@ class JurnalController extends Controller
         // Ambil detail kredit (bukan bank)
         $creditDetails = $journal->journalDetails->where('credit', '>', 0);
 
-        $journalData = [
-            'id' => $journal->id,
-            'entry_date' => $journal->entry_date->format('Y-m-d'),
-            'entry_number' => $journal->entry_number,
-            'fiscal_period_id' => $journal->fiscal_period_id,
-            'penerima' => $journal->penerima,
-            'status' => $journal->status,
-            'bank_account_id' => $bankAccountId,
-            'details' => $creditDetails->map(function ($detail) {
-                return [
-                    'id' => $detail->id,
-                    'account_id' => $detail->account_id,
-                    'description' => $detail->description,
-                    'credit' => (float) $detail->credit,
-                ];
-            })->values()->toArray(),
-        ];
-
         return Inertia::render('jurnal/forms/jurnalbank/pemasukan', [
-            'journal' => $journalData,
+            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $creditDetails, 'credit'),
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -1077,8 +1044,10 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.credit' => 'required|numeric|min:0',
-            'status' => 'required|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -1121,7 +1090,7 @@ class JurnalController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->withErrors(['error' => 'Gagal memperbarui jurnal: '.$e->getMessage()]);
+            return back()->withErrors(['error' => 'Gagal menyimpan jurnal: '.$e->getMessage()]);
         }
     }
 
@@ -1134,18 +1103,16 @@ class JurnalController extends Controller
 
         $accounts = Account::where('is_active', true)
             ->where('is_cash_account', false)
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
             ->where('account_name', 'like', '%Bank%')
+            ->whereDoesntHave('children')
             ->orderBy('account_code')
             ->get(['id', 'account_code', 'account_name']);
-
-        $periods = FiscalPeriod::where('status', 'Open')
-            ->orderBy('start_date', 'desc')
-            ->get(['id', 'period_name']);
 
         $journal->load('journalDetails.account');
 
@@ -1156,29 +1123,11 @@ class JurnalController extends Controller
         // Ambil detail debit (bukan bank)
         $debitDetails = $journal->journalDetails->where('debit', '>', 0);
 
-        $journalData = [
-            'id' => $journal->id,
-            'entry_date' => $journal->entry_date->format('Y-m-d'),
-            'entry_number' => $journal->entry_number,
-            'fiscal_period_id' => $journal->fiscal_period_id,
-            'penerima' => $journal->penerima,
-            'status' => $journal->status,
-            'bank_account_id' => $bankAccountId,
-            'details' => $debitDetails->map(function ($detail) {
-                return [
-                    'id' => $detail->id,
-                    'account_id' => $detail->account_id,
-                    'description' => $detail->description,
-                    'debit' => (float) $detail->debit,
-                ];
-            })->values()->toArray(),
-        ];
-
         return Inertia::render('jurnal/forms/jurnalbank/pengeluaran', [
-            'journal' => $journalData,
+            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $debitDetails, 'debit'),
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
-            'periods' => $periods,
+            'periods' => $this->getOpenSortedPeriods(),
         ]);
     }
 
@@ -1199,8 +1148,10 @@ class JurnalController extends Controller
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
             'details.*.debit' => 'required|numeric|min:0',
-            'status' => 'required|in:Draft,Posted',
+            'status' => 'required|string|in:Draft,Posted',
         ]);
+
+        $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
         DB::beginTransaction();
         try {
@@ -1305,5 +1256,47 @@ class JurnalController extends Controller
         }
 
         return $prefixedDate.'-'.$nextNumber;
+    }
+
+    private function validateEntryDate(string $entryDate, int $fiscalPeriodId)
+    {
+        $period = FiscalPeriod::find($fiscalPeriodId);
+        $entryDate = Carbon::parse($entryDate);
+
+        // The 'period' should always exist due to 'exists' validation rule, but a check is safer.
+        if ($period) {
+            $startDate = Carbon::parse($period->start_date);
+            $endDate = Carbon::parse($period->end_date);
+
+            if (! ($entryDate->gte($startDate) && $entryDate->lte($endDate))) {
+                $formattedStartDate = $startDate->format('d-m-Y');
+                $formattedEndDate = $endDate->format('d-m-Y');
+                throw ValidationException::withMessages([
+                    'entry_date' => "Tanggal jurnal harus berada dalam rentang periode fiskal yang dipilih ({$formattedStartDate} - {$formattedEndDate}).",
+                ]);
+            }
+        }
+    }
+
+    private function getJournalDataForEdit(JournalEntry $journal, $mainAccountId, $details, $amountField)
+    {
+        return [
+            'id' => $journal->id,
+            'entry_date' => $journal->entry_date->format('Y-m-d'),
+            'entry_number' => $journal->entry_number,
+            'fiscal_period_id' => $journal->fiscal_period_id,
+            'penerima' => $journal->penerima,
+            'status' => $journal->status,
+            'cash_account_id' => $mainAccountId, // Disesuaikan untuk kas/bank
+            'bank_account_id' => $mainAccountId, // Disesuaikan untuk kas/bank
+            'details' => $details->map(function ($detail) use ($amountField) {
+                return [
+                    'id' => $detail->id,
+                    'account_id' => $detail->account_id,
+                    'description' => $detail->description,
+                    $amountField => (float) $detail->{$amountField},
+                ];
+            })->values()->toArray(),
+        ];
     }
 }

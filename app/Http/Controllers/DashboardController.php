@@ -14,10 +14,29 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $fiscalPeriods = FiscalPeriod::orderBy('start_date', 'desc')->get();
+        $periodsCollection = FiscalPeriod::get();
+        $getTypeWeight = function ($type) {
+            switch ($type) {
+                case 'monthly': return 1;
+                case 'quarterly': return 2;
+                case 'annually': return 3;
+                default: return 4;
+            }
+        };
+        $fiscalPeriods = $periodsCollection->sortBy(function ($period) use ($getTypeWeight) {
+            $endDateKey = Carbon::parse($period->end_date)->format('Ymd');
+            $typeWeight = $getTypeWeight($period->period_type);
+
+            return "{$endDateKey}{$typeWeight}";
+        })->reverse()->values();
+
         $selectedPeriod = $request->input('period')
             ? $fiscalPeriods->find($request->input('period'))
-            : $fiscalPeriods->firstWhere('status', 'open') ?? $fiscalPeriods->first();
+            : $fiscalPeriods->firstWhere('status', 'Open') ?? $fiscalPeriods->first();
+
+        if (! $selectedPeriod) {
+            $selectedPeriod = $fiscalPeriods->first();
+        }
 
         $openingMovements = $this->getOpeningMovements($selectedPeriod->id);
         $periodMovements = $this->getPeriodMovements($selectedPeriod->id);
@@ -151,30 +170,38 @@ class DashboardController extends Controller
 
         $startDate = Carbon::parse($period->start_date);
         $endDate = Carbon::parse($period->end_date);
+
+        $revenues = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+            ->whereIn('journal_details.account_id', $revenueAccountIds)
+            ->where('journal_entries.status', 'Posted')
+            ->whereBetween('journal_entries.entry_date', [$startDate, $endDate])
+            ->select(
+                DB::raw('DATE(journal_entries.entry_date) as date'),
+                DB::raw('SUM(CAST(credit AS DECIMAL(15,2)) - CAST(debit AS DECIMAL(15,2))) as amount')
+            )
+            ->groupBy('date')
+            ->get()
+            ->keyBy(fn ($item) => $item->date);
+
+        $expenses = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+            ->whereIn('journal_details.account_id', $expenseAccountIds)
+            ->where('journal_entries.status', 'Posted')
+            ->whereBetween('journal_entries.entry_date', [$startDate, $endDate])
+            ->select(
+                DB::raw('DATE(journal_entries.entry_date) as date'),
+                DB::raw('SUM(CAST(debit AS DECIMAL(15,2)) - CAST(credit AS DECIMAL(15,2))) as amount')
+            )
+            ->groupBy('date')
+            ->get()
+            ->keyBy(fn ($item) => $item->date);
+
         $chartData = [];
-
-        // Generate daily data
-        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
+        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
             $dateStr = $date->format('Y-m-d');
-
-            // Get revenue for this date
-            $revenueAmount = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
-                ->whereIn('journal_details.account_id', $revenueAccountIds)
-                ->where('journal_entries.status', 'Posted')
-                ->whereDate('journal_entries.entry_date', $dateStr)
-                ->sum(DB::raw('CAST(credit AS DECIMAL(15,2)) - CAST(debit AS DECIMAL(15,2))'));
-
-            // Get expense for this date
-            $expenseAmount = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
-                ->whereIn('journal_details.account_id', $expenseAccountIds)
-                ->where('journal_entries.status', 'Posted')
-                ->whereDate('journal_entries.entry_date', $dateStr)
-                ->sum(DB::raw('CAST(debit AS DECIMAL(15,2)) - CAST(credit AS DECIMAL(15,2))'));
-
             $chartData[] = [
                 'date' => $date->format('M d'),
-                'pendapatan' => (float) $revenueAmount,
-                'beban' => (float) $expenseAmount,
+                'pendapatan' => (float) ($revenues->get($dateStr)->amount ?? 0),
+                'beban' => (float) ($expenses->get($dateStr)->amount ?? 0),
                 'period' => $period->period_name,
             ];
         }
@@ -189,7 +216,7 @@ class DashboardController extends Controller
                 'operasional' => 0,
                 'investasi' => 0,
                 'pendanaan' => 0,
-                'chartData' => [],
+                'chartData' => ['operasional' => [], 'investasi' => [], 'pendanaan' => []],
             ];
         }
 
@@ -199,33 +226,74 @@ class DashboardController extends Controller
                 'operasional' => 0,
                 'investasi' => 0,
                 'pendanaan' => 0,
-                'chartData' => [],
+                'chartData' => ['operasional' => [], 'investasi' => [], 'pendanaan' => []],
             ];
         }
-
-        // Calculate cash flow by categories
-        // This is simplified - you should adjust based on your account structure
-        $operasional = rand(20000, 30000);
-        $investasi = rand(20000, 30000);
-        $pendanaan = rand(20000, 30000);
 
         $startDate = Carbon::parse($period->start_date);
         $endDate = Carbon::parse($period->end_date);
-        $chartData = [];
+        $cashAccountIds = Account::where('is_cash_account', true)->pluck('id');
 
-        // Generate daily cash flow data
-        for ($date = $startDate->copy(); $date <= $endDate; $date->addDay()) {
-            $chartData[] = [
-                'date' => $date->format('M d'),
-                'amount' => rand(100, 1000),
-                'period' => $period->period_name,
-            ];
+        $activityMap = [
+            'Aktivitas Operasi' => 'operasional',
+            'Aktivitas Investasi' => 'investasi',
+            'Aktivitas Pendanaan' => 'pendanaan',
+        ];
+
+        $dailySummary = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->leftJoin('cash_flow_activities as cfa', 'a.cash_flow_activity_id', '=', 'cfa.id')
+            ->where('je.status', 'Posted')
+            ->whereBetween('je.entry_date', [$startDate, $endDate])
+            ->whereIn('jd.journal_entry_id', function ($query) use ($cashAccountIds) {
+                $query->select('journal_entry_id')->from('journal_details')->whereIn('account_id', $cashAccountIds);
+            })
+            ->whereNotIn('jd.account_id', $cashAccountIds)
+            ->whereNotNull('cfa.name')
+            ->select(
+                DB::raw('DATE(je.entry_date) as date'),
+                'cfa.name as activity_type',
+                DB::raw('SUM(jd.credit) - SUM(jd.debit) as amount')
+            )
+            ->groupBy('date', 'cfa.name')
+            ->get();
+
+        $chartData = ['operasional' => [], 'investasi' => [], 'pendanaan' => []];
+        $totals = ['operasional' => 0, 'investasi' => 0, 'pendanaan' => 0];
+
+        $dateRange = collect(new \DatePeriod($startDate, new \DateInterval('P1D'), $endDate->copy()->addDay()));
+
+        foreach ($dateRange as $date) {
+            foreach ($activityMap as $keyName) {
+                $chartData[$keyName][$date->format('Y-m-d')] = [
+                    'date' => $date->format('M d'),
+                    'amount' => 0,
+                    'period' => $period->period_name,
+                ];
+            }
+        }
+
+        foreach ($dailySummary as $summary) {
+            $keyName = $activityMap[$summary->activity_type] ?? null;
+            if ($keyName) {
+                $dateStr = $summary->date;
+                if (isset($chartData[$keyName][$dateStr])) {
+                    $chartData[$keyName][$dateStr]['amount'] = (float) $summary->amount;
+                }
+                $totals[$keyName] += $summary->amount;
+            }
+        }
+
+        // Flatten the chart data arrays
+        foreach ($chartData as $key => $data) {
+            $chartData[$key] = array_values($data);
         }
 
         return [
-            'operasional' => $operasional,
-            'investasi' => $investasi,
-            'pendanaan' => $pendanaan,
+            'operasional' => $totals['operasional'],
+            'investasi' => $totals['investasi'],
+            'pendanaan' => $totals['pendanaan'],
             'chartData' => $chartData,
         ];
     }

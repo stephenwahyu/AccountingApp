@@ -17,7 +17,7 @@ class JournalSeeder extends Seeder
     public function run(): void
     {
         $user = User::first();
-        if (!$user) {
+        if (! $user) {
             $this->command->error('Please seed Users first.');
 
             return;
@@ -37,9 +37,6 @@ class JournalSeeder extends Seeder
 
     /**
      * Seed 10 journal entries for a specific day.
-     *
-     * @param Carbon $date
-     * @param User $user
      */
     private function seedDay(Carbon $date, User $user): void
     {
@@ -47,7 +44,7 @@ class JournalSeeder extends Seeder
             ->where('end_date', '>=', $date)
             ->first();
 
-        if (!$period) {
+        if (! $period) {
             $this->command->warn("Fiscal period for {$date->toDateString()} not found. Skipping.");
 
             return;
@@ -59,19 +56,19 @@ class JournalSeeder extends Seeder
 
         if ($debitAccounts->isEmpty() || $creditAccounts->isEmpty()) {
             $this->command->error('Please seed Accounts first.');
+
             return;
         }
 
-
         for ($i = 1; $i <= 10; $i++) {
-            $entry_number = 'JU-' . $date->format('Ymd') . '-' . str_pad($i, 3, '0', STR_PAD_LEFT);
+            $entry_number = 'JU-'.$date->format('Ymd').'-'.str_pad($i, 3, '0', STR_PAD_LEFT);
             $amount = rand(100000, 5000000);
             $debitAccount = $debitAccounts->random();
             $creditAccount = $creditAccounts->random();
 
             $entry = JournalEntry::create([
                 'entry_date' => $date,
-                'penerima' => 'Penerima ' . $i,
+                'penerima' => 'Penerima '.$i,
                 'status' => 'Posted',
                 'journal_type' => 'Umum',
                 'fiscal_period_id' => $period->id,
@@ -84,13 +81,13 @@ class JournalSeeder extends Seeder
                     'account_id' => $debitAccount->id,
                     'debit' => $amount,
                     'credit' => 0,
-                    'description' => 'Seeded debit for ' . $debitAccount->account_name,
+                    'description' => 'Seeded debit for '.$debitAccount->account_name,
                 ],
                 [
                     'account_id' => $creditAccount->id,
                     'debit' => 0,
                     'credit' => $amount,
-                    'description' => 'Seeded credit for ' . $creditAccount->account_name,
+                    'description' => 'Seeded credit for '.$creditAccount->account_name,
                 ],
             ]);
         }

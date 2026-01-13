@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\AccountCategory;
 use App\Models\AccountType;
+use App\Models\CashFlowActivity;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -25,23 +26,25 @@ class BaganPerkiraanController extends Controller
     public function akun()
     {
 
-        $accounts = Account::with(['accountCategory.accountType'])->get()->map(function ($account) {
+        $accounts = Account::with(['accountCategory.accountType'])
+            ->orderBy('account_code', 'asc')
+            ->get()->map(function ($account) {
 
-            return [
+                return [
 
-                'id' => $account->id,
+                    'id' => $account->id,
 
-                'account_code' => $account->account_code,
+                    'account_code' => $account->account_code,
 
-                'account_name' => $account->account_name,
+                    'account_name' => $account->account_name,
 
-                'category_name' => $account->accountCategory->name,
+                    'category_name' => $account->accountCategory->name,
 
-                'type_name' => $account->accountCategory->accountType->name,
+                    'type_name' => $account->accountCategory->accountType->name,
 
-            ];
+                ];
 
-        });
+            });
 
         return Inertia::render('akun/akun', [
 
@@ -90,18 +93,30 @@ class BaganPerkiraanController extends Controller
     {
         return Inertia::render('akun/forms/akun', [
             'categories' => AccountCategory::all(),
+            'accounts' => Account::all(),
+            'cashFlowActivities' => CashFlowActivity::all(),
         ]);
     }
 
     public function storeAkun(Request $request)
     {
+        $data = $request->all();
+        if (isset($data['parent_id']) && $data['parent_id'] === 'null') {
+            $data['parent_id'] = null;
+        }
+
         $request->validate([
             'account_code' => 'required|unique:accounts',
-            'account_name' => 'required',
+            'account_name' => 'required|string|max:255',
             'account_category_id' => 'required|exists:account_categories,id',
+            'initial_balance' => 'nullable|numeric',
+            'parent_id' => 'nullable|exists:accounts,id',
+            'is_cash_account' => 'required|boolean',
+            'cash_flow_activity_id' => 'nullable|required_if:is_cash_account,true|exists:cash_flow_activities,id',
+            'is_active' => 'required|boolean',
         ]);
 
-        Account::create($request->all());
+        Account::create($data);
 
         return redirect()->route('bagan-perkiraan.akun')->with('message', 'Akun berhasil dibuat.');
     }
@@ -111,20 +126,103 @@ class BaganPerkiraanController extends Controller
         return Inertia::render('akun/forms/akun', [
             'account' => $account,
             'categories' => AccountCategory::all(),
+            'accounts' => Account::where('id', '!=', $account->id)->get(), // Exclude self
+            'cashFlowActivities' => CashFlowActivity::all(),
         ]);
     }
 
     public function updateAkun(Request $request, Account $account)
     {
+        $data = $request->all();
+        if (isset($data['parent_id']) && $data['parent_id'] === 'null') {
+            $data['parent_id'] = null;
+        }
+
         $request->validate([
             'account_code' => 'required|unique:accounts,account_code,'.$account->id,
-            'account_name' => 'required',
+            'account_name' => 'required|string|max:255',
             'account_category_id' => 'required|exists:account_categories,id',
+            'initial_balance' => 'nullable|numeric',
+            'parent_id' => 'nullable|exists:accounts,id',
+            'is_cash_account' => 'required|boolean',
+            'cash_flow_activity_id' => 'nullable|required_if:is_cash_account,true|exists:cash_flow_activities,id',
+            'is_active' => 'required|boolean',
         ]);
 
-        $account->update($request->all());
+        $account->update($data);
 
         return redirect()->route('bagan-perkiraan.akun')->with('message', 'Akun berhasil diperbarui.');
+    }
+
+    public function generateAccountCode(?Account $parent = null)
+    {
+
+        $newCode = '';
+
+        if ($parent) {
+
+            // Case 1: Has a parent. Find siblings and determine the next code.
+
+            $parentCodePrefix = explode('-', $parent->account_code)[0];
+
+            $lastSibling = Account::where('parent_id', $parent->id)
+                ->orderBy('account_code', 'desc')
+                ->first();
+
+            if ($lastSibling) {
+
+                $parts = explode('-', $lastSibling->account_code);
+
+                $lastNumber = (int) $parts[1];
+
+                $nextNumber = $lastNumber + 100;
+
+                $newCode = $parentCodePrefix.'-'.$nextNumber;
+
+            } else {
+
+                // This is the first child.
+
+                $parentSecondSegment = (int) explode('-', $parent->account_code)[1];
+
+                $nextNumber = $parentSecondSegment + 100; // Start a new block
+
+                $newCode = $parentCodePrefix.'-'.$nextNumber;
+
+            }
+
+        } else {
+
+            // Case 2: No parent (top-level account).
+
+            $lastRootAccount = Account::whereNull('parent_id')
+
+                ->orderBy('account_code', 'desc')
+
+                ->first();
+
+            if ($lastRootAccount) {
+
+                $parts = explode('-', $lastRootAccount->account_code);
+
+                $lastPrefix = (int) $parts[0];
+
+                $nextPrefix = $lastPrefix + 1;
+
+                $newCode = $nextPrefix.'-1000';
+
+            } else {
+
+                // First account in the system.
+
+                $newCode = '1-1000';
+
+            }
+
+        }
+
+        return response()->json(['account_code' => $newCode]);
+
     }
 
     public function destroyAkun(Account $account)
