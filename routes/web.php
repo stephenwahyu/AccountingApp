@@ -9,6 +9,7 @@ use App\Http\Controllers\LaporanKeuanganController;
 use App\Http\Controllers\NeracaSaldoController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PeriodeController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [AuthController::class, 'showLogin'])->middleware('guest')->name('login');
 Route::post('/', [AuthController::class, 'storeLogin'])->middleware('guest');
@@ -100,11 +101,21 @@ Route::get('/neraca-saldo', [NeracaSaldoController::class, 'index'])->name('nera
 Route::get('/neraca-saldo/export', [NeracaSaldoController::class, 'export'])->name('neraca-saldo.export');
 
 Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () {
-    Route::get('/', [LaporanKeuanganController::class, 'index'])->name('index');
-    Route::get('/posisi-keuangan/{id}', [LaporanKeuanganController::class, 'showPosisiKeuangan'])->name('show.posisi-keuangan');
-    Route::get('/laba-rugi/{id}', [LaporanKeuanganController::class, 'showLabaRugi'])->name('show.laba-rugi');
-    Route::get('/perubahan-ekuitas/{id}', [LaporanKeuanganController::class, 'showPerubahanEkuitas'])->name('show.perubahan-ekuitas');
-    Route::get('/arus-kas/{id}', [LaporanKeuanganController::class, 'showArusKas'])->name('show.arus-kas');
+    // Posisi Keuangan (Neraca)
+    Route::get('/posisi-keuangan', [LaporanKeuanganController::class, 'posisiKeuangan'])->name('posisi-keuangan');
+    Route::get('/posisi-keuangan/{id}', [LaporanKeuanganController::class, 'showPosisiKeuangan'])->name('posisi-keuangan.show');
+
+    // Laba Rugi
+    Route::get('/laba-rugi', [LaporanKeuanganController::class, 'labaRugi'])->name('laba-rugi');
+    Route::get('/laba-rugi/{id}', [LaporanKeuanganController::class, 'showLabaRugi'])->name('laba-rugi.show');
+
+    // Arus Kas
+    Route::get('/arus-kas', [LaporanKeuanganController::class, 'arusKas'])->name('arus-kas');
+    Route::get('/arus-kas/{id}', [LaporanKeuanganController::class, 'showArusKas'])->name('arus-kas.show');
+
+
+    Route::get('/perubahan-ekuitas', [LaporanKeuanganController::class, 'perubahanEkuitas'])->name('perubahan-ekuitas');
+    Route::get('/perubahan-ekuitas/{id}', [LaporanKeuanganController::class, 'showPerubahanEkuitas'])->name('perubahan-ekuitas.show');
 });
 
 Route::prefix('periode')->name('periode.')->group(function () {
