@@ -13,7 +13,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 
-export function DatePicker({ date, setDate, ...props }) {
+export function DatePicker({ date, setDate, disabled, ...props }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -34,6 +34,7 @@ export function DatePicker({ date, setDate, ...props }) {
           mode="single"
           selected={date}
           onSelect={setDate}
+          disabled={disabled}
           initialFocus
         />
       </PopoverContent>

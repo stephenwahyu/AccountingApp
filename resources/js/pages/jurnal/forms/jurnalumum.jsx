@@ -36,7 +36,7 @@ export default function FormJurnalUmum({
     journal = null,
     accounts = [],
     periods = [],
-}) {
+},) {
     const isEdit = !!journal;
     const breadcrumbs = [
         { title: "Jurnal", href: "/jurnal" },
@@ -69,6 +69,39 @@ export default function FormJurnalUmum({
     const [processing, setProcessing] = useState(false);
     const [submittedStatus, setSubmittedStatus] = useState(null);
     const [errors, setErrors] = useState({});
+
+    const selectedPeriod = useMemo(() => {
+        return periods.find(
+            (p) => p.id.toString() === data.fiscal_period_id
+        );
+    }, [data.fiscal_period_id, periods]);
+
+    const handlePeriodChange = (value) => {
+        const newPeriod = periods.find((p) => p.id.toString() === value);
+        if (newPeriod) {
+            setData({
+                ...data,
+                fiscal_period_id: value,
+                entry_date: new Date(newPeriod.start_date.replace(/-/g, "/")),
+            });
+        }
+    };
+    
+    const disabledDates = useMemo(() => {
+        if (!selectedPeriod) {
+            // Disable all dates if no period is selected
+            return (date) => true;
+        }
+        const startDate = new Date(selectedPeriod.start_date.replace(/-/g, "/"));
+        const endDate = new Date(selectedPeriod.end_date.replace(/-/g, "/"));
+        // Set time to 0 to compare dates only
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+    
+        return (date) => {
+            return date < startDate || date > endDate;
+        };
+    }, [selectedPeriod]);
 
     const accountOptions = accounts.map((acc) => ({
         value: acc.id.toString(),
@@ -418,6 +451,7 @@ export default function FormJurnalUmum({
                                             setDate={(date) =>
                                                 setData({ ...data, entry_date: date })
                                             }
+                                            disabled={disabledDates}
                                             id="entry_date"
                                         />
                                         {errors.entry_date && (
@@ -454,12 +488,7 @@ export default function FormJurnalUmum({
                                         </Label>
                                         <Select
                                             value={data.fiscal_period_id}
-                                            onValueChange={(value) =>
-                                                setData({
-                                                    ...data,
-                                                    fiscal_period_id: value,
-                                                })
-                                            }
+                                            onValueChange={handlePeriodChange}
                                         >
                                             <SelectTrigger id="fiscal_period_id">
                                                 <SelectValue placeholder="Pilih Periode" />

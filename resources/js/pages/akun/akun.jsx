@@ -33,7 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, ChevronLeft, ChevronRight, Search, Plus } from "lucide-react";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
 
 const breadcrumbs = [
   { title: "Bagan Perkiraan", href: "/bagan-perkiraan" },

@@ -31,7 +31,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 
-export default function FormPemasukanBank({ journal = null, accounts = [], periods = [], bankAccounts = [] }) {
+export default function FormPemasukanBank({ journal = null, accounts = [], periods = [], bankAccounts = [], }) {
   const isEdit = !!journal;
   const breadcrumbs = [
     { title: "Jurnal", href: route('jurnal.index') },
@@ -54,6 +54,39 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
+
+  const selectedPeriod = useMemo(() => {
+    return periods.find(
+        (p) => p.id.toString() === data.fiscal_period_id
+    );
+  }, [data.fiscal_period_id, periods]);
+
+  const handlePeriodChange = (value) => {
+      const newPeriod = periods.find((p) => p.id.toString() === value);
+      if (newPeriod) {
+          setData({
+              ...data,
+              fiscal_period_id: value,
+              entry_date: new Date(newPeriod.start_date.replace(/-/g, "/")),
+          });
+      }
+  };
+
+  const disabledDates = useMemo(() => {
+      if (!selectedPeriod) {
+          // Disable all dates if no period is selected
+          return (date) => true;
+      }
+      const startDate = new Date(selectedPeriod.start_date.replace(/-/g, "/"));
+      const endDate = new Date(selectedPeriod.end_date.replace(/-/g, "/"));
+      // Set time to 0 to compare dates only
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+  
+      return (date) => {
+          return date < startDate || date > endDate;
+      };
+  }, [selectedPeriod]);
 
   const accountOptions = accounts
     .filter(acc => !acc.is_cash_account)
@@ -264,6 +297,7 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
                         <DatePicker
                         date={data.entry_date}
                         setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
+                        disabled={disabledDates}
                         id="entry_date"
                         />
                          {errors.entry_date && <p className="text-sm text-destructive">{errors.entry_date}</p>}
@@ -302,7 +336,7 @@ export default function FormPemasukanBank({ journal = null, accounts = [], perio
                         <Label htmlFor="fiscal_period_id">Periode</Label>
                         <Select
                         value={data.fiscal_period_id}
-                        onValueChange={(value) => setData(prev => ({...prev, fiscal_period_id: value}))}
+                        onValueChange={handlePeriodChange}
                         >
                         <SelectTrigger id="fiscal_period_id">
                             <SelectValue placeholder="Pilih Periode" />
