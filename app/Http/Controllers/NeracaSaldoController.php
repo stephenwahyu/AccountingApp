@@ -32,16 +32,21 @@ class NeracaSaldoController extends Controller
         })->reverse()->values();
 
         $selectedPeriodId = $request->input('period');
-        if (! $selectedPeriodId) {
-            $selectedPeriodId = $periods->first()->id ?? null;
+        if (! $selectedPeriodId && $periods->isNotEmpty()) {
+            $selectedPeriodId = $periods->first()->id;
         }
 
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $period = $selectedPeriodId ? FiscalPeriod::find($selectedPeriodId) : null;
+        
         $accountsData = Account::with('accountCategory.accountType')
             ->orderBy('account_code')
             ->get();
 
-        $openingMovements = $this->getOpeningMovements($selectedPeriodId);
-        $periodMovements = $this->getPeriodMovements($selectedPeriodId);
+        $openingMovements = $this->getOpeningMovements($period, $startDate);
+        $periodMovements = $this->getPeriodMovements($period, $startDate, $endDate);
 
         $accounts = $this->buildAccountHierarchy($accountsData, $openingMovements, $periodMovements);
 
@@ -59,43 +64,43 @@ class NeracaSaldoController extends Controller
             'periods' => $periods,
             'selectedPeriod' => $selectedPeriodId,
             'totals' => $totals,
+            'initialFilters' => $request->only(['period', 'start_date', 'end_date']),
         ]);
     }
 
-    private function getOpeningMovements($periodId)
+    private function getOpeningMovements(?FiscalPeriod $period, ?string $requestStartDate)
     {
-        if (! $periodId) {
-            return collect();
-        }
-        $period = FiscalPeriod::find($periodId);
-        if (! $period) {
+        $date = $requestStartDate ? Carbon::parse($requestStartDate) : ($period ? Carbon::parse($period->start_date) : null);
+
+        if (!$date) {
             return collect();
         }
 
         return JournalDetail::select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
             ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
             ->where('journal_entries.status', 'Posted')
-            ->where('journal_entries.entry_date', '<', $period->start_date)
+            ->where('journal_entries.entry_date', '<', $date)
             ->groupBy('account_id')
             ->get()
             ->keyBy('account_id');
     }
 
-    private function getPeriodMovements($periodId)
+    private function getPeriodMovements(?FiscalPeriod $period, ?string $requestStartDate, ?string $requestEndDate)
     {
-        $query = JournalDetail::select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
-            ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_entries.status', 'Posted')
-            ->groupBy('account_id');
-
-        if ($periodId) {
-            $period = FiscalPeriod::find($periodId);
-            if ($period) {
-                $query->whereBetween('journal_entries.entry_date', [$period->start_date, $period->end_date]);
-            }
+        $startDate = $requestStartDate ? Carbon::parse($requestStartDate) : ($period ? Carbon::parse($period->start_date) : null);
+        $endDate = $requestEndDate ? Carbon::parse($requestEndDate) : ($period ? Carbon::parse($period->end_date) : null);
+        
+        if (!$startDate || !$endDate) {
+            return collect();
         }
 
-        return $query->get()->keyBy('account_id');
+        return JournalDetail::select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
+            ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_entries.status', 'Posted')
+            ->whereBetween('journal_entries.entry_date', [$startDate, $endDate])
+            ->groupBy('account_id')
+            ->get()
+            ->keyBy('account_id');
     }
 
     private function buildAccountHierarchy($accounts, $openingMovements, $periodMovements, $parentId = null)
@@ -196,8 +201,11 @@ class NeracaSaldoController extends Controller
             ->orderBy('account_code')
             ->get();
 
-        $openingMovements = $this->getOpeningMovements($selectedPeriodId);
-        $periodMovements = $this->getPeriodMovements($selectedPeriodId);
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $openingMovements = $this->getOpeningMovements($period, $startDate);
+        $periodMovements = $this->getPeriodMovements($period, $startDate, $endDate);
 
         $accounts = $this->buildAccountHierarchy($accountsData, $openingMovements, $periodMovements);
 
