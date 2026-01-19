@@ -31,8 +31,8 @@ const AccountRow = ({ account, level = 0 }) => {
 
     return (
         <Fragment>
-            <TableRow>
-                <TableCell style={{ paddingLeft: `${level * 2}rem` }}>
+            <TableRow className="hover:bg-muted/50">
+                <TableCell style={{ paddingLeft: `${level * 1.5 + 0.5}rem` }}>
                     <div className="flex items-center gap-2">
                         {hasChildren && (
                             <Button
@@ -45,10 +45,10 @@ const AccountRow = ({ account, level = 0 }) => {
                             </Button>
                         )}
                          {!hasChildren && <span className="w-8 h-8 inline-block" />}
-                        <span className="font-medium">{account.account_code}</span>
+                        <span className="font-mono text-sm">{account.account_code}</span>
                     </div>
                 </TableCell>
-                <TableCell>{account.account_name}</TableCell>
+                <TableCell className={level === 0 ? "font-semibold" : ""}>{account.account_name}</TableCell>
                 <TableCell>{account.account_category?.name}</TableCell>
                 <TableCell>{account.account_category?.account_type?.name}</TableCell>
             </TableRow>

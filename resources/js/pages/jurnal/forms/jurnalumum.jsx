@@ -285,7 +285,7 @@ export default function FormJurnalUmum({
                                                     <TableHead className="w-[200px] md:w-[300px]">
                                                         Akun
                                                     </TableHead>
-                                                    <TableHead>Uraian</TableHead>
+                                                    <TableHead className="hidden md:table-cell">Uraian</TableHead>
                                                     <TableHead className="w-[150px] md:w-[180px]">
                                                         Debit
                                                     </TableHead>
@@ -316,7 +316,7 @@ export default function FormJurnalUmum({
                                                                 emptyPlaceholder="Akun tidak ditemukan."
                                                             />
                                                         </TableCell>
-                                                        <TableCell>
+                                                        <TableCell className="hidden md:table-cell">
                                                             <Input
                                                                 type="text"
                                                                 placeholder="Uraian singkat"

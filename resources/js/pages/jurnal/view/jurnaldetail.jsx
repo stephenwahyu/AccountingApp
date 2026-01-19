@@ -124,16 +124,16 @@ export default function ViewDetailJurnal({ journal }) {
                     </p>
                 </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2 w-full @lg:w-auto">
-              <Button variant="outline" className="w-full @lg:w-auto" onClick={handlePrint}>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button variant="outline" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
                 Cetak
               </Button>
-              <Button variant="outline" className="w-full @lg:w-auto" onClick={handleEdit}>
+              <Button variant="outline" onClick={handleEdit}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="destructive" className="w-full @lg:w-auto" onClick={handleDelete} disabled={journal.status === 'Posted'}>
+              <Button variant="destructive" onClick={handleDelete} disabled={journal.status === 'Posted'}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Hapus
               </Button>
@@ -203,8 +203,8 @@ export default function ViewDetailJurnal({ journal }) {
                     </Table>
                 </div>
 
-                 <div className="flex justify-end">
-                    <div className="w-full sm:max-w-sm space-y-2">
+                 <div className="flex justify-end mt-4">
+                    <div className="w-full max-w-sm space-y-2 rounded-lg bg-slate-100 p-4">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Total Debit</span>
                             <span className="font-medium font-mono">{new Intl.NumberFormat('id-ID').format(totalDebit)}</span>

@@ -21,7 +21,7 @@ export function SiteHeader({ breadcrumbs = [] }) {
         </Button>
         <Separator orientation="vertical" className="mr-2 h-4" />
         {breadcrumbs.length > 0 && (
-          <div className="hidden sm:block">
+          <div>
             <Breadcrumbs breadcrumbs={breadcrumbs} />
           </div>
         )}

@@ -206,7 +206,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                                 <TableHeader>
                                     <TableRow>
                                     <TableHead className="w-[200px] md:w-[300px]">Akun Kredit</TableHead>
-                                    <TableHead>Uraian</TableHead>
+                                    <TableHead className="hidden md:table-cell">Uraian</TableHead>
                                     <TableHead className="w-[150px] md:w-[180px]">Jumlah</TableHead>
                                     <TableHead className="w-12"></TableHead>
                                     </TableRow>
@@ -224,7 +224,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                                                 emptyPlaceholder="Akun tidak ditemukan."
                                             />
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell className="hidden md:table-cell">
                                         <Input
                                             type="text"
                                             placeholder="Uraian singkat"
