@@ -98,25 +98,25 @@ const data = {
     },
     {
       title: "Laporan Keuangan",
-      url: "/laporan-keuangan",
+      url: "/laporan-keuangan/posisi-keuangan",
       icon: Description,
       isActive: false,
       items: [
         {
           title: "Posisi Keuangan",
-          url: "#",
+          url: "/laporan-keuangan/posisi-keuangan",
         },
         {
           title: "Laba Rugi",
-          url: "#",
+          url: "/laporan-keuangan/laba-rugi",
         },
         {
           title: "Arus Kas",
-          url: "#",
+          url: "/laporan-keuangan/arus-kas",
         },
         {
           title: "Perubahan Ekuitas",
-          url: "#",
+          url: "/laporan-keuangan/perubahan-ekuitas",
         },
       ],
     },

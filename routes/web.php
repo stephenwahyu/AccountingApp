@@ -101,7 +101,7 @@ Route::get('/neraca-saldo', [NeracaSaldoController::class, 'index'])->name('nera
 Route::get('/neraca-saldo/export', [NeracaSaldoController::class, 'export'])->name('neraca-saldo.export');
 
 Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () {
-    Route::get('/', [LaporanKeuanganController::class, 'semua'])->name('semua');
+    // Route::get('/', [LaporanKeuanganController::class, 'semua'])->name('semua');
 
     // Posisi Keuangan (Neraca)
     Route::get('/posisi-keuangan', [LaporanKeuanganController::class, 'posisiKeuangan'])->name('posisi-keuangan');

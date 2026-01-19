@@ -10,14 +10,14 @@ use Inertia\Response;
 
 class LaporanKeuanganController extends Controller
 {
-    public function semua(): Response
-    {
-        $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
+    // public function semua(): Response
+    // {
+    //     $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
 
-        return Inertia::render('laporankeuangan/semua', [
-            'periods' => $periods,
-        ]);
-    }
+    //     return Inertia::render('laporankeuangan/semua', [
+    //         'periods' => $periods,
+    //     ]);
+    // }
 
     public function posisiKeuangan(): Response
     {
