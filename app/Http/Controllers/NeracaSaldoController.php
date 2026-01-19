@@ -40,7 +40,7 @@ class NeracaSaldoController extends Controller
         $endDate = $request->input('end_date');
 
         $period = $selectedPeriodId ? FiscalPeriod::find($selectedPeriodId) : null;
-        
+
         $accountsData = Account::with('accountCategory.accountType')
             ->orderBy('account_code')
             ->get();
@@ -72,7 +72,7 @@ class NeracaSaldoController extends Controller
     {
         $date = $requestStartDate ? Carbon::parse($requestStartDate) : ($period ? Carbon::parse($period->start_date) : null);
 
-        if (!$date) {
+        if (! $date) {
             return collect();
         }
 
@@ -89,8 +89,8 @@ class NeracaSaldoController extends Controller
     {
         $startDate = $requestStartDate ? Carbon::parse($requestStartDate) : ($period ? Carbon::parse($period->start_date) : null);
         $endDate = $requestEndDate ? Carbon::parse($requestEndDate) : ($period ? Carbon::parse($period->end_date) : null);
-        
-        if (!$startDate || !$endDate) {
+
+        if (! $startDate || ! $endDate) {
             return collect();
         }
 

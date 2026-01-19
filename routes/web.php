@@ -101,6 +101,8 @@ Route::get('/neraca-saldo', [NeracaSaldoController::class, 'index'])->name('nera
 Route::get('/neraca-saldo/export', [NeracaSaldoController::class, 'export'])->name('neraca-saldo.export');
 
 Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () {
+    Route::get('/', [LaporanKeuanganController::class, 'semua'])->name('semua');
+
     // Posisi Keuangan (Neraca)
     Route::get('/posisi-keuangan', [LaporanKeuanganController::class, 'posisiKeuangan'])->name('posisi-keuangan');
     Route::get('/posisi-keuangan/{id}', [LaporanKeuanganController::class, 'showPosisiKeuangan'])->name('posisi-keuangan.show');
@@ -113,7 +115,7 @@ Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () 
     Route::get('/arus-kas', [LaporanKeuanganController::class, 'arusKas'])->name('arus-kas');
     Route::get('/arus-kas/{id}', [LaporanKeuanganController::class, 'showArusKas'])->name('arus-kas.show');
 
-
+    // Perubahan Ekuitas
     Route::get('/perubahan-ekuitas', [LaporanKeuanganController::class, 'perubahanEkuitas'])->name('perubahan-ekuitas');
     Route::get('/perubahan-ekuitas/{id}', [LaporanKeuanganController::class, 'showPerubahanEkuitas'])->name('perubahan-ekuitas.show');
 });

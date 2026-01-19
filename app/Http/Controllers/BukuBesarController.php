@@ -155,7 +155,7 @@ class BukuBesarController extends Controller
         $account = Account::with('accountCategory.accountType')->findOrFail($selectedAccountId);
         $period = $selectedPeriodId ? FiscalPeriod::find($selectedPeriodId) : null;
 
-        if (!$period) {
+        if (! $period) {
             abort(400, 'Fiscal period not found.');
         }
 
@@ -167,7 +167,7 @@ class BukuBesarController extends Controller
 
         // Opening Balance
         $openingBalance = $this->calculateOpeningBalance($account, $calculationStartDate);
-        
+
         // Transactions
         $transactions = $this->getTransactions($account, $calculationStartDate, $calculationEndDate);
 
@@ -203,4 +203,3 @@ class BukuBesarController extends Controller
         return $pdf->download($filename);
     }
 }
-
