@@ -34,17 +34,41 @@ class PeriodeController extends Controller
             return "{$endDateKey}{$typeWeight}";
         })->reverse()->values();
 
-        $periods = $sortedPeriods->map(fn ($period) => [
-            'id' => $period->id,
-            'period_name' => $period->period_name,
-            'start_date' => Carbon::parse($period->start_date)->format('d M Y'),
-            'end_date' => Carbon::parse($period->end_date)->format('d M Y'),
-            'status' => $period->status,
-            'period_type' => $period->period_type,
-            'closed_at' => $period->closed_at ? Carbon::parse($period->closed_at)->format('d M Y, H:i') : '-',
-            'closed_by' => $period->closedByUser?->name,
-            'can_reopen' => $period->status === 'Closed',
-        ]);
+        $periods = $periodsCollection->map(function ($period) use ($periodsCollection, $getTypeWeight) {
+            $canBeClosedParent = true;
+
+            if ($period->period_type === 'quarterly' || $period->period_type === 'annually') {
+                $childPeriods = $periodsCollection->filter(function ($child) use ($period) {
+                    return $child->period_type === 'monthly' &&
+                           Carbon::parse($child->start_date)->between(Carbon::parse($period->start_date), Carbon::parse($period->end_date)) &&
+                           Carbon::parse($child->end_date)->between(Carbon::parse($period->start_date), Carbon::parse($period->end_date));
+                });
+
+                $canBeClosedParent = $childPeriods->every(fn ($child) => $child->status === 'Closed');
+            }
+
+            return [
+                'id' => $period->id,
+                'period_name' => $period->period_name,
+                'start_date' => Carbon::parse($period->start_date)->format('d M Y'),
+                'end_date' => Carbon::parse($period->end_date)->format('d M Y'),
+                'status' => $period->status,
+                'period_type' => $period->period_type,
+                'closed_at' => $period->closed_at ? Carbon::parse($period->closed_at)->format('d M Y, H:i') : '-',
+                'closed_by' => $period->closedByUser?->name,
+                'can_reopen' => $period->status === 'Closed',
+                'can_be_closed' => $period->status === 'Open' &&
+                                   !JournalEntry::where('fiscal_period_id', $period->id)
+                                                 ->where('status', 'Draft')
+                                                 ->exists() &&
+                                   $canBeClosedParent,
+                'can_be_closed_parent' => $canBeClosedParent,
+            ];
+        })->sortBy(function ($period) use ($getTypeWeight) {
+            $endDateKey = Carbon::parse($period['end_date'])->format('Ymd');
+            $typeWeight = $getTypeWeight($period['period_type']);
+            return "{$endDateKey}{$typeWeight}";
+        })->reverse()->values();
 
         return Inertia::render('periode/periode', [
             'periods' => $periods,
@@ -106,6 +130,25 @@ class PeriodeController extends Controller
             return Redirect::back()->with('error', 'Periode sudah ditutup.');
         }
 
+        // Additional validation for quarterly and annually periods
+        if ($period->period_type === 'quarterly' || $period->period_type === 'annually') {
+            $childPeriods = FiscalPeriod::where('period_type', 'monthly')
+                ->whereBetween('start_date', [Carbon::parse($period->start_date), Carbon::parse($period->end_date)])
+                ->get();
+
+            $openChildCount = $childPeriods->where('status', 'Open')->count();
+            if ($openChildCount > 0) {
+                return Redirect::back()->with('error', "Tidak dapat menutup periode {$period->period_name}. Masih ada {$openChildCount} periode bulanan yang terbuka di dalamnya.");
+            }
+            $draftChildJournals = JournalEntry::whereIn('fiscal_period_id', $childPeriods->pluck('id'))
+                ->where('status', 'Draft')
+                ->count();
+
+            if ($draftChildJournals > 0) {
+                return Redirect::back()->with('error', "Tidak dapat menutup periode {$period->period_name}. Masih ada {$draftChildJournals} jurnal berstatus draft di periode bulanan di dalamnya.");
+            }
+        }
+
         // Cek apakah ada jurnal draft di periode ini
         $draftJournals = JournalEntry::where('fiscal_period_id', $period->id)
             ->where('status', 'Draft')
@@ -132,8 +175,17 @@ class PeriodeController extends Controller
             return Redirect::back()->with('error', 'Periode sudah terbuka.');
         }
 
-        // Logic to prevent reopening parent periods if children are not open should be here.
-        // For now, allowing any closed period to be opened as per user request.
+        // Validation for quarterly and annually periods: Cannot open if any child is open
+        if ($period->period_type === 'quarterly' || $period->period_type === 'annually') {
+            $openChildCount = FiscalPeriod::where('period_type', 'monthly')
+                ->whereBetween('start_date', [Carbon::parse($period->start_date), Carbon::parse($period->end_date)])
+                ->where('status', 'Open')
+                ->count();
+
+            if ($openChildCount > 0) {
+                return Redirect::back()->with('error', "Tidak dapat membuka periode {$period->period_name}. Masih ada {$openChildCount} periode bulanan yang terbuka di dalamnya.");
+            }
+        }
 
         $period->update([
             'status' => 'Open',

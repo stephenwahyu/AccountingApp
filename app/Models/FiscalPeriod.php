@@ -12,6 +12,17 @@ class FiscalPeriod extends Model
     /** @use HasFactory<\Database\Factories\FiscalPeriodFactory> */
     use HasFactory;
 
+    protected $fillable = [
+        'period_name',
+        'start_date',
+        'end_date',
+        'fiscal_year',
+        'status',
+        'period_type',
+        'closed_at',
+        'closed_by',
+    ];
+
     public function closedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');

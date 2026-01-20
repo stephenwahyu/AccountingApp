@@ -35,7 +35,7 @@ import { Input } from "@/components/ui/input";
 import { MoreVertical, ChevronLeft, ChevronRight, Search, FileText } from "lucide-react";
 
 const breadcrumbs = [
-  { title: "Laporan Keuangan", href: "/laporan-keuangan" },
+  { title: "Laporan Keuangan", href: "#" },
   { title: "Laba Rugi", href: "/laporan-keuangan/laba-rugi" },
 ];
 
