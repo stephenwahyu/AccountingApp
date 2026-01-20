@@ -122,7 +122,7 @@ Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () 
 
 Route::prefix('periode')->name('periode.')->group(function () {
     Route::get('/', [PeriodeController::class, 'index'])->name('index');
-    Route::post('/', [PeriodeController::class, 'store'])->name('store');
+
     Route::post('/{period}/close', [PeriodeController::class, 'close'])->name('close');
     Route::post('/{period}/open', [PeriodeController::class, 'open'])->name('open');
 });
