@@ -151,7 +151,7 @@ export default function PerubahanEkuitasList({ periods: initialPeriods = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/laporan-keuangan/perubahan-ekuitas/${period.id}`}>
+                                  <Link href={route('laporan-keuangan.perubahan-ekuitas.show', period.id)}>
                                     <FileText className="h-4 w-4 mr-2" />
                                     Lihat Laporan
                                   </Link>

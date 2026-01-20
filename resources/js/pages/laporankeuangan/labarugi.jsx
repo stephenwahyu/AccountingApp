@@ -151,7 +151,7 @@ export default function LabaRugiList({ periods: initialPeriods = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/laporan-keuangan/laba-rugi/${period.id}`}>
+                                  <Link href={route('laporan-keuangan.laba-rugi.show', period.id)}>
                                     <FileText className="h-4 w-4 mr-2" />
                                     Lihat Laporan
                                   </Link>

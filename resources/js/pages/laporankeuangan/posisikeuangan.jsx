@@ -153,7 +153,7 @@ export default function PosisiKeuanganList({ periods: initialPeriods = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/laporan-keuangan/posisi-keuangan/${period.id}`}>
+                                  <Link href={route('laporan-keuangan.posisi-keuangan.show', period.id)}>
                                     <FileText className="h-4 w-4 mr-2" />
                                     Lihat Laporan
                                   </Link>

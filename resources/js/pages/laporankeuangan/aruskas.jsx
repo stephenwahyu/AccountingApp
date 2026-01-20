@@ -151,7 +151,7 @@ export default function ArusKasList({ periods: initialPeriods = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/laporan-keuangan/arus-kas/${period.id}`}>
+                                  <Link href={route('laporan-keuangan.arus-kas.show', period.id)}>
                                     <FileText className="h-4 w-4 mr-2" />
                                     Lihat Laporan
                                   </Link>

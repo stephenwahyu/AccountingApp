@@ -8,7 +8,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp"
-import { useForm } from "@inertiajs/react"
+import { useForm, Link } from "@inertiajs/react"
 import { Loader2 } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -119,7 +119,7 @@ export function OTPForm({ token, email, className, ...props }) {
         </CardContent>
       </Card>
       <div className="text-center text-xs text-muted-foreground">
-        Remembered your password? <a href={route('login')} className="underline underline-offset-4">Login</a>
+        Remembered your password? <Link href={route('login')} className="underline underline-offset-4">Login</Link>
       </div>
     </div>
   )

@@ -1,17 +1,8 @@
 import * as React from "react"
 import {
-  BookOpen,
-  Bot,
   Command,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
-  Settings2,
-  SquareTerminal,
 } from "lucide-react"
-
+import { usePage } from "@inertiajs/react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -25,115 +16,101 @@ import {
 } from "@/components/ui/sidebar"
 import { AccountTree, Balance, CalendarMonth, Dashboard, Description, ManageAccounts, MenuBook, TableChart } from "@material-symbols-svg/react-rounded"
 
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  navMain: [
+export function AppSidebar({
+  ...props
+}) {
+  const { auth } = usePage().props
+  const { user } = auth
+
+  const navMain = [
     {
       title: "Dashboard",
-      url: "/",
+      url: route('dashboard'),
       icon: Dashboard,
-      isActive: true,
     },
     {
       title: "Bagan Perkiraan",
-      url: "/bagan-perkiraan",
+      url: route('bagan-perkiraan.index'),
       icon: AccountTree,
-      isActive: false,
       items: [
         {
           title: "Akun",
-          url: "#",
+          url: route('bagan-perkiraan.akun'),
         },
         {
           title: "Kategori Akun",
-          url: "#",
+          url: route('bagan-perkiraan.kategori-akun'),
         },
         {
-          title: "Jenis Akun",
-          url: "#",
+          title: "Tipe Akun",
+          url: route('bagan-perkiraan.tipe-akun'),
         },
       ],
     },
     {
       title: "Jurnal",
-      url: "/jurnal",
+      url: route('jurnal.index'),
       icon: MenuBook,
-      isActive: false,
       items: [
         {
           title: "Jurnal Umum",
-          url: "/jurnal/umum",
+          url: route('jurnal.umum'),
         },
         {
           title: "Jurnal Kas",
-          url: "/jurnal/kas",
+          url: route('jurnal.kas'),
         },
         {
           title: "Jurnal Bank",
-          url: "/jurnal/bank",
+          url: route('jurnal.bank'),
         },
       ],
     },
     {
       title: "Buku Besar",
-      url: "/buku-besar",
+      url: route('buku-besar'),
       icon: TableChart,
-      isActive: true,
     },
     {
       title: "Neraca Saldo",
-      url: "/neraca-saldo",
+      url: route('neraca-saldo'),
       icon: Balance,
-      isActive: true,
     },
     {
       title: "Periode",
-      url: "/periode",
+      url: route('periode.index'),
       icon: CalendarMonth,
-      isActive: true,
     },
     {
       title: "Laporan Keuangan",
-      url: "/laporan-keuangan/posisi-keuangan",
+      url: route('laporan-keuangan.posisi-keuangan'),
       icon: Description,
-      isActive: false,
       items: [
         {
           title: "Posisi Keuangan",
-          url: "/laporan-keuangan/posisi-keuangan",
+          url: route('laporan-keuangan.posisi-keuangan'),
         },
         {
           title: "Laba Rugi",
-          url: "/laporan-keuangan/laba-rugi",
+          url: route('laporan-keuangan.laba-rugi'),
         },
         {
           title: "Arus Kas",
-          url: "/laporan-keuangan/arus-kas",
+          url: route('laporan-keuangan.arus-kas'),
         },
         {
           title: "Perubahan Ekuitas",
-          url: "/laporan-keuangan/perubahan-ekuitas",
+          url: route('laporan-keuangan.perubahan-ekuitas'),
         },
       ],
     },
-    
     {
       title: "Pengguna",
-      url: "/pengguna",
+      url: route('pengguna.index'),
       icon: ManageAccounts,
-      isActive: true,
     },
-    
-  ],
-}
+  ]
 
-export function AppSidebar({
-  ...props
-}) {
   return (
     <Sidebar
       className="top-(--header-height) h-[calc(100svh-var(--header-height))]!"
@@ -157,10 +134,10 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navMain} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );
