@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table"
 import { Empty } from '@/components/ui/empty';
 import { Wallet } from 'lucide-react';
-// import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 
 const DesktopRow = ({ account, index }) => (
     <TableRow key={account.id} className="hover:bg-muted/50">

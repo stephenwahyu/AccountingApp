@@ -199,7 +199,7 @@ class DashboardController extends Controller
         for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
             $dateStr = $date->format('Y-m-d');
             $chartData[] = [
-                'date' => $date->format('M d'),
+                'date' => $date->format('Y-m-d'),
                 'pendapatan' => (float) ($revenues->get($dateStr)->amount ?? 0),
                 'beban' => (float) ($expenses->get($dateStr)->amount ?? 0),
                 'period' => $period->period_name,
@@ -265,9 +265,9 @@ class DashboardController extends Controller
         $dateRange = collect(new \DatePeriod($startDate, new \DateInterval('P1D'), $endDate->copy()->addDay()));
 
         foreach ($dateRange as $date) {
-            foreach ($activityMap as $keyName) {
+            foreach ($activityMap as $activity => $keyName) {
                 $chartData[$keyName][$date->format('Y-m-d')] = [
-                    'date' => $date->format('M d'),
+                    'date' => $date->format('Y-m-d'),
                     'amount' => 0,
                     'period' => $period->period_name,
                 ];

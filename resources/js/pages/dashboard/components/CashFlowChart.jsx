@@ -19,15 +19,15 @@ import {
 const chartConfig = {
   operasional: {
     label: "Operasional",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
   investasi: {
     label: "Investasi",
-    color: "hsl(var(--chart-2))",
+    color: "var(--chart-2)",
   },
   pendanaan: {
     label: "Pendanaan",
-    color: "hsl(var(--chart-3))",
+    color: "var(--chart-3)",
   },
 }
 

@@ -19,11 +19,11 @@ import {
 const chartConfig = {
   pendapatan: {
     label: "Pendapatan",
-    color: "hsl(var(--chart-1))",
+    color: "var(--chart-1)",
   },
   beban: {
     label: "Beban",
-    color: "hsl(var(--chart-2))",
+    color: "var(--chart-2)",
   },
 }
 
@@ -124,7 +124,12 @@ export function RevenueExpenseChart({
                             type="monotone"
                             stroke={chartConfig[activeChart].color}
                             strokeWidth={2}
-                            dot={false}
+                            dot={{
+                                r: 4,
+                                fill: "var(--color-background)",
+                                stroke: chartConfig[activeChart].color,
+                                strokeWidth: 2,
+                            }}
                         />
                     </LineChart>
                 </ChartContainer>
