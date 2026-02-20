@@ -49,6 +49,21 @@ class PenggunaController extends Controller
         return redirect()->route('pengguna.index')->with('success', 'Pengguna berhasil dibuat.');
     }
 
+    public function show(User $user)
+    {
+        $user->load('role');
+
+        return Inertia::render('pengguna/forms/detail/pengguna', [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role_id' => $user->role_id,
+            ],
+            'roles' => Role::all(['id', 'name']),
+        ]);
+    }
+
     public function edit(User $user)
     {
         $user->load('role');

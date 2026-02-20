@@ -16,9 +16,21 @@ const formatCurrency = (value) => {
   return value < 0 ? `(${formattedValue})` : formattedValue;
 };
 
-const ReportRow = ({ label, value, isTotal = false, isNet = false, className = '' }) => (
-  <div className={`flex justify-between items-center py-2 ${isTotal ? 'font-bold' : ''} ${isNet ? 'text-lg' : ''} ${className}`}>
-    <p className={isTotal ? 'pl-4' : ''}>{label}</p>
+const ReportHeader = ({ period, title }) => (
+  <div className="text-center mb-8 border-b-2 border-primary pb-4">
+    <h1 className="text-2xl font-bold uppercase tracking-wider">AccountingApp</h1>
+    <p className="text-sm text-muted-foreground uppercase">Sistem Informasi Akuntansi Terintegrasi</p>
+    <Separator className="my-2 h-0.5 bg-primary/20" />
+    <h2 className="text-xl font-bold mt-4 uppercase">{title}</h2>
+    <p className="text-md font-medium">
+      Periode yang berakhir pada {new Date(period.end_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </p>
+  </div>
+);
+
+const ReportRow = ({ label, value, isTotal = false, isNet = false, className = '', isHeader = false }) => (
+  <div className={`flex justify-between items-center py-2 ${isTotal ? 'font-bold' : ''} ${isNet ? 'text-lg' : ''} ${isHeader ? 'bg-muted/50 px-4 -mx-4 border-y' : ''} ${className}`}>
+    <p className={`${isTotal ? 'pl-4' : ''} ${isHeader ? 'uppercase text-xs tracking-widest' : 'text-sm'}`}>{label}</p>
     <p className="font-mono">{formatCurrency(value)}</p>
   </div>
 );
@@ -40,77 +52,79 @@ export default function ViewPerubahanEkuitas({ report }) {
     <>
       <Head title={`Perubahan Ekuitas - ${period.period_name}`} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <div className="max-w-4xl mx-auto" id="report-print-area">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="icon" onClick={() => window.history.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div>
-                    <h1 className="text-2xl font-bold">Laporan Perubahan Ekuitas</h1>
-                    <p className="text-muted-foreground">
-                      Periode {new Date(period.start_date).toLocaleDateString('id-ID')} - {new Date(period.end_date).toLocaleDateString('id-ID')}
-                    </p>
+        <div className="flex flex-col gap-6 w-full p-4 sm:p-6" id="report-print-area">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between print:hidden mb-2">
+            <Button variant="outline" size="sm" onClick={() => window.history.back()} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Kembali
+            </Button>
+            <Button onClick={handlePrint} variant="default" size="sm" className="gap-2">
+              <Printer className="h-4 w-4" />
+              Cetak Laporan
+            </Button>
+          </div>
+
+          <Card className="border-none shadow-none sm:border sm:shadow-sm overflow-hidden bg-white">
+            <CardContent className="p-6 sm:p-12">
+              <ReportHeader period={period} title="Laporan Perubahan Ekuitas" />
+
+              <div className="mt-8 space-y-2 border rounded-sm overflow-hidden">
+                <ReportRow 
+                  label={`Saldo Awal per ${new Date(period.start_date).toLocaleDateString('id-ID')}`} 
+                  value={beginning_balance.total} 
+                  isHeader 
+                />
+                
+                <div className="p-4 space-y-3">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4">Perubahan Ekuitas</h3>
+                  <ReportRow label="Laba (Rugi) Bersih Periode Berjalan" value={changes.net_income} />
+                  {changes.others !== 0 && (
+                    <ReportRow label="Perubahan Modal Lainnya" value={changes.others} />
+                  )}
+                  <Separator className="my-2" />
+                  <ReportRow label="Total Kenaikan (Penurunan) Ekuitas" value={changes.net_income + changes.others} isTotal className="bg-muted/10 px-2 -mx-2" />
+                </div>
+
+                <div className="bg-primary text-primary-foreground p-4">
+                  <ReportRow 
+                    label={`Saldo Akhir per ${new Date(period.end_date).toLocaleDateString('id-ID')}`} 
+                    value={ending_balance.total} 
+                    isNet 
+                    isTotal 
+                    className="text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Signatures */}
+              <div className="hidden print:grid grid-cols-2 gap-20 mt-20 text-center">
+                <div className="space-y-20">
+                  <p className="text-sm font-medium">Dibuat Oleh,</p>
+                  <div className="border-t border-black w-48 mx-auto pt-2">
+                    <p className="text-xs font-bold uppercase">Accounting</p>
                   </div>
                 </div>
-                <Button onClick={handlePrint} variant="outline">
-                  <Printer className="h-4 w-4 mr-2" />
-                  Cetak
-                </Button>
-              </div>
-              <div className="text-center hidden print:block">
-                <h1 className="text-xl font-bold">Nama Perusahaan</h1>
-                <h2 className="text-lg font-semibold">Laporan Perubahan Ekuitas</h2>
-                <p className="text-sm">Untuk Periode yang berakhir pada {new Date(period.end_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <ReportRow label={`Saldo Awal Ekuitas per ${new Date(period.start_date).toLocaleDateString('id-ID')}`} value={beginning_balance.total} isTotal />
-                
-                <div className="pt-4">
-                  <h3 className="text-lg font-semibold mb-2">Perubahan Selama Periode</h3>
-                  <ReportRow label="Laba Bersih" value={changes.net_income} />
-                  {/* Add other changes like dividends or investments here if available */}
-                  {/* e.g., <ReportRow label="Dividen" value={-changes.dividends} /> */}
-                  <Separator className="my-2" />
-                  <ReportRow label="Total Perubahan" value={changes.net_income} isTotal />
+                <div className="space-y-20">
+                  <p className="text-sm font-medium">Disetujui Oleh,</p>
+                  <div className="border-t border-black w-48 mx-auto pt-2">
+                    <p className="text-xs font-bold uppercase">Direktur Utama</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <div className="w-full">
-                <Separator className="my-4" />
-                <ReportRow 
-                  label={`Saldo Akhir Ekuitas per ${new Date(period.end_date).toLocaleDateString('id-ID')}`} 
-                  value={ending_balance.total} 
-                  isNet 
-                  isTotal 
-                  className="text-xl"
-                />
-              </div>
-            </CardFooter>
           </Card>
         </div>
       </AppLayouts>
       <style jsx="true" global="true">{`
         @media print {
-          body { background-color: #fff; }
-          body * { visibility: hidden; }
-          #report-print-area, #report-print-area * { visibility: visible; }
-          #report-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 20px;
-          }
-          .print\:hidden { display: none; }
-          .print\:block { display: block; }
-          .shadow-lg { box-shadow: none; }
+          @page { size: A4; margin: 1cm; }
+          body { background-color: white !important; color: black !important; }
+          .print\:hidden { display: none !important; }
+          #report-print-area { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+          .bg-muted { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .bg-primary { background-color: #18181b !important; color: white !important; -webkit-print-color-adjust: exact; }
+          .bg-primary p { color: white !important; }
         }
       `}</style>
     </>

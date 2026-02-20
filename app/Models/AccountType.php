@@ -11,7 +11,7 @@ class AccountType extends Model
     /** @use HasFactory<\Database\Factories\AccountTypeFactory> */
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'normal_balance'];
 
     public function accountCategories(): HasMany
     {

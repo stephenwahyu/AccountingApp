@@ -23,13 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Search } from "lucide-react";
@@ -53,7 +46,10 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
   const filteredTypes = useMemo(() => {
     return types.filter((type) => {
       const searchTermLower = searchTerm.toLowerCase();
-      return type.name.toLowerCase().includes(searchTermLower);
+      // Ensure normal_balance exists before calling toLowerCase
+      const nameMatch = type.name.toLowerCase().includes(searchTermLower);
+      const balanceMatch = type.normal_balance && type.normal_balance.toLowerCase().includes(searchTermLower);
+      return nameMatch || balanceMatch;
     });
   }, [types, searchTerm]);
 
@@ -111,7 +107,7 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="search"
-                    placeholder="Cari tipe akun..."
+                    placeholder="Cari tipe akun atau saldo normal..."
                     className="pl-8 w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -124,6 +120,7 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
                     <TableRow>
                       <TableHead className="w-16">No.</TableHead>
                       <TableHead>Tipe Akun</TableHead>
+                      <TableHead>Saldo Normal</TableHead>
                       <TableHead className="w-16 text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -137,6 +134,7 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
                           <TableCell className="font-medium">
                             {type.name}
                           </TableCell>
+                          <TableCell>{type.normal_balance}</TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -171,7 +169,7 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center h-24">
+                        <TableCell colSpan={4} className="text-center h-24">
                           Tidak ada data tipe akun.
                         </TableCell>
                       </TableRow>

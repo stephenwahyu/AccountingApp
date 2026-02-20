@@ -5,12 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, X } from 'lucide-react';
 
 export default function FormTipeAkun({ type = null }) {
     const isEdit = !!type;
     const { data, setData, post, put, processing, errors } = useForm({
         name: type?.name || '',
+        normal_balance: type?.normal_balance || 'Debit',
     });
 
     const breadcrumbs = [
@@ -22,16 +24,11 @@ export default function FormTipeAkun({ type = null }) {
     const handleSubmit = (e) => {
         e.preventDefault();
         const url = isEdit ? route('bagan-perkiraan.tipe-akun.update', type.id) : route('bagan-perkiraan.tipe-akun.store');
-        const method = isEdit ? 'put' : 'post';
         
         if (isEdit) {
-            put(url, {
-                preserveScroll: true,
-            });
+            put(url, { preserveScroll: true });
         } else {
-            post(url, {
-                preserveScroll: true,
-            });
+            post(url, { preserveScroll: true });
         }
     };
 
@@ -64,10 +61,10 @@ export default function FormTipeAkun({ type = null }) {
                     <Card>
                         <CardHeader>
                             <CardTitle>Informasi Tipe Akun</CardTitle>
-                            <CardDescription>Masukkan nama unik untuk tipe akun.</CardDescription>
+                            <CardDescription>Masukkan nama unik dan saldo normal untuk tipe akun.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <div className="grid gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">Nama Tipe Akun</Label>
                                     <Input
@@ -77,6 +74,22 @@ export default function FormTipeAkun({ type = null }) {
                                         placeholder="cth. Aset Lancar"
                                     />
                                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="normal_balance">Saldo Normal</Label>
+                                    <Select
+                                        value={data.normal_balance}
+                                        onValueChange={(value) => setData('normal_balance', value)}
+                                    >
+                                        <SelectTrigger id="normal_balance">
+                                            <SelectValue placeholder="Pilih Saldo Normal" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Debit">Debit</SelectItem>
+                                            <SelectItem value="Kredit">Kredit</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    {errors.normal_balance && <p className="text-sm text-destructive">{errors.normal_balance}</p>}
                                 </div>
                             </div>
                         </CardContent>

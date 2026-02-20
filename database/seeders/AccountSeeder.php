@@ -95,7 +95,7 @@ class AccountSeeder extends Seeder
             ['id' => 68, 'account_code' => '3-0000', 'account_name' => 'EKUITAS', 'account_category_id' => 6, 'cash_flow_activity_id' => null, 'is_cash_account' => 0, 'parent_id' => null, 'initial_balance' => 0.00],
             ['id' => 69, 'account_code' => '3-1001', 'account_name' => 'Modal Saham', 'account_category_id' => 6, 'cash_flow_activity_id' => 3, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 1000000000.00],
             ['id' => 70, 'account_code' => '3-1002', 'account_name' => 'Tambahan Modal Disetor', 'account_category_id' => 6, 'cash_flow_activity_id' => 3, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 200000000.00],
-            ['id' => 71, 'account_code' => '3-2001', 'account_name' => 'Laba Ditahan', 'account_category_id' => 6, 'cash_flow_activity_id' => null, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 300000000.00],
+            ['id' => 71, 'account_code' => '3-2001', 'account_name' => 'Laba Ditahan', 'account_category_id' => 6, 'cash_flow_activity_id' => null, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 629500000.00],
             ['id' => 72, 'account_code' => '3-2002', 'account_name' => 'Laba Tahun Berjalan', 'account_category_id' => 6, 'cash_flow_activity_id' => null, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 0.00],
             ['id' => 73, 'account_code' => '3-3001', 'account_name' => 'Prive/Dividen', 'account_category_id' => 6, 'cash_flow_activity_id' => 3, 'is_cash_account' => 0, 'parent_id' => 68, 'initial_balance' => 0.00],
 

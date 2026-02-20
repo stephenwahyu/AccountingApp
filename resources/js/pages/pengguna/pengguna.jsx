@@ -151,6 +151,9 @@ export default function PenggunaList({ users: initialUsers = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
+                                    <Link href={route('pengguna.show', user.id)}>Lihat Detail</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
                                     <Link href={route('pengguna.edit', user.id)}>Edit</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem

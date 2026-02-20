@@ -42,28 +42,69 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        $assets = DB::table('v_trial_balance')
-            ->where('account_type', 'Aset')
-            ->where('final_balance', '>', 0)
-            ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
+        // Ambil data saldo dari account_balances untuk periode ini
+        // Jika belum ada (periode baru belum ada mutasi), fallback ke data accounts
+        $balances = DB::table('accounts as a')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->leftJoin('account_balances as ab', function($join) use ($request) {
+                $join->on('a.id', '=', 'ab.account_id')
+                     ->where('ab.fiscal_period_id', '=', $request->period_id);
+            })
+            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as period_debit, SUM(jd.credit) as period_credit 
+                                FROM journal_details jd 
+                                JOIN journal_entries je ON jd.journal_entry_id = je.id 
+                                WHERE je.status = 'Posted' AND je.fiscal_period_id = {$request->period_id}
+                                GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
+            ->select(
+                'a.id as account_id',
+                'a.account_code',
+                'a.account_name',
+                'at.name as account_type',
+                'at.normal_balance',
+                DB::raw("COALESCE(ab.beginning_balance, a.initial_balance) as start_balance"),
+                DB::raw("COALESCE(period_jd.period_debit, 0) as total_debit"),
+                DB::raw("COALESCE(period_jd.period_credit, 0) as total_credit")
+            )
+            ->where('a.is_active', 1)
+            ->get()
+            ->map(function($item) {
+                if ($item->normal_balance === 'Debit') {
+                    $item->balance = $item->start_balance + $item->total_debit - $item->total_credit;
+                } else {
+                    $item->balance = $item->start_balance + $item->total_credit - $item->total_debit;
+                }
+                return $item;
+            });
+
+        $assets = $balances->where('account_type', 'Aset')->where('balance', '!=', 0);
         $assetsTotal = $assets->sum('balance');
 
-        $liabilities = DB::table('v_trial_balance')
-            ->where('account_type', 'Liabilitas')
-            ->where('final_balance', '>', 0)
-            ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
+        $liabilities = $balances->where('account_type', 'Liabilitas')->where('balance', '!=', 0);
         $liabilitiesTotal = $liabilities->sum('balance');
 
-        $equity = DB::table('v_trial_balance')
-            ->where('account_type', 'Ekuitas')
-            ->where('final_balance', '>', 0)
-            ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
+        // Hitung Laba Rugi dinamis untuk periode ini
+        $netIncomeReport = $this->getLabaRugi($request);
+        $netIncome = $netIncomeReport['net_income'];
+
+        $equity = $balances->where('account_type', 'Ekuitas')->where('balance', '!=', 0)->values();
+        
+        // Tambahkan Laba Tahun Berjalan ke daftar ekuitas
+        if ($netIncome != 0) {
+            $equity->push((object)[
+                'account_id' => null,
+                'account_code' => '3-2002',
+                'account_name' => 'Laba Tahun Berjalan',
+                'balance' => $netIncome
+            ]);
+        }
+        
         $equityTotal = $equity->sum('balance');
 
         return [
             'period' => $period,
-            'assets' => ['accounts' => $assets, 'total' => $assetsTotal],
-            'liabilities' => ['accounts' => $liabilities, 'total' => $liabilitiesTotal],
+            'assets' => ['accounts' => $assets->values(), 'total' => $assetsTotal],
+            'liabilities' => ['accounts' => $liabilities->values(), 'total' => $liabilitiesTotal],
             'equity' => ['accounts' => $equity, 'total' => $equityTotal],
         ];
     }
@@ -93,13 +134,13 @@ class LaporanKeuanganController extends Controller
 
         $income = DB::table('v_trial_balance')
             ->where('account_type', 'Pendapatan')
-            ->where('final_balance', '>', 0)
+            ->where('final_balance', '!=', 0)
             ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
         $incomeTotal = $income->sum('balance');
 
         $expenses = DB::table('v_trial_balance')
             ->where('account_type', 'Beban')
-            ->where('final_balance', '>', 0)
+            ->where('final_balance', '!=', 0)
             ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
         $expensesTotal = $expenses->sum('balance');
 
@@ -136,19 +177,60 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Simplified, needs proper implementation
-        $operatingItems = [
-            ['description' => 'Penerimaan dari Pelanggan', 'inflow' => 150000, 'outflow' => 0, 'balance' => 150000],
-            ['description' => 'Pembayaran ke Supplier', 'inflow' => 0, 'outflow' => 80000, 'balance' => -80000],
+        // Ambil saldo awal kas dari initial_balance di tabel accounts
+        $beginningCashBalance = DB::table('accounts')
+            ->where('is_cash_account', 1)
+            ->sum('initial_balance');
+
+        $results = [];
+        $categories = [
+            'operating' => 1,
+            'investing' => 2,
+            'financing' => 3
         ];
-        $investingItems = [['description' => 'Pembelian Aset Tetap', 'inflow' => 0, 'outflow' => 50000, 'balance' => -50000]];
-        $financingItems = [['description' => 'Penerimaan Pinjaman', 'inflow' => 100000, 'outflow' => 0, 'balance' => 100000]];
+
+        foreach ($categories as $key => $activityId) {
+            $items = DB::table('journal_details as jd')
+                ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+                ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+                ->where('je.status', 'Posted')
+                ->where('je.fiscal_period_id', $request->period_id)
+                ->where('a.cash_flow_activity_id', $activityId)
+                ->where('a.is_cash_account', 0)
+                ->whereExists(function ($query) {
+                    $query->select(DB::raw(1))
+                        ->from('journal_details as jd2')
+                        ->join('accounts as a2', 'jd2.account_id', '=', 'a2.id')
+                        ->whereRaw('jd2.journal_entry_id = jd.journal_entry_id')
+                        ->where('a2.is_cash_account', 1);
+                })
+                ->select(
+                    'a.account_name as description',
+                    DB::raw('SUM(jd.credit - jd.debit) as balance')
+                )
+                ->groupBy('a.id', 'a.account_name')
+                ->get()
+                ->map(function($item) {
+                    return [
+                        'description' => $item->description,
+                        'inflow' => $item->balance > 0 ? $item->balance : 0,
+                        'outflow' => $item->balance < 0 ? abs($item->balance) : 0,
+                        'balance' => $item->balance
+                    ];
+                });
+
+            $results[$key] = [
+                'items' => $items,
+                'total' => $items->sum('balance')
+            ];
+        }
 
         return [
             'period' => $period,
-            'operating' => ['items' => $operatingItems, 'total' => collect($operatingItems)->sum('balance')],
-            'investing' => ['items' => $investingItems, 'total' => collect($investingItems)->sum('balance')],
-            'financing' => ['items' => $financingItems, 'total' => collect($financingItems)->sum('balance')],
+            'operating' => $results['operating'],
+            'investing' => $results['investing'],
+            'financing' => $results['financing'],
+            'beginning_cash' => $beginningCashBalance,
         ];
     }
 
@@ -175,15 +257,36 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Simplified, needs proper implementation
-        $beginningBalance = 500000;
-        $netIncome = 150000; // This should be calculated from getLabaRugi
-        $endingBalance = $beginningBalance + $netIncome;
+        // Ambil saldo awal ekuitas dari initial_balance di tabel accounts
+        $beginningBalance = DB::table('accounts')
+            ->join('account_categories', 'accounts.account_category_id', '=', 'account_categories.id')
+            ->join('account_types', 'account_categories.account_type_id', '=', 'account_types.id')
+            ->where('account_types.name', 'Ekuitas')
+            ->sum('accounts.initial_balance');
+
+        // Ambil Laba Rugi untuk periode ini
+        $netIncomeReport = $this->getLabaRugi($request);
+        $netIncome = $netIncomeReport['net_income'];
+
+        // Ambil mutasi ekuitas lainnya (misal Prive atau Dividen) dari jurnal
+        $otherChanges = DB::table('v_trial_balance')
+            ->where('account_type', 'Ekuitas')
+            ->where('account_code', 'NOT LIKE', '3-2001') // Bukan Laba Ditahan
+            ->where('account_code', 'NOT LIKE', '3-2002') // Bukan Laba Tahun Berjalan
+            ->get()
+            ->sum(function($item) {
+                return $item->final_balance - $item->beginning_balance;
+            });
+
+        $endingBalance = $beginningBalance + $netIncome + $otherChanges;
 
         return [
             'period' => $period,
             'beginning_balance' => ['total' => $beginningBalance],
-            'changes' => ['net_income' => $netIncome],
+            'changes' => [
+                'net_income' => $netIncome,
+                'others' => $otherChanges
+            ],
             'ending_balance' => ['total' => $endingBalance],
         ];
     }

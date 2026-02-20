@@ -161,6 +161,9 @@ export default function AkunList({ accounts: initialAccounts = [] }) {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
+                                    <Link href={route('bagan-perkiraan.akun.show', account.id)}>Lihat Detail</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
                                     <Link href={route('bagan-perkiraan.akun.edit', account.id)}>Edit</Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem

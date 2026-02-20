@@ -12,7 +12,16 @@ class Account extends Model
     /** @use HasFactory<\Database\Factories\AccountFactory> */
     use HasFactory;
 
-    protected $fillable = ['account_code', 'account_name', 'account_category_id'];
+    protected $fillable = [
+        'account_code',
+        'account_name',
+        'account_category_id',
+        'parent_id',
+        'initial_balance',
+        'is_active',
+        'is_cash_account',
+        'cash_flow_activity_id',
+    ];
 
     public function accountCategory(): BelongsTo
     {

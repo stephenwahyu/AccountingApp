@@ -75,7 +75,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/akun', [BaganPerkiraanController::class, 'akun'])->name('akun');
         Route::get('/akun/create', [BaganPerkiraanController::class, 'createAkun'])->name('akun.create');
         Route::post('/akun', [BaganPerkiraanController::class, 'storeAkun'])->name('akun.store');
-        Route::get('/akun/generate-code/{parent?}', [BaganPerkiraanController::class, 'generateAccountCode'])->name('akun.generate-code');
+        Route::get('/akun/{account}', [BaganPerkiraanController::class, 'showAkun'])->name('akun.show');
         Route::get('/akun/{account}/edit', [BaganPerkiraanController::class, 'editAkun'])->name('akun.edit');
         Route::put('/akun/{account}', [BaganPerkiraanController::class, 'updateAkun'])->name('akun.update');
         Route::delete('/akun/{account}', [BaganPerkiraanController::class, 'destroyAkun'])->name('akun.destroy');
@@ -133,6 +133,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', [PenggunaController::class, 'index'])->name('index');
         Route::get('/create', [PenggunaController::class, 'create'])->name('create');
         Route::post('/', [PenggunaController::class, 'store'])->name('store');
+        Route::get('/{user}', [PenggunaController::class, 'show'])->name('show');
         Route::get('/{user}/edit', [PenggunaController::class, 'edit'])->name('edit');
         Route::put('/{user}', [PenggunaController::class, 'update'])->name('update');
         Route::delete('/{user}', [PenggunaController::class, 'destroy'])->name('destroy');

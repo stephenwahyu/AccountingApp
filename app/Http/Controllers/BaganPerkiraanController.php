@@ -131,6 +131,17 @@ class BaganPerkiraanController extends Controller
         ]);
     }
 
+    public function showAkun(Account $account)
+    {
+        $categories = AccountCategory::orderBy('name')->get();
+        $account->load('accountCategory.accountType', 'parent', 'cashFlowActivity');
+
+        return Inertia::render('akun/forms/detail/akun', [
+            'account' => $account,
+            'categories' => $categories,
+        ]);
+    }
+
     public function updateAkun(Request $request, Account $account)
     {
         $data = $request->all();
@@ -289,6 +300,7 @@ class BaganPerkiraanController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:account_types',
+            'normal_balance' => 'required|in:Debit,Kredit',
         ]);
 
         AccountType::create($request->all());
@@ -307,6 +319,7 @@ class BaganPerkiraanController extends Controller
     {
         $request->validate([
             'name' => 'required|unique:account_types,name,'.$tipe_akun->id,
+            'normal_balance' => 'required|in:Debit,Kredit',
         ]);
 
         $tipe_akun->update($request->all());

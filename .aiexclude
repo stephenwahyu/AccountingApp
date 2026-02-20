@@ -16,8 +16,8 @@ dist/
 build/
 
 # Generated files
-*.min.js
-*.min.css
+# *.min.js
+# *.min.css
 
 # IDE files
 .vscode/

@@ -5,6 +5,7 @@ import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { ArrowLeft, Printer } from "lucide-react";
 
 const formatCurrency = (value) => {
@@ -12,14 +13,58 @@ const formatCurrency = (value) => {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 2,
-  }).format(value);
-  return value < 0 ? `(${formattedValue.replace('-', '')})` : formattedValue;
+  }).format(Math.abs(value));
+  return value < 0 ? `(${formattedValue})` : formattedValue;
 };
 
-const ReportRow = ({ label, value, isTotal = false, isNet = false }) => (
-  <div className={`flex justify-between items-center py-2 ${isTotal ? 'font-bold' : ''} ${isNet ? 'text-lg' : ''}`}>
-    <p className={isTotal ? 'pl-4' : ''}>{label}</p>
-    <p className="font-mono">{formatCurrency(value)}</p>
+const ReportHeader = ({ period, title }) => (
+  <div className="text-center mb-8 border-b-2 border-primary pb-4">
+    <h1 className="text-2xl font-bold uppercase tracking-wider">AccountingApp</h1>
+    <p className="text-sm text-muted-foreground uppercase">Sistem Informasi Akuntansi Terintegrasi</p>
+    <Separator className="my-2 h-0.5 bg-primary/20" />
+    <h2 className="text-xl font-bold mt-4 uppercase">{title}</h2>
+    <p className="text-md font-medium">
+      Periode yang berakhir pada {new Date(period.end_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+    </p>
+  </div>
+);
+
+const ReportSection = ({ title, accounts, total }) => (
+  <div className="flex flex-col mb-6">
+    <h3 className="text-sm font-bold bg-muted p-2 border-x border-t uppercase tracking-tight">{title}</h3>
+    <Table className="border">
+      <TableBody>
+        {accounts.length > 0 ? (
+          accounts.map((account) => (
+            <TableRow key={account.account_code} className="hover:bg-transparent border-b">
+              <TableCell className="py-2 pl-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">{account.account_name}</span>
+                  <span className="text-xs text-muted-foreground font-mono">{account.account_code}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-right py-2 font-mono w-48 pr-6">
+                {formatCurrency(account.balance)}
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={2} className="text-center text-muted-foreground italic py-4">
+              Tidak ada data {title}
+            </TableCell>
+          </TableRow>
+        )}
+      </TableBody>
+      <TableFooter>
+        <TableRow className="bg-muted/30">
+          <TableCell className="font-bold py-2 pl-4 uppercase text-xs tracking-wider">Total {title}</TableCell>
+          <TableCell className="text-right font-bold py-2 font-mono pr-6 border-l">
+            {formatCurrency(total)}
+          </TableCell>
+        </TableRow>
+      </TableFooter>
+    </Table>
   </div>
 );
 
@@ -40,90 +85,66 @@ export default function ViewLabaRugi({ report }) {
     <>
       <Head title={`Laba Rugi - ${period.period_name}`} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <div className="max-w-4xl mx-auto" id="report-print-area">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
-                <div className="flex items-center gap-4">
-                  <Button variant="outline" size="icon" onClick={() => window.history.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <div>
-                    <h1 className="text-2xl font-bold">Laporan Laba Rugi</h1>
-                    <p className="text-muted-foreground">
-                      Periode {new Date(period.start_date).toLocaleDateString('id-ID')} - {new Date(period.end_date).toLocaleDateString('id-ID')}
-                    </p>
+        <div className="flex flex-col gap-6 w-full p-4 sm:p-6" id="report-print-area">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between print:hidden mb-2">
+            <Button variant="outline" size="sm" onClick={() => window.history.back()} className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Kembali
+            </Button>
+            <Button onClick={handlePrint} variant="default" size="sm" className="gap-2">
+              <Printer className="h-4 w-4" />
+              Cetak Laporan
+            </Button>
+          </div>
+
+          <Card className="border-none shadow-none sm:border sm:shadow-sm overflow-hidden bg-white">
+            <CardContent className="p-6 sm:p-12">
+              <ReportHeader period={period} title="Laporan Laba Rugi" />
+
+              <div className="space-y-4 mt-8">
+                <ReportSection title="Pendapatan" accounts={income.accounts} total={income.total} />
+                <ReportSection title="Beban" accounts={expenses.accounts} total={expenses.total} />
+              </div>
+
+              <div className="mt-10 border-t-2 border-double pt-4">
+                <div className="flex justify-between items-center p-4 bg-primary text-primary-foreground rounded-sm border shadow-sm">
+                  <span className="font-bold text-sm uppercase tracking-widest">
+                    {net_income >= 0 ? "Laba Bersih" : "Rugi Bersih"}
+                  </span>
+                  <span className="font-bold text-xl font-mono tracking-tighter">
+                    {formatCurrency(net_income)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Signatures */}
+              <div className="hidden print:grid grid-cols-2 gap-20 mt-20 text-center">
+                <div className="space-y-20">
+                  <p className="text-sm font-medium">Dibuat Oleh,</p>
+                  <div className="border-t border-black w-48 mx-auto pt-2">
+                    <p className="text-xs font-bold uppercase">Accounting</p>
                   </div>
                 </div>
-                <Button onClick={handlePrint} variant="outline">
-                  <Printer className="h-4 w-4 mr-2" />
-                  Cetak
-                </Button>
-              </div>
-              <div className="text-center hidden print:block">
-                <h1 className="text-xl font-bold">Nama Perusahaan</h1>
-                <h2 className="text-lg font-semibold">Laporan Laba Rugi</h2>
-                <p className="text-sm">Untuk Periode yang berakhir pada {new Date(period.end_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Pendapatan</h3>
-                  {income.accounts.map((account) => (
-                    <ReportRow key={account.account_code} label={account.account_name} value={account.balance} />
-                  ))}
-                  <Separator className="my-2" />
-                  <ReportRow label="Total Pendapatan" value={income.total} isTotal />
-                </div>
-                
-                <div className="pt-4">
-                  <h3 className="text-lg font-semibold mb-2">Beban</h3>
-                  {expenses.accounts.map((account) => (
-                    <ReportRow key={account.account_code} label={account.account_name} value={account.balance} />
-                  ))}
-                  <Separator className="my-2" />
-                  <ReportRow label="Total Beban" value={expenses.total} isTotal />
+                <div className="space-y-20">
+                  <p className="text-sm font-medium">Disetujui Oleh,</p>
+                  <div className="border-t border-black w-48 mx-auto pt-2">
+                    <p className="text-xs font-bold uppercase">Direktur Utama</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
-              <div className="w-full">
-                <Separator className="my-4" />
-                <ReportRow label="Laba Bersih" value={net_income} isNet isTotal />
-              </div>
-            </CardFooter>
           </Card>
         </div>
       </AppLayouts>
       <style jsx="true" global="true">{`
         @media print {
-          body {
-            background-color: #fff;
-          }
-          body * {
-            visibility: hidden;
-          }
-          #report-print-area, #report-print-area * {
-            visibility: visible;
-          }
-          #report-print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 20px;
-          }
-          .print\:hidden {
-            display: none;
-          }
-          .print\:block {
-            display: block;
-          }
-          .shadow-lg {
-            box-shadow: none;
-          }
+          @page { size: A4; margin: 1cm; }
+          body { background-color: white !important; color: black !important; }
+          .print\:hidden { display: none !important; }
+          #report-print-area { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+          .bg-muted { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
+          .bg-primary { background-color: #18181b !important; color: white !important; -webkit-print-color-adjust: exact; }
         }
       `}</style>
     </>
