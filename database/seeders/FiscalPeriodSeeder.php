@@ -12,34 +12,26 @@ class FiscalPeriodSeeder extends Seeder
      */
     public function run(): void
     {
-        $year = 2025;
-        $months = [
-            ['name' => 'Januari', 'start' => '01', 'end' => '31'],
-            ['name' => 'Februari', 'start' => '01', 'end' => '28'],
-            ['name' => 'Maret', 'start' => '01', 'end' => '31'],
-            ['name' => 'April', 'start' => '01', 'end' => '30'],
-            ['name' => 'Mei', 'start' => '01', 'end' => '31'],
-            ['name' => 'Juni', 'start' => '01', 'end' => '30'],
-            ['name' => 'Juli', 'start' => '01', 'end' => '31'],
-            ['name' => 'Agustus', 'start' => '01', 'end' => '31'],
-            ['name' => 'September', 'start' => '01', 'end' => '30'],
-            ['name' => 'Oktober', 'start' => '01', 'end' => '31'],
-            ['name' => 'November', 'start' => '01', 'end' => '30'],
-            ['name' => 'Desember', 'start' => '01', 'end' => '31'],
-        ];
+        $startYear = 2024; // ⬅ ubah sesuai tahun awal data lama kamu
+        $endYear   = 2026; // ⬅ bisa ubah atau pakai now()->year
 
-        foreach ($months as $index => $month) {
-            $monthNum = str_pad($index + 1, 2, '0', STR_PAD_LEFT);
+        for ($year = $startYear; $year <= $endYear; $year++) {
 
-            DB::table('fiscal_periods')->insert([
-                'period_name' => $month['name'].' '.$year,
-                'start_date' => $year.'-'.$monthNum.'-'.$month['start'],
-                'end_date' => $year.'-'.$monthNum.'-'.$month['end'],
-                'fiscal_year' => $year,
-                'status' => 'Open',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            for ($month = 1; $month <= 12; $month++) {
+
+                $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
+                $endDate   = \Carbon\Carbon::create($year, $month, 1)->endOfMonth();
+
+                DB::table('fiscal_periods')->insert([
+                    'period_name' => $startDate->translatedFormat('F Y'),
+                    'start_date'  => $startDate->toDateString(),
+                    'end_date'    => $endDate->toDateString(),
+                    'fiscal_year' => $year,
+                    'status'      => 'Open',
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ]);
+            }
         }
     }
 }

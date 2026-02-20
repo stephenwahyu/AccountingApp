@@ -42,19 +42,14 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Ambil data saldo dari account_balances untuk periode ini
-        // Jika belum ada (periode baru belum ada mutasi), fallback ke data accounts
+        // Untuk Neraca, kita hitung saldo akumulatif dari awal sistem sampai TANGGAL AKHIR periode
         $balances = DB::table('accounts as a')
             ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
             ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->leftJoin('account_balances as ab', function($join) use ($request) {
-                $join->on('a.id', '=', 'ab.account_id')
-                     ->where('ab.fiscal_period_id', '=', $request->period_id);
-            })
-            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as period_debit, SUM(jd.credit) as period_credit 
+            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
                                 FROM journal_details jd 
                                 JOIN journal_entries je ON jd.journal_entry_id = je.id 
-                                WHERE je.status = 'Posted' AND je.fiscal_period_id = {$request->period_id}
+                                WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
                                 GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
             ->select(
                 'a.id as account_id',
@@ -62,9 +57,9 @@ class LaporanKeuanganController extends Controller
                 'a.account_name',
                 'at.name as account_type',
                 'at.normal_balance',
-                DB::raw("COALESCE(ab.beginning_balance, a.initial_balance) as start_balance"),
-                DB::raw("COALESCE(period_jd.period_debit, 0) as total_debit"),
-                DB::raw("COALESCE(period_jd.period_credit, 0) as total_credit")
+                'a.initial_balance as start_balance',
+                DB::raw("COALESCE(period_jd.cumulative_debit, 0) as total_debit"),
+                DB::raw("COALESCE(period_jd.cumulative_credit, 0) as total_credit")
             )
             ->where('a.is_active', 1)
             ->get()
@@ -83,19 +78,28 @@ class LaporanKeuanganController extends Controller
         $liabilities = $balances->where('account_type', 'Liabilitas')->where('balance', '!=', 0);
         $liabilitiesTotal = $liabilities->sum('balance');
 
-        // Hitung Laba Rugi dinamis untuk periode ini
-        $netIncomeReport = $this->getLabaRugi($request);
-        $netIncome = $netIncomeReport['net_income'];
+        // Hitung Laba Rugi AKUMULATIF untuk Neraca (dari awal sampai akhir periode ini)
+        $cumulativeNetIncome = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('je.status', 'Posted')
+            ->where('je.entry_date', '<=', $period->end_date)
+            ->whereIn('at.name', ['Pendapatan', 'Beban'])
+            ->select(
+                DB::raw("SUM(jd.credit - jd.debit) as net_balance")
+            )
+            ->first()->net_balance ?? 0;
 
         $equity = $balances->where('account_type', 'Ekuitas')->where('balance', '!=', 0)->values();
         
-        // Tambahkan Laba Tahun Berjalan ke daftar ekuitas
-        if ($netIncome != 0) {
+        if ($cumulativeNetIncome != 0) {
             $equity->push((object)[
                 'account_id' => null,
                 'account_code' => '3-2002',
                 'account_name' => 'Laba Tahun Berjalan',
-                'balance' => $netIncome
+                'balance' => $cumulativeNetIncome
             ]);
         }
         
@@ -132,16 +136,38 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        $income = DB::table('v_trial_balance')
-            ->where('account_type', 'Pendapatan')
-            ->where('final_balance', '!=', 0)
-            ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
+        $balances = DB::table('accounts as a')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->join('journal_details as jd', 'a.id', '=', 'jd.account_id')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->where('je.status', 'Posted')
+            ->whereBetween('je.entry_date', [$period->start_date, $period->end_date])
+            ->whereIn('at.name', ['Pendapatan', 'Beban'])
+            ->select(
+                'a.id as account_id',
+                'a.account_code',
+                'a.account_name',
+                'at.name as account_type',
+                'at.normal_balance',
+                DB::raw('SUM(jd.debit) as total_debit'),
+                DB::raw('SUM(jd.credit) as total_credit')
+            )
+            ->groupBy('a.id', 'a.account_code', 'a.account_name', 'at.name', 'at.normal_balance')
+            ->get()
+            ->map(function($item) {
+                if ($item->normal_balance === 'Debit') {
+                    $item->balance = $item->total_debit - $item->total_credit;
+                } else {
+                    $item->balance = $item->total_credit - $item->total_debit;
+                }
+                return $item;
+            });
+
+        $income = $balances->where('account_type', 'Pendapatan')->values();
         $incomeTotal = $income->sum('balance');
 
-        $expenses = DB::table('v_trial_balance')
-            ->where('account_type', 'Beban')
-            ->where('final_balance', '!=', 0)
-            ->get(['account_id', 'account_code', 'account_name', 'final_balance as balance']);
+        $expenses = $balances->where('account_type', 'Beban')->values();
         $expensesTotal = $expenses->sum('balance');
 
         $netIncome = $incomeTotal - $expensesTotal;
@@ -177,10 +203,20 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Ambil saldo awal kas dari initial_balance di tabel accounts
         $beginningCashBalance = DB::table('accounts')
             ->where('is_cash_account', 1)
             ->sum('initial_balance');
+        
+        // Tambahkan mutasi kas dari awal sistem sampai sebelum tanggal mulai periode ini
+        $previousCashMutation = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->where('je.status', 'Posted')
+            ->where('je.entry_date', '<', $period->start_date)
+            ->where('a.is_cash_account', 1)
+            ->sum(DB::raw('jd.debit - jd.credit'));
+        
+        $currentBeginningCash = $beginningCashBalance + $previousCashMutation;
 
         $results = [];
         $categories = [
@@ -194,7 +230,7 @@ class LaporanKeuanganController extends Controller
                 ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
                 ->join('accounts as a', 'jd.account_id', '=', 'a.id')
                 ->where('je.status', 'Posted')
-                ->where('je.fiscal_period_id', $request->period_id)
+                ->whereBetween('je.entry_date', [$period->start_date, $period->end_date])
                 ->where('a.cash_flow_activity_id', $activityId)
                 ->where('a.is_cash_account', 0)
                 ->whereExists(function ($query) {
@@ -230,7 +266,7 @@ class LaporanKeuanganController extends Controller
             'operating' => $results['operating'],
             'investing' => $results['investing'],
             'financing' => $results['financing'],
-            'beginning_cash' => $beginningCashBalance,
+            'beginning_cash' => $currentBeginningCash,
         ];
     }
 
@@ -257,26 +293,42 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Ambil saldo awal ekuitas dari initial_balance di tabel accounts
-        $beginningBalance = DB::table('accounts')
-            ->join('account_categories', 'accounts.account_category_id', '=', 'account_categories.id')
-            ->join('account_types', 'account_categories.account_type_id', '=', 'account_types.id')
-            ->where('account_types.name', 'Ekuitas')
+        // Saldo awal migrasi
+        $initialMigrationBalance = DB::table('accounts')
+            ->join('account_categories as ac', 'accounts.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('at.name', 'Ekuitas')
             ->sum('accounts.initial_balance');
+        
+        // Mutasi ekuitas (Posted) dari awal sampai SEBELUM periode ini
+        $previousEquityMutation = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('je.status', 'Posted')
+            ->where('at.name', 'Ekuitas')
+            ->where('je.entry_date', '<', $period->start_date)
+            ->sum(DB::raw('jd.credit - jd.debit'));
 
-        // Ambil Laba Rugi untuk periode ini
+        $beginningBalance = $initialMigrationBalance + $previousEquityMutation;
+
+        // Laba Rugi periode ini
         $netIncomeReport = $this->getLabaRugi($request);
         $netIncome = $netIncomeReport['net_income'];
 
-        // Ambil mutasi ekuitas lainnya (misal Prive atau Dividen) dari jurnal
-        $otherChanges = DB::table('v_trial_balance')
-            ->where('account_type', 'Ekuitas')
-            ->where('account_code', 'NOT LIKE', '3-2001') // Bukan Laba Ditahan
-            ->where('account_code', 'NOT LIKE', '3-2002') // Bukan Laba Tahun Berjalan
-            ->get()
-            ->sum(function($item) {
-                return $item->final_balance - $item->beginning_balance;
-            });
+        // Mutasi ekuitas lainnya (Prive/Dividen/Modal Tambahan) dalam periode ini
+        $otherChanges = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('je.status', 'Posted')
+            ->where('at.name', 'Ekuitas')
+            ->where('a.account_code', 'NOT LIKE', '3-2001') // Bukan Laba Ditahan (karena laba ditahan adalah saldo awal)
+            ->where('a.account_code', 'NOT LIKE', '3-2002') // Bukan Laba Tahun Berjalan (karena dihitung terpisah)
+            ->whereBetween('je.entry_date', [$period->start_date, $period->end_date])
+            ->sum(DB::raw('jd.credit - jd.debit'));
 
         $endingBalance = $beginningBalance + $netIncome + $otherChanges;
 

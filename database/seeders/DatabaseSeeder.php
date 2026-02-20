@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             CashFlowActivitySeeder::class,
             AccountSeeder::class,
             FiscalPeriodSeeder::class,
-            // JournalSeeder::class,
+            JournalSeeder::class,
         ]);
     }
 }
