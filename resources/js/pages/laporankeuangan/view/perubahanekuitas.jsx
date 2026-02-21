@@ -122,8 +122,8 @@ export default function ViewPerubahanEkuitas({ report }) {
           body { background-color: white !important; color: black !important; }
           .print\:hidden { display: none !important; }
           #report-print-area { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-          .bg-muted { background-color: #f3f4f6 !important; -webkit-print-color-adjust: exact; }
-          .bg-primary { background-color: #18181b !important; color: white !important; -webkit-print-color-adjust: exact; }
+          .bg-muted { background-color: #FAFAFA !important; -webkit-print-color-adjust: exact; }
+          .bg-primary { background-color: #FF0044 !important; color: white !important; -webkit-print-color-adjust: exact; }
           .bg-primary p { color: white !important; }
         }
       `}</style>

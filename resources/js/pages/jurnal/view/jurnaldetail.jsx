@@ -204,7 +204,7 @@ export default function ViewDetailJurnal({ journal }) {
                 </div>
 
                  <div className="flex justify-end mt-4">
-                    <div className="w-full max-w-sm space-y-2 rounded-lg bg-slate-100 p-4">
+                    <div className="w-full max-w-sm space-y-2 rounded-lg bg-muted p-4">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Total Debit</span>
                             <span className="font-medium font-mono">{new Intl.NumberFormat('id-ID').format(totalDebit)}</span>

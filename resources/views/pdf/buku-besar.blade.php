@@ -10,8 +10,8 @@
         h2 { font-size: 16px; margin-bottom: 5px; }
         h3 { font-size: 14px; margin-top: 0; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        th, td { border: 1px solid #2B1F24; padding: 8px; text-align: left; }
+        th { background-color: #FF0044; color: #FAFAFA; }
         .text-right { text-align: right; }
         .font-mono { font-family: monospace; }
         .total-row { font-weight: bold; }

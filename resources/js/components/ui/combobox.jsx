@@ -48,10 +48,15 @@ export function Combobox({ options, value, onSelect, placeholder, searchPlacehol
                 <CommandItem
                   key={option.value}
                   value={`${option.value} ${option.label}`}
+                  disabled={option.disabled}
                   onSelect={() => {
+                    if (option.disabled) return;
                     onSelect(option.value === value ? "" : option.value)
                     setOpen(false)
                   }}
+                  className={cn(
+                    option.disabled && "opacity-50 cursor-not-allowed pointer-events-none"
+                  )}
                 >
                   <Check
                     className={cn(
@@ -59,7 +64,7 @@ export function Combobox({ options, value, onSelect, placeholder, searchPlacehol
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  <span style={{ paddingLeft: `${(option.level || 0) * 1.5}rem` }}>
+                  <span style={{ paddingLeft: `${(option.level || 0) * 1.5}rem` }} className={cn(option.disabled && "font-semibold")}>
                     {option.label}
                   </span>
                 </CommandItem>

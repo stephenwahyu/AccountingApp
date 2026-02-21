@@ -18,15 +18,15 @@
             border-collapse: collapse;
         }
         .table th, .table td {
-            border: 1px solid #ddd;
+            border: 1px solid #2B1F24;
             padding: 4px;
         }
         .table th {
-            background-color: #f2f2f2;
+            background-color: #FAFAFA;
         }
         .table-footer {
-            background-color: #020617;
-            color: #fff;
+            background-color: #FF0044;
+            color: #FAFAFA;
             font-weight: bold;
         }
         .text-mono {

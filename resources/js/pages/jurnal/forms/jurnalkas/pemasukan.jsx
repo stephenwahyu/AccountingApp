@@ -56,7 +56,8 @@ const flattenTreeForSelect = (nodes, level = 0, options = []) => {
             value: node.id.toString(),
             label: `${node.account_code} - ${node.account_name}`,
             level: level,
-            is_cash_account: node.is_cash_account
+            is_cash_account: node.is_cash_account,
+            disabled: node.children_count > 0,
         });
         if (node.children.length > 0) {
             flattenTreeForSelect(node.children, level + 1, options);

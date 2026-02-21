@@ -14,7 +14,7 @@ class BukuBesarController extends Controller
 {
     public function index(Request $request)
     {
-        $accounts = Account::orderBy('account_code')->get();
+        $accounts = Account::withCount('children')->orderBy('account_code')->get();
         $periods = $this->getPeriods();
 
         $selectedAccountId = $request->input('account');

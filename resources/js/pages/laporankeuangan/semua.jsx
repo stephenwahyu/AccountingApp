@@ -71,10 +71,10 @@ export default function LaporanKeuanganSemua({ periods: initialPeriods = [] }) {
   }, [filteredPeriods, currentPage, rowsPerPage]);
 
   const reportTypes = [
-    { label: "Posisi Keuangan", route: "laporan-keuangan.posisi-keuangan.show", color: "bg-blue-500" },
+    { label: "Posisi Keuangan", route: "laporan-keuangan.posisi-keuangan.show", color: "bg-crimson" },
     { label: "Laba Rugi", route: "laporan-keuangan.laba-rugi.show", color: "bg-green-500" },
-    { label: "Arus Kas", route: "laporan-keuangan.arus-kas.show", color: "bg-orange-500" },
-    { label: "Perubahan Ekuitas", route: "laporan-keuangan.perubahan-ekuitas.show", color: "bg-purple-500" },
+    { label: "Arus Kas", route: "laporan-keuangan.arus-kas.show", color: "bg-amber-500" },
+    { label: "Perubahan Ekuitas", route: "laporan-keuangan.perubahan-ekuitas.show", color: "bg-burgundy" },
   ];
 
   return (

@@ -113,7 +113,7 @@ export function CashFlowChart({ data }) {
                         />
                         <Bar
                             dataKey="amount"
-                            fill={chartConfig[activeChart].color}
+                            fill={`var(--color-${activeChart})`}
                             radius={4}
                         />
                     </BarChart>

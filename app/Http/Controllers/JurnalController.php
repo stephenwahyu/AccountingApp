@@ -88,9 +88,10 @@ class JurnalController extends Controller
     // Form tambah jurnal umum
     public function umumCreate()
     {
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         return Inertia::render('jurnal/forms/jurnalumum', [
             'accounts' => $accounts,
@@ -202,9 +203,10 @@ class JurnalController extends Controller
     // Form pemasukan kas
     public function kasPemasukanCreate()
     {
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -296,9 +298,10 @@ class JurnalController extends Controller
     // Form pengeluaran kas
     public function kasPengeluaranCreate()
     {
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -414,9 +417,10 @@ class JurnalController extends Controller
     // Form pemasukan bank
     public function bankPemasukanCreate()
     {
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -507,9 +511,10 @@ class JurnalController extends Controller
     // Form pengeluaran bank
     public function bankPengeluaranCreate()
     {
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -669,10 +674,10 @@ class JurnalController extends Controller
         //     return redirect()->route('jurnal.umum')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
         // }
 
-        $accounts = Account::where('is_active', true)
-            ->whereDoesntHave('children')
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $journal->load('journalDetails.account');
 
@@ -780,9 +785,10 @@ class JurnalController extends Controller
         //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
         // }
 
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -882,9 +888,10 @@ class JurnalController extends Controller
         //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
         // }
 
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $cashAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -984,9 +991,10 @@ class JurnalController extends Controller
         //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
         // }
 
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)
@@ -1086,9 +1094,10 @@ class JurnalController extends Controller
         //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
         // }
 
-        $accounts = Account::where('is_active', true)
+        $accounts = Account::withCount('children')
+            ->where('is_active', true)
             ->orderBy('account_code')
-            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account']);
+            ->get(['id', 'account_code', 'account_name', 'parent_id', 'is_cash_account', 'children_count']);
 
         $bankAccounts = Account::where('is_active', true)
             ->where('is_cash_account', true)

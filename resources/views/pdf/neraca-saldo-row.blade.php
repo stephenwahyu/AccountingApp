@@ -1,4 +1,4 @@
-<tr style="{{ $level == 0 ? 'font-weight: bold; background-color: #f7fafc;' : '' }}">
+<tr style="{{ $level == 0 ? 'font-weight: bold; background-color: #FAFAFA;' : '' }}">
     <td style="padding-left: {{ $level * 15 + 5 }}px;">
         {{ $account['account_code'] }} - {{ $account['account_name'] }}
     </td>

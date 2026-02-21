@@ -122,13 +122,16 @@ export function RevenueExpenseChart({
                         <Line
                             dataKey={activeChart}
                             type="monotone"
-                            stroke={chartConfig[activeChart].color}
+                            stroke={`var(--color-${activeChart})`}
                             strokeWidth={2}
                             dot={{
                                 r: 4,
-                                fill: "var(--color-background)",
-                                stroke: chartConfig[activeChart].color,
+                                fill: "var(--background)",
+                                stroke: `var(--color-${activeChart})`,
                                 strokeWidth: 2,
+                            }}
+                            activeDot={{
+                                r: 6,
                             }}
                         />
                     </LineChart>

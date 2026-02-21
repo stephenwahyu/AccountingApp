@@ -176,11 +176,11 @@ export default function ViewPosisiKeuangan({ report }) {
             box-shadow: none !important;
           }
           .bg-muted {
-            background-color: #f3f4f6 !important;
+            background-color: #FAFAFA !important;
             -webkit-print-color-adjust: exact;
           }
           .bg-primary {
-            background-color: #18181b !important;
+            background-color: #FF0044 !important;
             color: white !important;
             -webkit-print-color-adjust: exact;
           }
