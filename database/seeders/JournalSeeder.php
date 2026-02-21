@@ -9,10 +9,23 @@ use Illuminate\Support\Carbon;
 class JournalSeeder extends Seeder
 {
     // =========================================================================
+    //  FILTER: Hanya memproses jurnal milik SPR TRADA (dep_kode = 'TR')
+    //  Digunakan sebagai data initial balance / saldo awal divisi Trada.
+    // =========================================================================
+    private const FILTER_DEP_KODE = 'TR';
+
+    // =========================================================================
     //  MAPPING: kode rekening lama  →  account_code pada aplikasi baru
     // =========================================================================
     // Format: 'rek_kode_lama' => 'account_code_baru'
     // Berdasarkan pemetaan acc_ifmrekeningcoabu.csv → AccountSeeder.php
+    //
+    // Kode rekening yang dipakai oleh SPR TRADA (dep_kode = TR):
+    //   101.101, 101.211, 101.215, 103.101, 103.102, 103.201,
+    //   108.201–108.301, 201.111, 201.112, 202.210, 202.220,
+    //   204.010, 204.020, 400.250, 500.420, 500.430,
+    //   620.xxx (beban adm & umum), 700.100, 700.200,
+    //   800.100, 800.200, 800.300
     // =========================================================================
     private const REK_KODE_MAP = [
 
@@ -219,34 +232,53 @@ class JournalSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('═══════════════════════════════════════════════════════');
-        $this->command->info('  Journal Seeder — Migrasi dari Aplikasi Lama');
+        $this->command->info('  Journal Seeder — Initial Balance SPR TRADA (dep_kode = TR)');
         $this->command->info('═══════════════════════════════════════════════════════');
 
         // ── 1. Muat CSV ──────────────────────────────────────────────────────
-        $headers = $this->loadCsv(database_path('seeders/data/acc_iftjurnalhdr.csv'));
-        $details = $this->loadCsv(database_path('seeders/data/acc_iftjurnaldtl.csv'));
+        $allHeaders = $this->loadCsv(database_path('seeders/data/acc_iftjurnalhdr.csv'));
+        $allDetails = $this->loadCsv(database_path('seeders/data/acc_iftjurnaldtl.csv'));
 
-        $this->command->info('  Header jurnal : ' . count($headers) . ' baris');
-        $this->command->info('  Detail jurnal : ' . count($details) . ' baris');
+        $this->command->info('  Header jurnal (total)  : ' . count($allHeaders) . ' baris');
+        $this->command->info('  Detail jurnal (total)  : ' . count($allDetails) . ' baris');
 
-        // ── 2. Bangun cache ──────────────────────────────────────────────────
+        // ── 2. Filter hanya SPR TRADA (dep_kode = TR) ───────────────────────
+        $headers = array_filter(
+            $allHeaders,
+            fn($row) => strtoupper(trim($row['dep_kode'])) === self::FILTER_DEP_KODE
+        );
+        $headers = array_values($headers);
+
+        // Kumpulkan nobkt milik Trada agar filter detail lebih cepat
+        $tradaNobktSet = array_flip(array_column($headers, 'jur_nobkt'));
+
+        $details = array_filter(
+            $allDetails,
+            fn($row) => isset($tradaNobktSet[trim($row['jur_nobkt'])])
+        );
+        $details = array_values($details);
+
+        $this->command->info('  Header jurnal (Trada)  : ' . count($headers) . ' baris');
+        $this->command->info('  Detail jurnal (Trada)  : ' . count($details) . ' baris');
+
+        // ── 3. Bangun cache ──────────────────────────────────────────────────
         $this->buildAccountCache();
         $this->command->info('  Account cache : ' . count($this->accountCache) . ' akun dimuat');
 
-        // ── 3. Kelompokkan detail berdasarkan jur_nobkt ──────────────────────
+        // ── 4. Kelompokkan detail berdasarkan jur_nobkt ──────────────────────
         $detailsByNobkt = [];
         foreach ($details as $row) {
             $detailsByNobkt[$row['jur_nobkt']][] = $row;
         }
 
-        // ── 4. Ambil default user_id ─────────────────────────────────────────
+        // ── 5. Ambil default user_id ─────────────────────────────────────────
         $defaultUserId = DB::table('users')->value('id');
         if (! $defaultUserId) {
             $this->command->error('  Tabel users kosong. Jalankan UserSeeder terlebih dahulu.');
             return;
         }
 
-        // ── 5. Proses per chunk ──────────────────────────────────────────────
+        // ── 6. Proses per chunk ──────────────────────────────────────────────
         $chunks = array_chunk($headers, 100);
         $total  = count($chunks);
 
@@ -493,7 +525,7 @@ class JournalSeeder extends Seeder
     {
         $this->command->info('');
         $this->command->info('═══════════════════════════════════════════════════════');
-        $this->command->info('  SELESAI — Ringkasan Hasil');
+        $this->command->info('  SELESAI — Ringkasan Hasil (SPR TRADA / dep_kode = TR)');
         $this->command->info('───────────────────────────────────────────────────────');
         $this->command->info('  Journal Entries diinsert : ' . $this->stats['entries_inserted']);
         $this->command->info('  Journal Entries dilewati : ' . $this->stats['entries_skipped'] . ' (sudah ada / duplikat)');

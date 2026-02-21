@@ -32,6 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { MoreVertical, ChevronLeft, ChevronRight, Search, FileText } from "lucide-react";
 
 const breadcrumbs = [
@@ -123,6 +124,7 @@ export default function PerubahanEkuitasList({ periods: initialPeriods = [] }) {
                       <TableHead>Periode</TableHead>
                       <TableHead>Tanggal Awal</TableHead>
                       <TableHead>Tanggal Akhir</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="w-16 text-right">Aksi</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -138,6 +140,11 @@ export default function PerubahanEkuitasList({ periods: initialPeriods = [] }) {
                           </TableCell>
                           <TableCell>{period.start_date}</TableCell>
                           <TableCell>{period.end_date}</TableCell>
+                          <TableCell>
+                            <Badge variant={period.status === "Closed" ? "success" : "secondary"}>
+                              {period.status === "Closed" ? "Final" : "Draft"}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

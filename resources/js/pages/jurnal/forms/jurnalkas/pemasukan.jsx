@@ -32,6 +32,39 @@ import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const buildTree = (accounts) => {
+    const accountsById = {};
+    accounts.forEach(acc => {
+        accountsById[acc.id] = { ...acc, children: [] };
+    });
+
+    const tree = [];
+    accounts.forEach(acc => {
+        if (acc.parent_id && accountsById[acc.parent_id]) {
+            accountsById[acc.parent_id].children.push(accountsById[acc.id]);
+        } else {
+            tree.push(accountsById[acc.id]);
+        }
+    });
+
+    return tree;
+};
+
+const flattenTreeForSelect = (nodes, level = 0, options = []) => {
+    for (const node of nodes) {
+        options.push({
+            value: node.id.toString(),
+            label: `${node.account_code} - ${node.account_name}`,
+            level: level,
+            is_cash_account: node.is_cash_account
+        });
+        if (node.children.length > 0) {
+            flattenTreeForSelect(node.children, level + 1, options);
+        }
+    }
+    return options;
+};
+
 export default function FormPemasukanKas({ journal = null, accounts = [], periods = [], cashAccounts = [], }) {
   const isEdit = !!journal;
   const breadcrumbs = [
@@ -90,12 +123,10 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
   }, [selectedPeriod]);
 
 
-  const accountOptions = accounts
-    .filter(acc => !acc.is_cash_account)
-    .map((acc) => ({
-      value: acc.id.toString(),
-      label: `${acc.account_code} - ${acc.account_name}`,
-  }));
+  const accountOptions = useMemo(() => {
+    const tree = buildTree(accounts);
+    return flattenTreeForSelect(tree).filter(opt => !opt.is_cash_account);
+  }, [accounts]);
 
   const cashAccountOptions = cashAccounts.map((acc) => ({
     value: acc.id.toString(),

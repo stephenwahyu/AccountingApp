@@ -12,25 +12,34 @@ class FiscalPeriodSeeder extends Seeder
      */
     public function run(): void
     {
-        $startYear = 2024; // ⬅ ubah sesuai tahun awal data lama kamu
-        $endYear   = 2026; // ⬅ bisa ubah atau pakai now()->year
+        \Carbon\Carbon::setLocale('id'); // ⬅ set locale ke Indonesia
 
-        for ($year = $startYear; $year <= $endYear; $year++) {
+        $startYear = 2024;
+        $currentYear  = now()->year;
+        $currentMonth = now()->month;
 
-            for ($month = 1; $month <= 12; $month++) {
+        for ($year = $startYear; $year <= $currentYear; $year++) {
+
+            $lastMonth = ($year == $currentYear) ? $currentMonth : 12;
+
+            for ($month = 1; $month <= $lastMonth; $month++) {
 
                 $startDate = \Carbon\Carbon::create($year, $month, 1)->startOfMonth();
                 $endDate   = \Carbon\Carbon::create($year, $month, 1)->endOfMonth();
 
-                DB::table('fiscal_periods')->insert([
-                    'period_name' => $startDate->translatedFormat('F Y'),
-                    'start_date'  => $startDate->toDateString(),
-                    'end_date'    => $endDate->toDateString(),
-                    'fiscal_year' => $year,
-                    'status'      => 'Open',
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
-                ]);
+                DB::table('fiscal_periods')->updateOrInsert(
+                    [
+                        'start_date' => $startDate->toDateString()
+                    ],
+                    [
+                        'period_name' => $startDate->translatedFormat('F Y'),
+                        'end_date'    => $endDate->toDateString(),
+                        'fiscal_year' => $year,
+                        'status'      => 'Open',
+                        'updated_at'  => now(),
+                        'created_at'  => now(),
+                    ]
+                );
             }
         }
     }

@@ -21,7 +21,9 @@ class LaporanKeuanganController extends Controller
 
     public function posisiKeuangan(): Response
     {
-        $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')
+            ->orderByRaw("FIELD(period_type, 'annually', 'quarterly', 'monthly') ASC")
+            ->get(['id', 'period_name', 'start_date', 'end_date', 'status']);
 
         return Inertia::render('laporankeuangan/posisikeuangan', [
             'periods' => $periods,
@@ -115,7 +117,9 @@ class LaporanKeuanganController extends Controller
 
     public function labaRugi(): Response
     {
-        $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')
+            ->orderByRaw("FIELD(period_type, 'annually', 'quarterly', 'monthly') ASC")
+            ->get(['id', 'period_name', 'start_date', 'end_date', 'status']);
 
         return Inertia::render('laporankeuangan/labarugi', [
             'periods' => $periods,
@@ -182,7 +186,9 @@ class LaporanKeuanganController extends Controller
 
     public function arusKas(): Response
     {
-        $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')
+            ->orderByRaw("FIELD(period_type, 'annually', 'quarterly', 'monthly') ASC")
+            ->get(['id', 'period_name', 'start_date', 'end_date', 'status']);
 
         return Inertia::render('laporankeuangan/aruskas', [
             'periods' => $periods,
@@ -272,7 +278,9 @@ class LaporanKeuanganController extends Controller
 
     public function perubahanEkuitas(): Response
     {
-        $periods = FiscalPeriod::orderBy('start_date', 'desc')->get(['id', 'period_name', 'start_date', 'end_date']);
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')
+            ->orderByRaw("FIELD(period_type, 'annually', 'quarterly', 'monthly') ASC")
+            ->get(['id', 'period_name', 'start_date', 'end_date', 'status']);
 
         return Inertia::render('laporankeuangan/perubahanekuitas', [
             'periods' => $periods,

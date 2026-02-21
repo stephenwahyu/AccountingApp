@@ -43,26 +43,42 @@ class CreateNewFiscalPeriod extends Command
 
     private function createMonthlyPeriods(Carbon $targetDate)
     {
-        // === 1. Create Monthly Period ===
         $this->info('-> Memeriksa periode bulanan...');
-        $latestMonthly = FiscalPeriod::where('period_type', 'monthly')->orderBy('start_date', 'desc')->first();
-        $nextMonthlyStartDate = $latestMonthly ? Carbon::parse($latestMonthly->end_date)->addDay() : $targetDate->copy()->startOfMonth();
 
-        // Only create monthly periods up to the current month
-        if ($nextMonthlyStartDate->isAfter($targetDate)) {
-            $this->info('   Semua periode bulanan yang relevan sudah ada.');
-        } else {
-            if (FiscalPeriod::where('period_type', 'monthly')->where('start_date', $nextMonthlyStartDate->copy()->startOfMonth())->doesntExist()) {
+        $latestMonthly = FiscalPeriod::where('period_type', 'monthly')
+            ->orderBy('start_date', 'desc')
+            ->first();
+
+        $nextStart = $latestMonthly
+            ? Carbon::parse($latestMonthly->end_date)->addDay()->startOfMonth()
+            : $targetDate->copy()->startOfMonth();
+
+        $currentMonth = $targetDate->copy()->startOfMonth();
+
+        while ($nextStart->lte($currentMonth)) {
+
+            if (FiscalPeriod::where('period_type', 'monthly')
+                ->where('start_date', $nextStart)
+                ->doesntExist()
+            ) {
+
                 $newPeriod = FiscalPeriod::create([
-                    'period_name' => $nextMonthlyStartDate->translatedFormat('F Y'),
-                    'start_date' => $nextMonthlyStartDate->copy()->startOfMonth(),
-                    'end_date' => $nextMonthlyStartDate->copy()->endOfMonth(),
-                    'fiscal_year' => $nextMonthlyStartDate->year,
-                    'status' => 'Open',
+                    'period_name' => $nextStart->translatedFormat('F Y'),
+                    'start_date'  => $nextStart->copy()->startOfMonth(),
+                    'end_date'    => $nextStart->copy()->endOfMonth(),
+                    'fiscal_year' => $nextStart->year,
+                    'status'      => 'Open',
                     'period_type' => 'monthly',
                 ]);
+
                 $this->info("   Berhasil membuat periode: {$newPeriod->period_name}");
             }
+
+            $nextStart->addMonth();
+        }
+
+        if ($nextStart->gt($currentMonth)) {
+            $this->info('   Semua periode bulanan yang relevan sudah ada.');
         }
     }
 

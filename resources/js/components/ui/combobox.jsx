@@ -59,7 +59,9 @@ export function Combobox({ options, value, onSelect, placeholder, searchPlacehol
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  {option.label}
+                  <span style={{ paddingLeft: `${(option.level || 0) * 1.5}rem` }}>
+                    {option.label}
+                  </span>
                 </CommandItem>
               ))}
             </CommandGroup>
