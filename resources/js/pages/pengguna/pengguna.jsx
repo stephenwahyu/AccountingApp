@@ -27,16 +27,18 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MoreVertical, Plus, Search, Users } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [
   { title: "Pengguna", href: "/pengguna" },
 ];
 
-export default function PenggunaList({ users: initialUsers = [] }) {
-  const [users, setUsers] = useState(initialUsers);
+export default function PenggunaList({ users = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -71,10 +73,29 @@ export default function PenggunaList({ users: initialUsers = [] }) {
   };
 
 
+  const handleConfirmDelete = () => {
+    if (userToDelete) {
+      router.delete(route('pengguna.destroy', userToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setUserToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Manajemen Pengguna" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Pengguna"
+          description={userToDelete ? `Apakah Anda yakin ingin menghapus pengguna ${userToDelete.name}? Akun ini tidak akan bisa diakses kembali.` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -159,11 +180,8 @@ export default function PenggunaList({ users: initialUsers = [] }) {
                                 <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => {
-                                        if (confirm('Apakah Anda yakin ingin menghapus pengguna ini?')) {
-                                            router.delete(route('pengguna.destroy', user.id), {
-                                                preserveScroll: true
-                                            });
-                                        }
+                                        setUserToDelete(user);
+                                        setIsDeleteDialogOpen(true);
                                     }}
                                 >
                                     Hapus

@@ -40,8 +40,7 @@ const breadcrumbs = [
   { title: "Posisi Keuangan", href: "/laporan-keuangan/posisi-keuangan" },
 ];
 
-export default function PosisiKeuanganList({ periods: initialPeriods = [] }) {
-  const [periods, setPeriods] = useState(initialPeriods);
+export default function PosisiKeuanganList({ periods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

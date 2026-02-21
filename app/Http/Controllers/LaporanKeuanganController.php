@@ -44,35 +44,70 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        // Untuk Neraca, kita hitung saldo akumulatif dari awal sistem sampai TANGGAL AKHIR periode
-        $balances = DB::table('accounts as a')
+        // Try to get snapshots first
+        $snapshotBalances = DB::table('account_balances as ab')
+            ->join('accounts as a', 'ab.account_id', '=', 'a.id')
             ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
             ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
-                                FROM journal_details jd 
-                                JOIN journal_entries je ON jd.journal_entry_id = je.id 
-                                WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
-                                GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
+            ->where('ab.fiscal_period_id', $period->id)
             ->select(
                 'a.id as account_id',
                 'a.account_code',
                 'a.account_name',
                 'at.name as account_type',
                 'at.normal_balance',
-                'a.initial_balance as start_balance',
-                DB::raw("COALESCE(period_jd.cumulative_debit, 0) as total_debit"),
-                DB::raw("COALESCE(period_jd.cumulative_credit, 0) as total_credit")
+                'ab.beginning_balance as start_balance',
+                'ab.debit_total as total_debit',
+                'ab.credit_total as total_credit',
+                'ab.ending_balance as raw_ending_balance'
             )
             ->where('a.is_active', 1)
-            ->get()
-            ->map(function($item) {
+            ->get();
+
+        if ($snapshotBalances->isNotEmpty()) {
+            $balances = $snapshotBalances->map(function ($item) {
+                // Correct the balance based on normal balance since the DB column is storedAs Debit
                 if ($item->normal_balance === 'Debit') {
-                    $item->balance = $item->start_balance + $item->total_debit - $item->total_credit;
+                    $item->balance = (float) $item->raw_ending_balance;
                 } else {
-                    $item->balance = $item->start_balance + $item->total_credit - $item->total_debit;
+                    // Reverse the formula for Credit accounts: start + credit - debit
+                    $item->balance = (float) $item->start_balance + (float) $item->total_credit - (float) $item->total_debit;
                 }
+
                 return $item;
             });
+        } else {
+            // Fallback to live calculation for Open periods
+            $balances = DB::table('accounts as a')
+                ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+                ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+                ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
+                                    FROM journal_details jd 
+                                    JOIN journal_entries je ON jd.journal_entry_id = je.id 
+                                    WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
+                                    GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
+                ->select(
+                    'a.id as account_id',
+                    'a.account_code',
+                    'a.account_name',
+                    'at.name as account_type',
+                    'at.normal_balance',
+                    'a.initial_balance as start_balance',
+                    DB::raw('COALESCE(period_jd.cumulative_debit, 0) as total_debit'),
+                    DB::raw('COALESCE(period_jd.cumulative_credit, 0) as total_credit')
+                )
+                ->where('a.is_active', 1)
+                ->get()
+                ->map(function ($item) {
+                    if ($item->normal_balance === 'Debit') {
+                        $item->balance = (float) $item->start_balance + (float) $item->total_debit - (float) $item->total_credit;
+                    } else {
+                        $item->balance = (float) $item->start_balance + (float) $item->total_credit - (float) $item->total_debit;
+                    }
+
+                    return $item;
+                });
+        }
 
         $assets = $balances->where('account_type', 'Aset')->where('balance', '!=', 0);
         $assetsTotal = $assets->sum('balance');
@@ -81,30 +116,43 @@ class LaporanKeuanganController extends Controller
         $liabilitiesTotal = $liabilities->sum('balance');
 
         // Hitung Laba Rugi AKUMULATIF untuk Neraca (dari awal sampai akhir periode ini)
-        $cumulativeNetIncome = DB::table('journal_details as jd')
-            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
-            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
-            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
-            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->where('je.status', 'Posted')
-            ->where('je.entry_date', '<=', $period->end_date)
-            ->whereIn('at.name', ['Pendapatan', 'Beban'])
-            ->select(
-                DB::raw("SUM(jd.credit - jd.debit) as net_balance")
-            )
-            ->first()->net_balance ?? 0;
+        if ($snapshotBalances->isNotEmpty()) {
+            $cumulativeNetIncome = $balances->whereIn('account_type', ['Pendapatan', 'Beban'])
+                ->map(function ($item) {
+                    // For net income, we need (Credit - Debit) regardless of normal balance
+                    // because Pendapatan is usually Credit and Beban is Debit.
+                    // From snapshot: ending_balance = (beginning + debit) - credit (Debit centered)
+                    // So (Credit - Debit) = beginning - ending_balance
+                    // Wait, that's complex. Let's just use the raw debit/credit totals from snapshot.
+                    return (float) $item->total_credit - (float) $item->total_debit;
+                })
+                ->sum();
+        } else {
+            $cumulativeNetIncome = DB::table('journal_details as jd')
+                ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+                ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+                ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+                ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+                ->where('je.status', 'Posted')
+                ->where('je.entry_date', '<=', $period->end_date)
+                ->whereIn('at.name', ['Pendapatan', 'Beban'])
+                ->select(
+                    DB::raw('SUM(jd.credit - jd.debit) as net_balance')
+                )
+                ->first()->net_balance ?? 0;
+        }
 
         $equity = $balances->where('account_type', 'Ekuitas')->where('balance', '!=', 0)->values();
-        
+
         if ($cumulativeNetIncome != 0) {
-            $equity->push((object)[
+            $equity->push((object) [
                 'account_id' => null,
                 'account_code' => '3-2002',
                 'account_name' => 'Laba Tahun Berjalan',
-                'balance' => $cumulativeNetIncome
+                'balance' => $cumulativeNetIncome,
             ]);
         }
-        
+
         $equityTotal = $equity->sum('balance');
 
         return [
@@ -140,13 +188,12 @@ class LaporanKeuanganController extends Controller
     {
         $period = FiscalPeriod::findOrFail($request->period_id);
 
-        $balances = DB::table('accounts as a')
+        // Try snapshots first
+        $snapshotBalances = DB::table('account_balances as ab')
+            ->join('accounts as a', 'ab.account_id', '=', 'a.id')
             ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
             ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->join('journal_details as jd', 'a.id', '=', 'jd.account_id')
-            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
-            ->where('je.status', 'Posted')
-            ->whereBetween('je.entry_date', [$period->start_date, $period->end_date])
+            ->where('ab.fiscal_period_id', $period->id)
             ->whereIn('at.name', ['Pendapatan', 'Beban'])
             ->select(
                 'a.id as account_id',
@@ -154,19 +201,52 @@ class LaporanKeuanganController extends Controller
                 'a.account_name',
                 'at.name as account_type',
                 'at.normal_balance',
-                DB::raw('SUM(jd.debit) as total_debit'),
-                DB::raw('SUM(jd.credit) as total_credit')
+                'ab.debit_total as total_debit',
+                'ab.credit_total as total_credit'
             )
-            ->groupBy('a.id', 'a.account_code', 'a.account_name', 'at.name', 'at.normal_balance')
-            ->get()
-            ->map(function($item) {
+            ->get();
+
+        if ($snapshotBalances->isNotEmpty()) {
+            $balances = $snapshotBalances->map(function ($item) {
                 if ($item->normal_balance === 'Debit') {
-                    $item->balance = $item->total_debit - $item->total_credit;
+                    $item->balance = (float) $item->total_debit - (float) $item->total_credit;
                 } else {
-                    $item->balance = $item->total_credit - $item->total_debit;
+                    $item->balance = (float) $item->total_credit - (float) $item->total_debit;
                 }
+
                 return $item;
             });
+        } else {
+            // Fallback to live calculation
+            $balances = DB::table('accounts as a')
+                ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+                ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+                ->join('journal_details as jd', 'a.id', '=', 'jd.account_id')
+                ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+                ->where('je.status', 'Posted')
+                ->whereBetween('je.entry_date', [$period->start_date, $period->end_date])
+                ->whereIn('at.name', ['Pendapatan', 'Beban'])
+                ->select(
+                    'a.id as account_id',
+                    'a.account_code',
+                    'a.account_name',
+                    'at.name as account_type',
+                    'at.normal_balance',
+                    DB::raw('SUM(jd.debit) as total_debit'),
+                    DB::raw('SUM(jd.credit) as total_credit')
+                )
+                ->groupBy('a.id', 'a.account_code', 'a.account_name', 'at.name', 'at.normal_balance')
+                ->get()
+                ->map(function ($item) {
+                    if ($item->normal_balance === 'Debit') {
+                        $item->balance = (float) $item->total_debit - (float) $item->total_credit;
+                    } else {
+                        $item->balance = (float) $item->total_credit - (float) $item->total_debit;
+                    }
+
+                    return $item;
+                });
+        }
 
         $income = $balances->where('account_type', 'Pendapatan')->values();
         $incomeTotal = $income->sum('balance');
@@ -212,7 +292,7 @@ class LaporanKeuanganController extends Controller
         $beginningCashBalance = DB::table('accounts')
             ->where('is_cash_account', 1)
             ->sum('initial_balance');
-        
+
         // Tambahkan mutasi kas dari awal sistem sampai sebelum tanggal mulai periode ini
         $previousCashMutation = DB::table('journal_details as jd')
             ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
@@ -221,14 +301,14 @@ class LaporanKeuanganController extends Controller
             ->where('je.entry_date', '<', $period->start_date)
             ->where('a.is_cash_account', 1)
             ->sum(DB::raw('jd.debit - jd.credit'));
-        
+
         $currentBeginningCash = $beginningCashBalance + $previousCashMutation;
 
         $results = [];
         $categories = [
             'operating' => 1,
             'investing' => 2,
-            'financing' => 3
+            'financing' => 3,
         ];
 
         foreach ($categories as $key => $activityId) {
@@ -252,18 +332,18 @@ class LaporanKeuanganController extends Controller
                 )
                 ->groupBy('a.id', 'a.account_name')
                 ->get()
-                ->map(function($item) {
+                ->map(function ($item) {
                     return [
                         'description' => $item->description,
                         'inflow' => $item->balance > 0 ? $item->balance : 0,
                         'outflow' => $item->balance < 0 ? abs($item->balance) : 0,
-                        'balance' => $item->balance
+                        'balance' => $item->balance,
                     ];
                 });
 
             $results[$key] = [
                 'items' => $items,
-                'total' => $items->sum('balance')
+                'total' => $items->sum('balance'),
             ];
         }
 
@@ -307,7 +387,7 @@ class LaporanKeuanganController extends Controller
             ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
             ->where('at.name', 'Ekuitas')
             ->sum('accounts.initial_balance');
-        
+
         // Mutasi ekuitas (Posted) dari awal sampai SEBELUM periode ini
         $previousEquityMutation = DB::table('journal_details as jd')
             ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
@@ -345,7 +425,7 @@ class LaporanKeuanganController extends Controller
             'beginning_balance' => ['total' => $beginningBalance],
             'changes' => [
                 'net_income' => $netIncome,
-                'others' => $otherChanges
+                'others' => $otherChanges,
             ],
             'ending_balance' => ['total' => $endingBalance],
         ];

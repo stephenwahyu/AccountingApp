@@ -35,15 +35,17 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MoreVertical, Plus, Search } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [{ title: "Jurnal", href: "/jurnal" }];
 
-export default function JurnalSemua({ journals: initialJournals = [] }) {
-  const [journals, setJournals] = useState(initialJournals);
+export default function JurnalSemua({ journals = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [journalToDelete, setJournalToDelete] = useState(null);
 
   const handleTabChange = (value) => {
     router.visit(value);
@@ -86,10 +88,29 @@ export default function JurnalSemua({ journals: initialJournals = [] }) {
     }
   };
 
+  const handleConfirmDelete = () => {
+    if (journalToDelete) {
+      router.delete(route('jurnal.destroy', journalToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setJournalToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Jurnal - Semua" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Jurnal"
+          description={journalToDelete ? `Apakah Anda yakin ingin menghapus jurnal ${journalToDelete.entry_number}?` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div>
             <h1 className="text-2xl font-bold">Semua Jurnal</h1>
@@ -190,8 +211,25 @@ export default function JurnalSemua({ journals: initialJournals = [] }) {
                                     Lihat Detail
                                   </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem asChild>
+                                  <Link href={
+                                    journal.journal_type === 'Umum' ? route('jurnal.umum.edit', journal.id) :
+                                    journal.journal_type === 'Kas Masuk' ? route('jurnal.kas.pemasukan.edit', journal.id) :
+                                    journal.journal_type === 'Kas Keluar' ? route('jurnal.kas.pengeluaran.edit', journal.id) :
+                                    journal.journal_type === 'Bank Masuk' ? route('jurnal.bank.pemasukan.edit', journal.id) :
+                                    route('jurnal.bank.pengeluaran.edit', journal.id)
+                                  }>
+                                    Edit
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => {
+                                        setJournalToDelete(journal);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                    disabled={journal.status === 'Posted'}
+                                >
                                   Hapus
                                 </DropdownMenuItem>
                               </DropdownMenuContent>

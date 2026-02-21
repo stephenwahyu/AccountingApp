@@ -27,17 +27,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Search } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [
   { title: "Bagan Perkiraan", href: route('bagan-perkiraan.index') },
   { title: "Tipe Akun", href: route('bagan-perkiraan.tipe-akun') },
 ];
 
-export default function TipeAkunList({ types: initialTypes = [] }) {
-  const [types, setTypes] = useState(initialTypes);
+export default function TipeAkunList({ types = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [typeToDelete, setTypeToDelete] = useState(null);
 
   const handleTabChange = (value) => {
     router.visit(route(value));
@@ -61,10 +63,29 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
     return filteredTypes.slice(startIndex, startIndex + rowsPerPage);
   }, [filteredTypes, currentPage, rowsPerPage]);
 
+  const handleConfirmDelete = () => {
+    if (typeToDelete) {
+      router.delete(route('bagan-perkiraan.tipe-akun.destroy', typeToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setTypeToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Bagan Perkiraan - Tipe Akun" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Tipe Akun"
+          description={typeToDelete ? `Apakah Anda yakin ingin menghapus tipe akun ${typeToDelete.name}? Seluruh kategori dan akun di bawah tipe ini juga akan terpengaruh.` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -153,11 +174,8 @@ export default function TipeAkunList({ types: initialTypes = [] }) {
                                 <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => {
-                                        if (confirm('Apakah Anda yakin ingin menghapus tipe akun ini?')) {
-                                            router.delete(route('bagan-perkiraan.tipe-akun.destroy', type.id), {
-                                                preserveScroll: true
-                                            });
-                                        }
+                                        setTypeToDelete(type);
+                                        setIsDeleteDialogOpen(true);
                                     }}
                                 >
                                     Hapus

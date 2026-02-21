@@ -31,6 +31,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const buildTree = (accounts) => {
     const accountsById = {};
@@ -156,7 +157,14 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
   );
 
   const handleSubmit = (statusValue) => {
-    if (totalCredit <= 0 || !data.cash_account_id) return;
+    if (totalCredit <= 0) {
+        toast.error("Total pemasukan harus lebih dari 0.");
+        return;
+    }
+    if (!data.cash_account_id) {
+        toast.error("Harap pilih akun kas penyetoran.");
+        return;
+    }
     
     setProcessing(true);
     setSubmittedStatus(statusValue);
@@ -181,6 +189,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
         },
         onError: (errors) => {
             setErrors(errors);
+            toast.error("Gagal menyimpan pemasukan kas. Harap periksa kembali inputan Anda.");
             setProcessing(false);
             setSubmittedStatus(null);
         },
@@ -225,179 +234,179 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Detail Transaksi</CardTitle>
-                        <CardDescription>Masukkan akun-akun sumber pemasukan.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="border rounded-md overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                    <TableHead className="w-[200px] md:w-[300px]">Akun Kredit</TableHead>
-                                    <TableHead className="hidden md:table-cell">Uraian</TableHead>
-                                    <TableHead className="w-[150px] md:w-[180px]">Jumlah</TableHead>
-                                    <TableHead className="w-12"></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {data.details.map((detail, index) => (
-                                    <TableRow key={index}>
-                                        <TableCell>
-                                            <Combobox
-                                                options={accountOptions}
-                                                value={detail.account_id}
-                                                onSelect={(value) => updateDetail(index, "account_id", value)}
-                                                placeholder="Pilih Akun"
-                                                searchPlaceholder="Cari akun..."
-                                                emptyPlaceholder="Akun tidak ditemukan."
-                                            />
-                                        </TableCell>
-                                        <TableCell className="hidden md:table-cell">
-                                        <Input
-                                            type="text"
-                                            placeholder="Uraian singkat"
-                                            value={detail.description}
-                                            onChange={(e) => updateDetail(index, "description", e.target.value)}
-                                        />
-                                        </TableCell>
-                                        <TableCell>
-                                        <Input
-                                            type="number"
-                                            placeholder="0"
-                                            value={detail.credit}
-                                            onChange={(e) => updateDetail(index, "credit", e.target.value)}
-                                            className="text-right"
-                                        />
-                                        </TableCell>
-                                        <TableCell>
-                                        {data.details.length > 1 && (
-                                            <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeRow(index)}
-                                            className="text-muted-foreground hover:text-destructive"
-                                            >
-                                            <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        )}
-                                        </TableCell>
-                                    </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+          <div className="flex flex-col gap-6">
+            {/* Section 1: Informasi Jurnal */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Informasi Jurnal</CardTitle>
+                    <CardDescription>Atur data administratif dan akun kas penerima.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                        <div className="grid gap-2">
+                            <Label htmlFor="entry_date" className="text-xs uppercase tracking-wider text-muted-foreground">Tanggal Entri</Label>
+                            <DatePicker
+                                date={data.entry_date}
+                                setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
+                                disabled={disabledDates}
+                                defaultMonth={selectedPeriod ? new Date(selectedPeriod.start_date.replace(/-/g, "/")) : undefined}
+                                id="entry_date"
+                            />
+                            {errors.entry_date && <p className="text-xs text-destructive">{errors.entry_date}</p>}
                         </div>
-                        {errors.details && <p className="text-sm text-destructive mt-2">{errors.details}</p>}
+                        <div className="grid gap-2 lg:col-span-2">
+                            <Label htmlFor="cash_account_id" className="text-xs uppercase tracking-wider text-muted-foreground">Setor ke Akun Kas</Label>
+                            <Select
+                                value={data.cash_account_id}
+                                onValueChange={(value) => setData(prev => ({...prev, cash_account_id: value}))}
+                                >
+                                <SelectTrigger id="cash_account_id" className="bg-primary/5 border-primary/20">
+                                    <SelectValue placeholder="Pilih Akun Kas" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {cashAccountOptions.map((account) => (
+                                    <SelectItem key={account.value} value={account.value}>
+                                        {account.label}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.cash_account_id && <p className="text-xs text-destructive">{errors.cash_account_id}</p>}
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="fiscal_period_id" className="text-xs uppercase tracking-wider text-muted-foreground">Periode</Label>
+                            <Select
+                                value={data.fiscal_period_id}
+                                onValueChange={handlePeriodChange}
+                            >
+                                <SelectTrigger id="fiscal_period_id" className="bg-muted/30">
+                                    <SelectValue placeholder="Pilih Periode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {periods.map((period) => (
+                                    <SelectItem key={period.id} value={period.id.toString()}>
+                                        {period.period_name}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.fiscal_period_id && <p className="text-xs text-destructive">{errors.fiscal_period_id}</p>}
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="penerima" className="text-xs uppercase tracking-wider text-muted-foreground">Diterima Dari</Label>
+                            <Input
+                                id="penerima"
+                                placeholder="Nama pemberi (Opsional)"
+                                value={data.penerima}
+                                onChange={(e) => setData(prev => ({...prev, penerima: e.target.value}))}
+                            />
+                            {errors.penerima && <p className="text-xs text-destructive">{errors.penerima}</p>}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Section 2: Detail Transaksi */}
+            <Card className="overflow-hidden border-primary/10 shadow-md">
+                <CardHeader className="bg-muted/20 pb-4 border-b">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle className="text-lg">Sumber Pemasukan</CardTitle>
+                            <CardDescription>Tentukan akun-akun pendapatan atau piutang sebagai sumber kas.</CardDescription>
+                        </div>
                         <Button
                             type="button"
                             variant="outline"
+                            size="sm"
                             onClick={addRow}
-                            className="mt-4 gap-2"
+                            className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
                         >
                             <Plus className="h-4 w-4" />
                             Tambah Baris
                         </Button>
-                    </CardContent>
-                    <CardFooter className="flex flex-col sm:flex-row justify-end gap-6 items-stretch sm:items-center bg-muted/50 py-4 px-6">
-                        <div className="grid grid-cols-2 gap-4 w-full sm:w-[400px] text-right">
-                             <div>
-                                <p className="text-sm text-muted-foreground">Total Pemasukan</p>
-                                <p className="font-semibold text-lg">
-                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCredit)}
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-sm text-muted-foreground">Disimpan ke Akun Kas (Debit)</p>
-                                 <p className="font-semibold text-lg">
-                                    {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(totalCredit)}
-                                </p>
-                            </div>
-                        </div>
-                    </CardFooter>
-                </Card>
-            </div>
-            <div className="lg:col-span-1">
-                <Card>
-                    <CardHeader>
-                    <CardTitle>Informasi Jurnal</CardTitle>
-                    </CardHeader>
-                    <CardContent className="grid gap-6">
-                    <div className="grid gap-2">
-                        <Label htmlFor="entry_date">Tanggal Entri</Label>
-                        <DatePicker
-                        date={data.entry_date}
-                        setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
-                        disabled={disabledDates}
-                        id="entry_date"
-                        />
-                        {errors.entry_date && <p className="text-sm text-destructive">{errors.entry_date}</p>}
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="entry_number">Nomor Entri</Label>
-                        <Input
-                        id="entry_number"
-                        placeholder="Akan dibuat otomatis"
-                        value={data.entry_number}
-                        onChange={(e) => setData(prev => ({...prev, entry_number: e.target.value}))}
-                        disabled
-                        />
-                        {errors.entry_number && <p className="text-sm text-destructive">{errors.entry_number}</p>}
-                    </div>
-                     <div className="grid gap-2">
-                        <Label htmlFor="cash_account_id">Setor ke Kas</Label>
-                        <Select
-                            value={data.cash_account_id}
-                            onValueChange={(value) => setData(prev => ({...prev, cash_account_id: value}))}
-                            >
-                            <SelectTrigger id="cash_account_id">
-                                <SelectValue placeholder="Pilih Akun Kas" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {cashAccountOptions.map((account) => (
-                                <SelectItem key={account.value} value={account.value}>
-                                    {account.label}
-                                </SelectItem>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader className="bg-muted/30">
+                                <TableRow>
+                                    <TableHead className="w-[30%] pl-6">Akun Kredit</TableHead>
+                                    <TableHead className="w-[50%]">Uraian</TableHead>
+                                    <TableHead className="w-[15%] text-right">Jumlah</TableHead>
+                                    <TableHead className="w-[5%] text-center pr-6"></TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {data.details.map((detail, index) => (
+                                <TableRow key={index} className="hover:bg-muted/5 transition-colors">
+                                    <TableCell className="pl-6 py-3">
+                                        <Combobox
+                                            options={accountOptions}
+                                            value={detail.account_id}
+                                            onSelect={(value) => updateDetail(index, "account_id", value)}
+                                            placeholder="Pilih Akun"
+                                            searchPlaceholder="Cari akun..."
+                                            emptyPlaceholder="Akun tidak ditemukan."
+                                        />
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                        <Input
+                                            type="text"
+                                            placeholder="Deskripsi singkat"
+                                            value={detail.description}
+                                            onChange={(e) => updateDetail(index, "description", e.target.value)}
+                                            className="border-transparent hover:border-input focus:border-primary transition-all"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="py-3">
+                                        <Input
+                                            type="number"
+                                            placeholder="0"
+                                            value={detail.credit || ''}
+                                            onChange={(e) => updateDetail(index, "credit", e.target.value)}
+                                            className="text-right font-mono focus:ring-primary/20"
+                                        />
+                                    </TableCell>
+                                    <TableCell className="text-center pr-6 py-3">
+                                        {data.details.length > 1 && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                onClick={() => removeRow(index)}
+                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
                                 ))}
-                            </SelectContent>
-                        </Select>
-                        {errors.cash_account_id && <p className="text-sm text-destructive">{errors.cash_account_id}</p>}
+                            </TableBody>
+                        </Table>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="fiscal_period_id">Periode</Label>
-                        <Select
-                        value={data.fiscal_period_id}
-                        onValueChange={handlePeriodChange}
-                        >
-                        <SelectTrigger id="fiscal_period_id">
-                            <SelectValue placeholder="Pilih Periode" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {periods.map((period) => (
-                            <SelectItem key={period.id} value={period.id.toString()}>
-                                {period.period_name}
-                            </SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        {errors.fiscal_period_id && <p className="text-sm text-destructive">{errors.fiscal_period_id}</p>}
+                    {errors.details && <p className="text-sm text-destructive p-4 italic">* {errors.details}</p>}
+                </CardContent>
+                <CardFooter className="flex flex-col sm:flex-row justify-between gap-6 items-stretch sm:items-center bg-muted/30 py-6 px-6 border-t">
+                    <div className="flex flex-col gap-1">
+                        <p className="text-xs uppercase font-semibold text-muted-foreground">Akun Kas Penerima</p>
+                        <p className="text-sm font-medium">
+                            {data.cash_account_id 
+                                ? cashAccountOptions.find(o => o.value === data.cash_account_id)?.label 
+                                : "Belum dipilih"}
+                        </p>
                     </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="penerima">Diterima Dari</Label>
-                        <Input
-                        id="penerima"
-                        placeholder="Nama pemberi dana (Opsional)"
-                        value={data.penerima}
-                        onChange={(e) => setData(prev => ({...prev, penerima: e.target.value}))}
-                        />
-                         {errors.penerima && <p className="text-sm text-destructive">{errors.penerima}</p>}
+                    <div className="flex flex-col sm:flex-row gap-8">
+                        <div className="text-right">
+                            <p className="text-xs uppercase font-semibold text-muted-foreground mb-1">Total Pemasukan</p>
+                            <p className="font-mono text-2xl font-bold text-primary">
+                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(totalCredit)}
+                            </p>
+                        </div>
                     </div>
-                    </CardContent>
-                </Card>
-            </div>
+                </CardFooter>
+            </Card>
           </div>
         </form>
       </AppLayouts>

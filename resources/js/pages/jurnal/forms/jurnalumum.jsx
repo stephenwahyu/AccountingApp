@@ -31,6 +31,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const buildTree = (accounts) => {
     const accountsById = {};
@@ -192,7 +193,10 @@ export default function FormJurnalUmum({
     const isBalanced = totalDebit === totalCredit && totalDebit > 0;
 
     const handleSubmit = (status) => {
-        if (!isBalanced) return;
+        if (!isBalanced) {
+            toast.error("Jurnal tidak seimbang atau total debit/kredit masih nol.");
+            return;
+        }
 
         setProcessing(true);
         setSubmittedStatus(status);
@@ -221,6 +225,7 @@ export default function FormJurnalUmum({
             onError: (errors) => {
                 console.error("Validation errors:", errors);
                 setErrors(errors);
+                toast.error("Gagal menyimpan jurnal. Harap periksa kembali inputan Anda.");
                 setProcessing(false);
                 setSubmittedStatus(null);
             },
@@ -300,271 +305,198 @@ export default function FormJurnalUmum({
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Detail Transaksi</CardTitle>
-                                    <CardDescription>
-                                        Masukkan akun-akun yang terlibat dalam transaksi
-                                        ini.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="border rounded-md overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="w-[200px] md:w-[300px]">
-                                                        Akun
-                                                    </TableHead>
-                                                    <TableHead className="hidden md:table-cell">Uraian</TableHead>
-                                                    <TableHead className="w-[150px] md:w-[180px]">
-                                                        Debit
-                                                    </TableHead>
-                                                    <TableHead className="w-[150px] md:w-[180px]">
-                                                        Kredit
-                                                    </TableHead>
-                                                    <TableHead className="w-12"></TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {data.details.map((detail, index) => (
-                                                    <TableRow key={index}>
-                                                        <TableCell>
-                                                            <Combobox
-                                                                options={accountOptions}
-                                                                value={
-                                                                    detail.account_id
-                                                                }
-                                                                onSelect={(value) =>
-                                                                    updateDetail(
-                                                                        index,
-                                                                        "account_id",
-                                                                        value
-                                                                    )
-                                                                }
-                                                                placeholder="Pilih Akun"
-                                                                searchPlaceholder="Cari akun..."
-                                                                emptyPlaceholder="Akun tidak ditemukan."
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell className="hidden md:table-cell">
-                                                            <Input
-                                                                type="text"
-                                                                placeholder="Uraian singkat"
-                                                                value={
-                                                                    detail.description
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateDetail(
-                                                                        index,
-                                                                        "description",
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Input
-                                                                type="number"
-                                                                placeholder="0"
-                                                                value={detail.debit}
-                                                                onChange={(e) =>
-                                                                    updateDetail(
-                                                                        index,
-                                                                        "debit",
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                                className="text-right"
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <Input
-                                                                type="number"
-                                                                placeholder="0"
-                                                                value={detail.credit}
-                                                                onChange={(e) =>
-                                                                    updateDetail(
-                                                                        index,
-                                                                        "credit",
-                                                                        e.target.value
-                                                                    )
-                                                                }
-                                                                className="text-right"
-                                                            />
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            {data.details.length >
-                                                                2 && (
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="icon"
-                                                                    onClick={() =>
-                                                                        removeRow(index)
-                                                                    }
-                                                                    className="text-muted-foreground hover:text-destructive"
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            )}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-                                    {errors["details"] && (
-                                        <p className="text-sm text-destructive mt-2">
-                                            {errors["details"]}
-                                        </p>
-                                    )}
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={addRow}
-                                        className="mt-4 gap-2"
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                        Tambah Baris
-                                    </Button>
-                                </CardContent>
-                                <CardFooter className="flex flex-col sm:flex-row justify-end gap-6 items-stretch sm:items-center bg-muted/50 py-4 px-6">
-                                    <div
-                                        className={cn(
-                                            "rounded-md px-3 py-1 text-sm font-medium",
-                                            isBalanced
-                                                ? "bg-success/10 text-success-foreground"
-                                                : "bg-destructive/10 text-destructive-foreground"
-                                        )}
-                                    >
-                                        {isBalanced ? "SEIMBANG" : "TIDAK SEIMBANG"}
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 w-full sm:w-[400px] text-right">
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Total Debit
-                                            </p>
-                                            <p className="font-semibold text-lg">
-                                                {new Intl.NumberFormat("id-ID", {
-                                                    style: "currency",
-                                                    currency: "IDR",
-                                                }).format(totalDebit)}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Total Kredit
-                                            </p>
-                                            <p className="font-semibold text-lg">
-                                                {new Intl.NumberFormat("id-ID", {
-                                                    style: "currency",
-                                                    currency: "IDR",
-                                                }).format(totalCredit)}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </CardFooter>
-                            </Card>
-                        </div>
-                        <div className="lg:col-span-1">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Informasi Jurnal</CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-6">
+                    <div className="flex flex-col gap-6">
+                        {/* Section 1: Informasi Jurnal */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg">Informasi Jurnal</CardTitle>
+                                <CardDescription>Atur data administratif jurnal di sini.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="entry_date">
-                                            Tanggal Entri
-                                        </Label>
+                                        <Label htmlFor="entry_date" className="text-xs uppercase tracking-wider text-muted-foreground">Tanggal Entri</Label>
                                         <DatePicker
                                             date={data.entry_date}
-                                            setDate={(date) =>
-                                                setData({ ...data, entry_date: date })
-                                            }
+                                            setDate={(date) => setData({ ...data, entry_date: date })}
                                             disabled={disabledDates}
+                                            defaultMonth={selectedPeriod ? new Date(selectedPeriod.start_date.replace(/-/g, "/")) : undefined}
                                             id="entry_date"
                                         />
-                                        {errors.entry_date && (
-                                            <p className="text-sm text-destructive">
-                                                {errors.entry_date}
-                                            </p>
-                                        )}
+                                        {errors.entry_date && <p className="text-xs text-destructive">{errors.entry_date}</p>}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="entry_number">
-                                            Nomor Entri
-                                        </Label>
-                                        <Input
-                                            id="entry_number"
-                                            placeholder="Akan dibuat otomatis"
-                                            value={data.entry_number}
-                                            onChange={(e) =>
-                                                setData({
-                                                    ...data,
-                                                    entry_number: e.target.value,
-                                                })
-                                            }
-                                            disabled
-                                        />
-                                        {errors.entry_number && (
-                                            <p className="text-sm text-destructive">
-                                                {errors.entry_number}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="fiscal_period_id">
-                                            Periode
-                                        </Label>
-                                        <Select
-                                            value={data.fiscal_period_id}
-                                            onValueChange={handlePeriodChange}
-                                        >
-                                            <SelectTrigger id="fiscal_period_id">
+                                        <Label htmlFor="fiscal_period_id" className="text-xs uppercase tracking-wider text-muted-foreground">Periode Fiskal</Label>
+                                        <Select value={data.fiscal_period_id} onValueChange={handlePeriodChange}>
+                                            <SelectTrigger id="fiscal_period_id" className="bg-muted/30">
                                                 <SelectValue placeholder="Pilih Periode" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {periods.map((period) => (
-                                                    <SelectItem
-                                                        key={period.id}
-                                                        value={period.id.toString()}
-                                                    >
+                                                    <SelectItem key={period.id} value={period.id.toString()}>
                                                         {period.period_name}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
-                                        {errors.fiscal_period_id && (
-                                            <p className="text-sm text-destructive">
-                                                {errors.fiscal_period_id}
-                                            </p>
-                                        )}
+                                        {errors.fiscal_period_id && <p className="text-xs text-destructive">{errors.fiscal_period_id}</p>}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="penerima">Penerima</Label>
+                                        <Label htmlFor="entry_number" className="text-xs uppercase tracking-wider text-muted-foreground">Nomor Jurnal</Label>
+                                        <Input
+                                            id="entry_number"
+                                            placeholder="Otomatis"
+                                            value={data.entry_number}
+                                            disabled
+                                            className="bg-muted/50 font-mono text-xs"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="penerima" className="text-xs uppercase tracking-wider text-muted-foreground">Penerima/Pemberi</Label>
                                         <Input
                                             id="penerima"
-                                            placeholder="Nama Penerima (Opsional)"
+                                            placeholder="Nama (Opsional)"
                                             value={data.penerima}
-                                            onChange={(e) =>
-                                                setData({
-                                                    ...data,
-                                                    penerima: e.target.value,
-                                                })
-                                            }
+                                            onChange={(e) => setData({ ...data, penerima: e.target.value })}
                                         />
-                                        {errors.penerima && (
-                                            <p className="text-sm text-destructive">
-                                                {errors.penerima}
-                                            </p>
-                                        )}
                                     </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Section 2: Detail Transaksi */}
+                        <Card className="overflow-hidden border-primary/10 shadow-md">
+                            <CardHeader className="bg-muted/20 pb-4 border-b">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="text-lg">Detail Transaksi</CardTitle>
+                                        <CardDescription>Masukkan minimal dua baris untuk menyeimbangkan jurnal.</CardDescription>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={addRow}
+                                        className="gap-2 border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Tambah Baris
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader className="bg-muted/30">
+                                            <TableRow>
+                                                <TableHead className="w-[35%] pl-6">Akun</TableHead>
+                                                <TableHead className="w-[35%]">Uraian</TableHead>
+                                                <TableHead className="w-[12%] text-right">Debit</TableHead>
+                                                <TableHead className="w-[12%] text-right">Kredit</TableHead>
+                                                <TableHead className="w-[6%] text-center pr-6"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {data.details.map((detail, index) => (
+                                                <TableRow key={index} className="hover:bg-muted/5 transition-colors">
+                                                    <TableCell className="pl-6 py-3">
+                                                        <Combobox
+                                                            options={accountOptions}
+                                                            value={detail.account_id}
+                                                            onSelect={(value) => updateDetail(index, "account_id", value)}
+                                                            placeholder="Pilih Akun"
+                                                            searchPlaceholder="Cari akun..."
+                                                            emptyPlaceholder="Akun tidak ditemukan."
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="py-3">
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Deskripsi transaksi"
+                                                            value={detail.description}
+                                                            onChange={(e) => updateDetail(index, "description", e.target.value)}
+                                                            className="border-transparent hover:border-input focus:border-primary transition-all"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="py-3">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="0"
+                                                            value={detail.debit || ''}
+                                                            onChange={(e) => updateDetail(index, "debit", e.target.value)}
+                                                            className="text-right font-mono focus:ring-primary/20"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="py-3">
+                                                        <Input
+                                                            type="number"
+                                                            placeholder="0"
+                                                            value={detail.credit || ''}
+                                                            onChange={(e) => updateDetail(index, "credit", e.target.value)}
+                                                            className="text-right font-mono focus:ring-primary/20"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-center pr-6 py-3">
+                                                        {data.details.length > 2 && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => removeRow(index)}
+                                                                className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                {errors["details"] && (
+                                    <p className="text-sm text-destructive p-4 italic">
+                                        * {errors["details"]}
+                                    </p>
+                                )}
+                            </CardContent>
+                            <CardFooter className="flex flex-col sm:flex-row justify-between gap-6 items-stretch sm:items-center bg-muted/30 py-6 px-6 border-t">
+                                <div className="flex items-center gap-3">
+                                    <div
+                                        className={cn(
+                                            "flex h-10 items-center justify-center rounded-full px-6 text-sm font-bold tracking-wide transition-all shadow-sm",
+                                            isBalanced
+                                                ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20"
+                                                : "bg-destructive/10 text-destructive border border-destructive/20"
+                                        )}
+                                    >
+                                        {isBalanced ? "JURNAL SEIMBANG" : "TIDAK SEIMBANG"}
+                                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-8">
+                                    <div className="text-right">
+                                        <p className="text-xs uppercase font-semibold text-muted-foreground mb-1">Total Debit</p>
+                                        <p className="font-mono text-xl font-bold text-foreground">
+                                            {new Intl.NumberFormat("id-ID", {
+                                                style: "currency",
+                                                currency: "IDR",
+                                                minimumFractionDigits: 0,
+                                            }).format(totalDebit)}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs uppercase font-semibold text-muted-foreground mb-1">Total Kredit</p>
+                                        <p className="font-mono text-xl font-bold text-foreground">
+                                            {new Intl.NumberFormat("id-ID", {
+                                                style: "currency",
+                                                currency: "IDR",
+                                                minimumFractionDigits: 0,
+                                            }).format(totalCredit)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardFooter>
+                        </Card>
                     </div>
                 </form>
             </AppLayouts>

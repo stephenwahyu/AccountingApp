@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Save, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 const buildTree = (accounts) => {
     const accountsById = {};
@@ -85,6 +86,11 @@ export default function FormAkun({ account = null, categories = [], accounts = [
         e.preventDefault();
         const url = isEdit ? route('bagan-perkiraan.akun.update', account.id) : route('bagan-perkiraan.akun.store');
         
+        const options = {
+            preserveScroll: true,
+            onError: () => toast.error("Terjadi kesalahan validasi. Harap periksa kembali form Anda."),
+        };
+
         const dataToSend = {
             ...data,
             parent_id: data.parent_id === 'null' ? null : data.parent_id,
@@ -92,9 +98,9 @@ export default function FormAkun({ account = null, categories = [], accounts = [
         };
 
         if (isEdit) {
-            put(url, { data: dataToSend, preserveScroll: true });
+            put(url, { ...options, data: dataToSend });
         } else {
-            post(url, { data: dataToSend, preserveScroll: true });
+            post(url, { ...options, data: dataToSend });
         }
     };
 

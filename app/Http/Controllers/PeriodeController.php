@@ -4,16 +4,99 @@ namespace App\Http\Controllers;
 
 use App\Events\FiscalPeriodClosed;
 use App\Events\FiscalPeriodOpened;
+use App\Models\Account;
+use App\Models\AccountBalance;
 use App\Models\FiscalPeriod;
+use App\Models\JournalDetail;
 use App\Models\JournalEntry;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 
 class PeriodeController extends Controller
 {
+    private function storeAccountBalances(FiscalPeriod $period)
+    {
+        // Only monthly periods get snapshots for now as they are the base
+        if ($period->period_type !== 'monthly') {
+            return;
+        }
+
+        DB::transaction(function () use ($period) {
+            $accounts = Account::with('accountCategory.accountType')->get();
+            $calculationStartDate = Carbon::parse($period->start_date);
+            $calculationEndDate = Carbon::parse($period->end_date);
+
+            foreach ($accounts as $account) {
+                // 1. Calculate Beginning Balance
+                // If it's the first period, use initial_balance.
+                // Otherwise, ideally use previous period's ending balance if exists.
+                $previousPeriod = FiscalPeriod::where('period_type', 'monthly')
+                    ->where('end_date', '<', $period->start_date)
+                    ->orderBy('end_date', 'desc')
+                    ->first();
+
+                $beginningBalance = 0;
+                if ($previousPeriod) {
+                    $prevBalance = AccountBalance::where('account_id', $account->id)
+                        ->where('fiscal_period_id', $previousPeriod->id)
+                        ->first();
+
+                    if ($prevBalance) {
+                        $beginningBalance = $prevBalance->ending_balance;
+                    } else {
+                        // Fallback: calculate from beginning of time if no snapshot exists
+                        $beginningBalance = $this->calculateLiveBalance($account, Carbon::parse('1900-01-01'), $calculationStartDate->copy()->subDay());
+                    }
+                } else {
+                    $beginningBalance = (float) $account->initial_balance;
+                }
+
+                // 2. Calculate current period movements
+                $movement = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+                    ->where('journal_details.account_id', $account->id)
+                    ->where('journal_entries.status', 'Posted')
+                    ->whereBetween('journal_entries.entry_date', [$calculationStartDate, $calculationEndDate])
+                    ->select(
+                        DB::raw('SUM(debit) as total_debit'),
+                        DB::raw('SUM(credit) as total_credit')
+                    )
+                    ->first();
+
+                AccountBalance::updateOrCreate(
+                    ['account_id' => $account->id, 'fiscal_period_id' => $period->id],
+                    [
+                        'beginning_balance' => $beginningBalance,
+                        'debit_total' => $movement->total_debit ?? 0,
+                        'credit_total' => $movement->total_credit ?? 0,
+                    ]
+                );
+            }
+        });
+    }
+
+    private function calculateLiveBalance(Account $account, Carbon $start, Carbon $end)
+    {
+        $movement = JournalDetail::join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_details.account_id', $account->id)
+            ->where('journal_entries.status', 'Posted')
+            ->whereBetween('journal_entries.entry_date', [$start, $end])
+            ->select(
+                DB::raw('SUM(debit) as total_debit'),
+                DB::raw('SUM(credit) as total_credit')
+            )
+            ->first();
+
+        $balance = (float) $account->initial_balance + (float) ($movement->total_debit ?? 0) - (float) ($movement->total_credit ?? 0);
+
+        // Note: The above calculation treats everything as Debit-centered because of the table schema constraint.
+        // We will stick to this for consistency with the 'ending_balance' stored column.
+        return $balance;
+    }
+
     public function index()
     {
         $periodsCollection = FiscalPeriod::with('closedByUser')->get();
@@ -83,6 +166,18 @@ class PeriodeController extends Controller
             return Redirect::back()->with('error', 'Periode sudah ditutup.');
         }
 
+        // Sequential Check: Ensure previous monthly period is closed
+        if ($period->period_type === 'monthly') {
+            $previousPeriod = FiscalPeriod::where('period_type', 'monthly')
+                ->where('end_date', '<', $period->start_date)
+                ->orderBy('end_date', 'desc')
+                ->first();
+
+            if ($previousPeriod && $previousPeriod->status === 'Open') {
+                return Redirect::back()->with('error', "Harap tutup periode sebelumnya ({$previousPeriod->period_name}) terlebih dahulu.");
+            }
+        }
+
         // Additional validation for quarterly and annually periods
         if ($period->period_type === 'quarterly' || $period->period_type === 'annually') {
             $childPeriods = FiscalPeriod::where('period_type', 'monthly')
@@ -117,6 +212,8 @@ class PeriodeController extends Controller
             'closed_by' => Auth::id(),
         ]);
 
+        $this->storeAccountBalances($period);
+
         FiscalPeriodClosed::dispatch($period);
 
         return Redirect::route('periode.index')->with('success', 'Periode berhasil ditutup.');
@@ -126,6 +223,18 @@ class PeriodeController extends Controller
     {
         if ($period->status === 'Open') {
             return Redirect::back()->with('error', 'Periode sudah terbuka.');
+        }
+
+        // Sequential Check: Ensure subsequent monthly period is NOT closed
+        if ($period->period_type === 'monthly') {
+            $nextPeriod = FiscalPeriod::where('period_type', 'monthly')
+                ->where('start_date', '>', $period->end_date)
+                ->where('status', 'Closed')
+                ->first();
+
+            if ($nextPeriod) {
+                return Redirect::back()->with('error', "Tidak dapat membuka periode ini karena periode setelahnya ({$nextPeriod->period_name}) sudah ditutup.");
+            }
         }
 
         // Validation for quarterly and annually periods: Cannot open if any child is open
@@ -145,6 +254,9 @@ class PeriodeController extends Controller
             'closed_at' => null,
             'closed_by' => null,
         ]);
+
+        // Delete snapshots when reopened to ensure they are recalculated when closed again
+        AccountBalance::where('fiscal_period_id', $period->id)->delete();
 
         FiscalPeriodOpened::dispatch($period);
 

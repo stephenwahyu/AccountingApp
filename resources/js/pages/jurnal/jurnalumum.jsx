@@ -35,18 +35,20 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Plus, Search } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [
   { title: "Jurnal", href: "/jurnal" },
   { title: "Jurnal Umum", href: "/jurnal/umum" },
 ];
 
-export default function JurnalUmum({ journals: initialJournals = [] }) {
-  const [journals, setJournals] = useState(initialJournals);
+export default function JurnalUmum({ journals = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [journalToDelete, setJournalToDelete] = useState(null);
 
   const handleTabChange = (value) => {
     router.visit(value);
@@ -88,10 +90,29 @@ export default function JurnalUmum({ journals: initialJournals = [] }) {
     }
   };
 
+  const handleConfirmDelete = () => {
+    if (journalToDelete) {
+      router.delete(route('jurnal.destroy', journalToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setJournalToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Jurnal - Jurnal Umum" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Jurnal"
+          description={journalToDelete ? `Apakah Anda yakin ingin menghapus jurnal ${journalToDelete.entry_number}?` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -198,8 +219,17 @@ export default function JurnalUmum({ journals: initialJournals = [] }) {
                                     Lihat Detail
                                   </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>Edit</DropdownMenuItem>
-                                <DropdownMenuItem className="text-destructive">
+                                <DropdownMenuItem asChild>
+                                    <Link href={route('jurnal.umum.edit', journal.id)}>Edit</Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                    className="text-destructive"
+                                    onClick={() => {
+                                        setJournalToDelete(journal);
+                                        setIsDeleteDialogOpen(true);
+                                    }}
+                                    disabled={journal.status === 'Posted'}
+                                >
                                   Hapus
                                 </DropdownMenuItem>
                               </DropdownMenuContent>

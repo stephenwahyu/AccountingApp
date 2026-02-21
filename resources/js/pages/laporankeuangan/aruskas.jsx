@@ -40,8 +40,7 @@ const breadcrumbs = [
   { title: "Arus Kas", href: "/laporan-keuangan/arus-kas" },
 ];
 
-export default function ArusKasList({ periods: initialPeriods = [] }) {
-  const [periods, setPeriods] = useState(initialPeriods);
+export default function ArusKasList({ periods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

@@ -603,10 +603,10 @@ class JurnalController extends Controller
     }
 
     // Lihat detail jurnal
-    public function show($id)
+    public function show(JournalEntry $journal)
     {
         try {
-            $journal = JournalEntry::with([
+            $journal->load([
                 'fiscalPeriod',
                 'user',
                 'postedByUser',
@@ -614,7 +614,7 @@ class JurnalController extends Controller
                     $query->orderBy('id', 'asc');
                 },
                 'journalDetails.account',
-            ])->findOrFail($id);
+            ]);
 
             $journalData = [
                 'id' => $journal->id,

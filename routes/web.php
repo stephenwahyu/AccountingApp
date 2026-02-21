@@ -62,9 +62,9 @@ Route::middleware('auth')->group(function () {
         Route::put('/bank/pengeluaran/{journal}', [JurnalController::class, 'bankPengeluaranUpdate'])->name('bank.pengeluaran.update');
 
         // Detail & Actions
-        Route::get('/{id}', [JurnalController::class, 'show'])->name('show');
+        Route::get('/{journal}', [JurnalController::class, 'show'])->name('show');
         Route::post('/{journal}/post', [JurnalController::class, 'postJournal'])->name('post');
-        Route::delete('/{id}', [JurnalController::class, 'destroy'])->name('destroy');
+        Route::delete('/{journal}', [JurnalController::class, 'destroy'])->name('destroy');
     });
 
     // Bagan Perkiraan Routes

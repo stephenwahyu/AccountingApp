@@ -21,8 +21,11 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Pencil, Trash2, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 export default function ViewDetailJurnal({ journal }) {
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+    
     const getBreadcrumbTitle = (type) => {
         if (type === 'Umum') return 'Jurnal Umum';
         if (type?.includes('Kas')) return 'Jurnal Kas';
@@ -94,9 +97,9 @@ export default function ViewDetailJurnal({ journal }) {
   };
 
   const handleDelete = () => {
-    if (confirm("Apakah Anda yakin ingin menghapus jurnal ini?")) {
-      router.delete(route("jurnal.destroy", journal.id));
-    }
+    router.delete(route("jurnal.destroy", journal.id), {
+        onSuccess: () => setIsDeleteDialogOpen(false),
+    });
   };
 
   const handlePrint = () => {
@@ -107,6 +110,13 @@ export default function ViewDetailJurnal({ journal }) {
     <>
       <Head title={`Detail Jurnal - ${journal.entry_number}`} />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog 
+            open={isDeleteDialogOpen} 
+            onOpenChange={setIsDeleteDialogOpen} 
+            onConfirm={handleDelete}
+            title="Hapus Jurnal"
+            description={`Apakah Anda yakin ingin menghapus jurnal ${journal.entry_number}?`}
+        />
         <div className="flex flex-col gap-6 @container">
           <div className="flex flex-col @lg:flex-row items-start @lg:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -133,7 +143,7 @@ export default function ViewDetailJurnal({ journal }) {
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="destructive" onClick={handleDelete} disabled={journal.status === 'Posted'}>
+              <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)} disabled={journal.status === 'Posted'}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Hapus
               </Button>

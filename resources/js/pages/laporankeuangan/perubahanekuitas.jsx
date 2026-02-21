@@ -40,8 +40,7 @@ const breadcrumbs = [
   { title: "Perubahan Ekuitas", href: "/laporan-keuangan/perubahan-ekuitas" },
 ];
 
-export default function PerubahanEkuitasList({ periods: initialPeriods = [] }) {
-  const [periods, setPeriods] = useState(initialPeriods);
+export default function PerubahanEkuitasList({ periods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

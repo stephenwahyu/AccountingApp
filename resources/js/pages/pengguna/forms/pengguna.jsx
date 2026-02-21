@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, X } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function FormPengguna({ user = null, roles = [] }) {
     const isEdit = !!user;
@@ -27,10 +28,15 @@ export default function FormPengguna({ user = null, roles = [] }) {
         e.preventDefault();
         const url = isEdit ? route('pengguna.update', user.id) : route('pengguna.store');
         
+        const options = {
+            preserveScroll: true,
+            onError: () => toast.error("Terjadi kesalahan validasi. Harap periksa kembali form Anda."),
+        };
+
         if (isEdit) {
-            put(url, { preserveScroll: true });
+            put(url, options);
         } else {
-            post(url, { preserveScroll: true });
+            post(url, options);
         }
     };
 

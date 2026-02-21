@@ -149,14 +149,14 @@ class BukuBesarController extends Controller
         $endDate = $request->input('end_date');
 
         if (! $selectedAccountId) {
-            abort(400, 'Account not selected');
+            return back()->with('error', 'Harap pilih akun terlebih dahulu.');
         }
 
         $account = Account::with('accountCategory.accountType')->findOrFail($selectedAccountId);
         $period = $selectedPeriodId ? FiscalPeriod::find($selectedPeriodId) : null;
 
         if (! $period) {
-            abort(400, 'Fiscal period not found.');
+            return back()->with('error', 'Periode fiskal tidak ditemukan.');
         }
 
         $calculationStartDate = $startDate ? Carbon::parse($startDate) : Carbon::parse($period->start_date);

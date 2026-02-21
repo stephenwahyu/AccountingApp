@@ -35,17 +35,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MoreVertical, Plus, Search } from "lucide-react";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [
   { title: "Bagan Perkiraan", href: "/bagan-perkiraan" },
   { title: "Akun", href: "/bagan-perkiraan/akun" },
 ];
 
-export default function AkunList({ accounts: initialAccounts = [] }) {
-  const [accounts, setAccounts] = useState(initialAccounts);
+export default function AkunList({ accounts = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [accountToDelete, setAccountToDelete] = useState(null);
 
   const handleTabChange = (value) => {
     router.visit(route(value));
@@ -70,10 +72,29 @@ export default function AkunList({ accounts: initialAccounts = [] }) {
     return filteredAccounts.slice(startIndex, startIndex + rowsPerPage);
   }, [filteredAccounts, currentPage, rowsPerPage]);
 
+  const handleConfirmDelete = () => {
+    if (accountToDelete) {
+      router.delete(route('bagan-perkiraan.akun.destroy', accountToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setAccountToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Bagan Perkiraan - Akun" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Akun"
+          description={accountToDelete ? `Apakah Anda yakin ingin menghapus akun ${accountToDelete.account_code} - ${accountToDelete.account_name}? Seluruh sejarah transaksi akun ini akan terpengaruh.` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -169,11 +190,8 @@ export default function AkunList({ accounts: initialAccounts = [] }) {
                                 <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => {
-                                        if (confirm('Apakah Anda yakin ingin menghapus akun ini?')) {
-                                            router.delete(route('bagan-perkiraan.akun.destroy', account.id), {
-                                                preserveScroll: true
-                                            });
-                                        }
+                                        setAccountToDelete(account);
+                                        setIsDeleteDialogOpen(true);
                                     }}
                                 >
                                     Hapus

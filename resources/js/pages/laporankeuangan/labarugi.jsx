@@ -40,8 +40,7 @@ const breadcrumbs = [
   { title: "Laba Rugi", href: "/laporan-keuangan/laba-rugi" },
 ];
 
-export default function LabaRugiList({ periods: initialPeriods = [] }) {
-  const [periods, setPeriods] = useState(initialPeriods);
+export default function LabaRugiList({ periods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

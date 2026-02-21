@@ -41,8 +41,7 @@ const breadcrumbs = [
   { title: "Laporan Keuangan", href: "/laporan-keuangan" },
 ];
 
-export default function LaporanKeuanganSemua({ periods: initialPeriods = [] }) {
-  const [periods, setPeriods] = useState(initialPeriods);
+export default function LaporanKeuanganSemua({ periods = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);

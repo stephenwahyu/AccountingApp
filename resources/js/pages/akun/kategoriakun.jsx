@@ -34,17 +34,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Search } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 
 const breadcrumbs = [
   { title: "Bagan Perkiraan", href: "/bagan-perkiraan" },
   { title: "Kategori Akun", href: "/bagan-perkiraan/kategori-akun" },
 ];
 
-export default function KategoriAkunList({ categories: initialCategories = [] }) {
-  const [categories, setCategories] = useState(initialCategories);
+export default function KategoriAkunList({ categories = [] }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const handleTabChange = (value) => {
     router.visit(route(value));
@@ -68,10 +70,29 @@ export default function KategoriAkunList({ categories: initialCategories = [] })
     return filteredCategories.slice(startIndex, startIndex + rowsPerPage);
   }, [filteredCategories, currentPage, rowsPerPage]);
 
+  const handleConfirmDelete = () => {
+    if (categoryToDelete) {
+      router.delete(route('bagan-perkiraan.kategori-akun.destroy', categoryToDelete.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+          setIsDeleteDialogOpen(false);
+          setCategoryToDelete(null);
+        }
+      });
+    }
+  };
+
   return (
     <>
       <Head title="Bagan Perkiraan - Kategori Akun" />
       <AppLayouts breadcrumbs={breadcrumbs}>
+        <DeleteConfirmDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          onConfirm={handleConfirmDelete}
+          title="Hapus Kategori Akun"
+          description={categoryToDelete ? `Apakah Anda yakin ingin menghapus kategori ${categoryToDelete.name}? Seluruh akun di bawah kategori ini juga akan terpengaruh.` : ""}
+        />
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -160,11 +181,8 @@ export default function KategoriAkunList({ categories: initialCategories = [] })
                                 <DropdownMenuItem
                                     className="text-destructive"
                                     onClick={() => {
-                                        if (confirm('Apakah Anda yakin ingin menghapus kategori ini?')) {
-                                            router.delete(route('bagan-perkiraan.kategori-akun.destroy', category.id), {
-                                                preserveScroll: true
-                                            });
-                                        }
+                                        setCategoryToDelete(category);
+                                        setIsDeleteDialogOpen(true);
                                     }}
                                 >
                                     Hapus
