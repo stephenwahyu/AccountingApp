@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useForm, Link } from "@inertiajs/react"
 import { Loader2 } from "lucide-react"
+import { toast } from "sonner"
 
 export function ForgotPasswordForm({ className, ...props }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -13,7 +14,18 @@ export function ForgotPasswordForm({ className, ...props }) {
 
     function handleSubmit(e) {
         e.preventDefault()
-        post(route("password.email"))
+        post(route("password.email"), {
+            onSuccess: () => {
+                toast.success("Link reset password telah dikirim ke email Anda.");
+            },
+            onError: (errors) => {
+                if (errors.email) {
+                    toast.error(errors.email);
+                } else {
+                    toast.error("Gagal mengirim link reset password. Silakan coba lagi.");
+                }
+            }
+        })
     }
 
     return (
@@ -23,9 +35,9 @@ export function ForgotPasswordForm({ className, ...props }) {
                     <form onSubmit={handleSubmit} className="p-6 md:p-8">
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col items-center text-center">
-                                <h1 className="text-2xl font-bold">Forgot Password</h1>
+                                <h1 className="text-2xl font-bold">Lupa Kata Sandi</h1>
                                 <p className="text-balance text-muted-foreground">
-                                    Enter your email to receive a password reset link.
+                                    Masukkan email Anda untuk menerima tautan reset kata sandi.
                                 </p>
                             </div>
                             <div className="grid gap-2">
@@ -33,34 +45,42 @@ export function ForgotPasswordForm({ className, ...props }) {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="m@example.com"
+                                    placeholder="nama@contoh.com"
                                     required
                                     value={data.email}
                                     onChange={(e) => setData("email", e.target.value)}
                                     autoFocus
+                                    aria-invalid={errors.email ? "true" : undefined}
                                 />
                                 {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
                             </div>
                             <Button type="submit" className="w-full" disabled={processing}>
                                 {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Send Password Reset Link
+                                Kirim Tautan Reset Kata Sandi
                             </Button>
                         </div>
                     </form>
-                    <div className="relative hidden bg-muted md:block rounded-xl">
+                    <div className="relative rounded-xl hidden bg-muted md:block">
                         <img
-                            src="/image.png"
-                            alt="Finance"
+                            src="image.png"
+                            alt="Image"
                             width="1920"
                             height="1080"
-                            className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.8]"
+                        />
+                        <div
+                            className="absolute inset-0 rounded-xs pointer-events-none"
+                            style={{
+                                backgroundColor: "rgba(255, 0, 0, 0.5)", // subtle transparent red
+                                mixBlendMode: "screen", // or "soft-light" / "multiply"
+                            }}
                         />
                     </div>
                 </CardContent>
             </Card>
             <div className="text-center text-xs text-muted-foreground">
                 <Link href={route("login")} className="underline underline-offset-4 hover:text-primary">
-                    Back to login
+                    Kembali ke login
                 </Link>
             </div>
         </div>

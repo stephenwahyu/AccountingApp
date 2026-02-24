@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useForm, Link } from "@inertiajs/react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function ResetPasswordForm({ token, email, className, ...props }) {
     const { data, setData, put, processing, errors } = useForm({
@@ -16,7 +17,20 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
 
     function handleSubmit(e) {
         e.preventDefault();
-        put(route("password.update"));
+        put(route("password.update"), {
+            onSuccess: () => {
+                toast.success("Password Anda telah berhasil direset. Silakan login.");
+            },
+            onError: (errors) => {
+                if (errors.password) {
+                    toast.error(errors.password);
+                } else if (errors.email) {
+                    toast.error(errors.email);
+                } else {
+                    toast.error("Gagal mereset password. Silakan coba lagi.");
+                }
+            }
+        });
     }
 
     return (
@@ -27,14 +41,14 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col items-center text-center">
                                 <h1 className="text-2xl font-bold">
-                                    Reset Password
+                                    Atur Ulang Kata Sandi
                                 </h1>
                                 <p className="text-balance text-muted-foreground">
-                                    Enter your new password.
+                                    Masukkan kata sandi baru Anda.
                                 </p>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="password">New Password</Label>
+                                <Label htmlFor="password">Kata Sandi Baru</Label>
                                 <Input
                                     id="password"
                                     type="password"
@@ -43,6 +57,7 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                                     onChange={(e) =>
                                         setData("password", e.target.value)
                                     }
+                                    aria-invalid={errors.password ? "true" : undefined}
                                 />
                                 {errors.password && (
                                     <p className="text-sm text-destructive mt-1">
@@ -52,7 +67,7 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    Confirm New Password
+                                    Konfirmasi Kata Sandi Baru
                                 </Label>
                                 <Input
                                     id="password_confirmation"
@@ -65,7 +80,13 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                                             e.target.value,
                                         )
                                     }
+                                    aria-invalid={errors.password_confirmation ? "true" : undefined}
                                 />
+                                {errors.password_confirmation && (
+                                    <p className="text-sm text-destructive mt-1">
+                                        {errors.password_confirmation}
+                                    </p>
+                                )}
                             </div>
                             <Button
                                 type="submit"
@@ -75,7 +96,7 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                                 {processing && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                Reset Password
+                                Atur Ulang Kata Sandi
                             </Button>
                         </div>
                     </form>
@@ -85,7 +106,14 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                             alt="Image"
                             width="1920"
                             height="1080"
-                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.8]"
+                        />
+                        <div
+                            className="absolute inset-0 rounded-xs pointer-events-none"
+                            style={{
+                                backgroundColor: "rgba(255, 0, 0, 0.5)", // subtle transparent red
+                                mixBlendMode: "screen", // or "soft-light" / "multiply"
+                            }}
                         />
                     </div>
                 </CardContent>
@@ -95,7 +123,7 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                     href={route("login")}
                     className="underline underline-offset-4 hover:text-primary"
                 >
-                    Back to login
+                    Kembali ke login
                 </Link>
             </div>
         </div>

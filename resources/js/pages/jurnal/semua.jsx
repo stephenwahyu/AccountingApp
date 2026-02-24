@@ -157,9 +157,9 @@ export default function JurnalSemua({ journals = [] }) {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="Posted">Posted</SelectItem>
-                    <SelectItem value="Draft">Draft</SelectItem>
-                    <SelectItem value="Cancelled">Cancelled</SelectItem>
+                    <SelectItem value="Posted">Diposting</SelectItem>
+                    <SelectItem value="Draft">Draf</SelectItem>
+                    <SelectItem value="Cancelled">Dibatalkan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -191,7 +191,7 @@ export default function JurnalSemua({ journals = [] }) {
                           <TableCell>{journal.journal_type}</TableCell>
                           <TableCell>
                             <Badge variant={getStatusVariant(journal.status)}>
-                              {journal.status}
+                              {journal.status === 'Posted' ? 'Diposting' : journal.status === 'Draft' ? 'Draf' : 'Dibatalkan'}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">

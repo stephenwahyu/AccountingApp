@@ -88,14 +88,14 @@ export function NavUser({
                 <DropdownMenuItem asChild>
                     <Link href="#">
                         <Settings className="mr-2 size-4" />
-                        Settings
+                        Pengaturan
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={handleLogout}>
               <LogOut className="mr-2 size-4" />
-              Log out
+              Keluar
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

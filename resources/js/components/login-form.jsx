@@ -26,10 +26,10 @@ export function LoginForm({ className, ...props }) {
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col items-center text-center">
                                 <h1 className="text-2xl font-bold">
-                                    Welcome back
+                                    Selamat Datang Kembali
                                 </h1>
                                 <p className="text-balance text-muted-foreground">
-                                    Login to your account
+                                    Masuk ke akun Anda
                                 </p>
                             </div>
                             <div className="grid gap-2">
@@ -37,7 +37,7 @@ export function LoginForm({ className, ...props }) {
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="m@example.com"
+                                    placeholder="nama@contoh.com"
                                     required
                                     value={data.email}
                                     onChange={(e) =>
@@ -53,12 +53,12 @@ export function LoginForm({ className, ...props }) {
                             </div>
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password">Kata Sandi</Label>
                                     <Link
                                         href={route("password.request")}
                                         className="ml-auto text-sm underline-offset-2 hover:underline"
                                     >
-                                        Forgot your password?
+                                        Lupa kata sandi?
                                     </Link>
                                 </div>
                                 <Input
@@ -84,17 +84,25 @@ export function LoginForm({ className, ...props }) {
                                 {processing && (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 )}
-                                Login
+                                Masuk
                             </Button>
                         </div>
                     </form>
+
                     <div className="relative rounded-xl hidden bg-muted md:block">
                         <img
                             src="image.png"
                             alt="Image"
                             width="1920"
                             height="1080"
-                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.8]"
+                        />
+                        <div
+                            className="absolute inset-0 rounded-xs pointer-events-none"
+                            style={{
+                                backgroundColor: "rgba(255, 0, 0, 0.5)", // subtle transparent red
+                                mixBlendMode: "screen", // or "soft-light" / "multiply"
+                            }}
                         />
                     </div>
                 </CardContent>

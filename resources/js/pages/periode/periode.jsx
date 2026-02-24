@@ -114,7 +114,7 @@ export default function PeriodeIndex({ periods = [] }) {
                           </TableCell>
                           <TableCell>
                             <Badge variant={getStatusVariant(period.status)}>
-                              {period.status}
+                              {period.status === "Open" ? "Terbuka" : "Tertutup"}
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right">
