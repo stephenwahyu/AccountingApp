@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 
 import {
   Card,
@@ -15,19 +15,20 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { formatCurrency, formatCompactNumber, cn } from "@/lib/utils"
 
 const chartConfig = {
   operasional: {
     label: "Operasional",
-    color: "var(--chart-1)",
+    color: "#3b82f6", // Blue 500
   },
   investasi: {
     label: "Investasi",
-    color: "var(--chart-2)",
+    color: "#f59e0b", // Amber 500
   },
   pendanaan: {
     label: "Pendanaan",
-    color: "var(--chart-3)",
+    color: "#8b5cf6", // Violet 500
   },
 }
 
@@ -37,27 +38,38 @@ export function CashFlowChart({ data }) {
     const chartData = data?.chartData[activeChart] || [];
 
     return (
-        <Card>
-            <CardHeader className="flex flex-col items-stretch border-b p-0 sm:flex-row">
+        <Card className="shadow-sm">
+            <CardHeader className="flex flex-col items-stretch border-b p-0 xl:flex-row">
                 <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
-                    <CardTitle>Arus Kas</CardTitle>
+                    <CardTitle className="text-xl">Arus Kas</CardTitle>
                     <CardDescription>
-                        Arus Kas pada Periode {data?.chartData?.[activeChart]?.[0]?.period || 'Saat Ini'}
+                        Detail arus kas masuk dan keluar.
                     </CardDescription>
                 </div>
-                <div className="flex">
+                <div className="flex grow flex-col sm:flex-row border-t xl:border-t-0">
                     {["operasional", "investasi", "pendanaan"].map((key) => (
                         <button
                             key={key}
                             data-active={activeChart === key}
-                            className="data-[active=true]:bg-muted/50 relative flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-l sm:border-t-0 sm:px-8 sm:py-6"
+                            className="min-w-0 data-[active=true]:bg-primary/5 group relative flex flex-1 flex-col justify-center gap-1 px-6 py-4 text-left border-t sm:border-t-0 sm:border-l sm:px-8 sm:py-6 transition-colors first:border-t-0"
                             onClick={() => setActiveChart(key)}
                         >
-                            <span className="text-muted-foreground text-xs">
+                            <span className="text-muted-foreground text-xs uppercase font-semibold tracking-wider">
                                 {chartConfig[key].label}
                             </span>
-                            <span className="text-lg font-bold leading-none sm:text-3xl">
-                                {new Intl.NumberFormat("id-ID", { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(data[key] || 0)}
+                            <span
+                            className={cn(
+                                "min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-xl sm:text-2xl font-bold leading-none font-mono transition-colors",
+                                activeChart === key && (
+                                key === "operasional"
+                                    ? "text-blue-600"
+                                    : key === "investasi"
+                                    ? "text-amber-600"
+                                    : "text-violet-600"
+                                )
+                            )}
+                            >
+                            {formatCurrency(data[key] || 0)}
                             </span>
                         </button>
                     ))}
@@ -66,7 +78,7 @@ export function CashFlowChart({ data }) {
             <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
                 <ChartContainer
                     config={chartConfig}
-                    className="aspect-auto h-[250px] w-full"
+                    className="aspect-auto h-[300px] w-full"
                 >
                     <BarChart
                         accessibilityLayer
@@ -74,9 +86,11 @@ export function CashFlowChart({ data }) {
                         margin={{
                             left: 12,
                             right: 12,
+                            top: 12,
+                            bottom: 12
                         }}
                     >
-                        <CartesianGrid vertical={false} />
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
                         <XAxis
                             dataKey="date"
                             tickLine={false}
@@ -91,30 +105,33 @@ export function CashFlowChart({ data }) {
                                 })
                             }}
                         />
+                        <YAxis hide />
                         <ChartTooltip
-                            cursor={false}
+                            cursor={{ fill: 'rgba(0,0,0,0.03)' }}
                             content={
                                 <ChartTooltipContent
-                                    animationDuration={0}
+                                    hideLabel
+                                    className="w-full"
                                     formatter={(value, name) => (
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: chartConfig[name]?.color }} />
-                                            <div className="flex flex-1 justify-between">
-                                                <span className="text-muted-foreground">{chartConfig[name]?.label || name}</span>
-                                                <span className="font-bold">
-                                                    {new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value)}
-                                                </span>
+                                        <div className="flex w-full items-center justify-between gap-4">
+                                            <div className="flex items-center gap-2">
+                                                <div 
+                                                    className="h-2 w-2 rounded-full" 
+                                                    style={{ backgroundColor: chartConfig[activeChart]?.color }} 
+                                                />
+                                                <span className="text-muted-foreground capitalize">{activeChart}</span>
                                             </div>
+                                            <span className="font-mono font-bold">{formatCurrency(value)}</span>
                                         </div>
                                     )}
-                                    labelFormatter={label => new Date(label).toLocaleDateString("id-ID", { month: "short", day: "numeric", year: "numeric" })}
                                 />
                             }
                         />
                         <Bar
                             dataKey="amount"
-                            fill={`var(--color-${activeChart})`}
-                            radius={4}
+                            fill={chartConfig[activeChart]?.color}
+                            radius={[4, 4, 0, 0]}
+                            barSize={30}
                         />
                     </BarChart>
                 </ChartContainer>

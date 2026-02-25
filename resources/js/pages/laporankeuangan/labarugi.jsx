@@ -80,6 +80,7 @@ export default function LabaRugiList({ periods = [] }) {
 
           <Tabs value="/laporan-keuangan/laba-rugi" onValueChange={handleTabChange}>
             <TabsList>
+              <TabsTrigger value="/laporan-keuangan">Semua</TabsTrigger>
               <TabsTrigger value="/laporan-keuangan/posisi-keuangan">
                 Posisi Keuangan
               </TabsTrigger>

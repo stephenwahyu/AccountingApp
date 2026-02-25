@@ -72,21 +72,104 @@ class DashboardController extends Controller
         $revenue = $this->calculateTotalForType('Pendapatan', $openingMovements, $periodMovements);
         $expense = $this->calculateTotalForType('Beban', $openingMovements, $periodMovements);
 
+        // Financial KPIs
+        $netProfit = bcsub($revenue, $expense, 2);
+
+        // Calculate Assets, Liabilities, Equity (Adapting logic from LaporanKeuanganController)
+        $balances = $this->calculateBalancesForPeriod($selectedPeriod);
+        $totalAssets = $balances->where('account_type', 'Aset')->sum('balance');
+        $totalLiabilities = $balances->where('account_type', 'Liabilitas')->sum('balance');
+
+        // Equity needs cumulative net income
+        $cumulativeNetIncome = $this->calculateCumulativeNetIncome($selectedPeriod);
+        $totalEquity = $balances->where('account_type', 'Ekuitas')->sum('balance') + $cumulativeNetIncome;
+
         // Revenue vs Expense Chart Data
         $revenueExpenseChart = $this->getRevenueExpenseChartData($selectedPeriod->id);
 
         // Cash Flow Data
         $cashFlowData = $this->getCashFlowData($selectedPeriod->id);
 
+        // Recent Transactions
+        $recentJournals = \App\Models\JournalEntry::with(['fiscalPeriod', 'user'])
+            ->where('status', 'Posted')
+            ->orderBy('entry_date', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(function ($journal) {
+                return [
+                    'id' => $journal->id,
+                    'entry_number' => $journal->entry_number,
+                    'entry_date' => $journal->entry_date->format('d/m/Y'),
+                    'journal_type' => $journal->journal_type,
+                    'penerima' => $journal->penerima,
+                ];
+            });
+
         return Inertia::render('dashboard/dashboard', [
             'fiscalPeriods' => $fiscalPeriods,
             'selectedPeriod' => $selectedPeriod,
             'cashAndEquivalents' => $cashAndEquivalents,
-            'revenue' => $revenue,
-            'expense' => $expense,
+            'stats' => [
+                'revenue' => (float) $revenue,
+                'expense' => (float) $expense,
+                'net_profit' => (float) $netProfit,
+                'total_assets' => (float) $totalAssets,
+                'total_liabilities' => (float) $totalLiabilities,
+                'total_equity' => (float) $totalEquity,
+            ],
             'revenueExpenseChart' => $revenueExpenseChart,
             'cashFlowChart' => $cashFlowData,
+            'recentJournals' => $recentJournals,
         ]);
+    }
+
+    private function calculateBalancesForPeriod($period)
+    {
+        return DB::table('accounts as a')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
+                                FROM journal_details jd 
+                                JOIN journal_entries je ON jd.journal_entry_id = je.id 
+                                WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
+                                GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
+            ->select(
+                'a.id as account_id',
+                'at.name as account_type',
+                'at.normal_balance',
+                'a.initial_balance as start_balance',
+                DB::raw('COALESCE(period_jd.cumulative_debit, 0) as total_debit'),
+                DB::raw('COALESCE(period_jd.cumulative_credit, 0) as total_credit')
+            )
+            ->where('a.is_active', 1)
+            ->get()
+            ->map(function ($item) {
+                if ($item->normal_balance === 'Debit') {
+                    $item->balance = (float) $item->start_balance + (float) $item->total_debit - (float) $item->total_credit;
+                } else {
+                    $item->balance = (float) $item->start_balance + (float) $item->total_credit - (float) $item->total_debit;
+                }
+
+                return $item;
+            });
+    }
+
+    private function calculateCumulativeNetIncome($period)
+    {
+        return DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('je.status', 'Posted')
+            ->where('je.entry_date', '<=', $period->end_date)
+            ->whereIn('at.name', ['Pendapatan', 'Beban'])
+            ->select(
+                DB::raw('SUM(jd.credit - jd.debit) as net_balance')
+            )
+            ->first()->net_balance ?? 0;
     }
 
     private function getOpeningMovements($periodId)

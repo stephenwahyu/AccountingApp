@@ -80,6 +80,7 @@ export default function PerubahanEkuitasList({ periods = [] }) {
 
           <Tabs value="/laporan-keuangan/perubahan-ekuitas" onValueChange={handleTabChange}>
             <TabsList>
+              <TabsTrigger value="/laporan-keuangan">Semua</TabsTrigger>
               <TabsTrigger value="/laporan-keuangan/posisi-keuangan">
                 Posisi Keuangan
               </TabsTrigger>
