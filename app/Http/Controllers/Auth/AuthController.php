@@ -69,9 +69,21 @@ class AuthController extends Controller
 
         Mail::to($request->email)->send(new PasswordResetOtp($otp, $token));
 
+        return Redirect::route('password.otp', ['token' => $token]);
+    }
+
+    public function showVerifyOtp(Request $request)
+    {
+        $request->validate(['token' => 'required|string']);
+        $data = Cache::get('password.reset.'.$request->token);
+
+        if (! $data) {
+            return Redirect::route('password.request')->withErrors(['email' => 'Invalid or expired token.']);
+        }
+
         return Inertia::render('otp/otp', [
-            'token' => $token,
-            'email' => $request->email,
+            'token' => $request->token,
+            'email' => $data['email'],
         ]);
     }
 
@@ -130,7 +142,7 @@ class AuthController extends Controller
 
         Cache::forget($cacheKey);
 
-        return Redirect::route('login')->with('success', 'Your password has been reset successfully.');
+        return Redirect::route('login');
     }
 
     public function resendOtp(Request $request)
@@ -155,9 +167,6 @@ class AuthController extends Controller
 
         Mail::to($email)->send(new PasswordResetOtp($otp, $token));
 
-        return Inertia::render('otp/otp', [
-            'token' => $token,
-            'email' => $email,
-        ]);
+        return Redirect::route('password.otp', ['token' => $token]);
     }
 }

@@ -42,12 +42,15 @@ export function NavUser({
   }
 
   const getInitials = (name) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-  }
+  return name
+    .trim()
+    .split(" ")
+    .filter(Boolean)      // hilangkan spasi kosong
+    .slice(0, 2)          // ambil maksimal 2 kata pertama
+    .map(n => n[0])
+    .join("")
+    .toUpperCase()
+}
 
   return (
     <SidebarMenu>

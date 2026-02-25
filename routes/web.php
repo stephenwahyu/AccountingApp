@@ -19,6 +19,7 @@ Route::post('/', [AuthController::class, 'storeLogin'])->middleware('guest');
 
 Route::get('/forgot-password', [AuthController::class, 'showForgotPassword'])->middleware('guest')->name('password.request');
 Route::post('/forgot-password', [AuthController::class, 'sendOtp'])->middleware('guest')->name('password.email');
+Route::get('/verify-otp', [AuthController::class, 'showVerifyOtp'])->middleware('guest')->name('password.otp');
 Route::get('/reset-password', [AuthController::class, 'showResetPassword'])->middleware('guest')->name('password.reset');
 Route::post('/reset-password', [AuthController::class, 'storeResetPassword'])->middleware('guest')->name('password.store');
 Route::put('/reset-password', [AuthController::class, 'updatePassword'])->middleware('guest')->name('password.update');

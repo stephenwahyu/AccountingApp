@@ -19,7 +19,7 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
         e.preventDefault();
         put(route("password.update"), {
             onSuccess: () => {
-                toast.success("Password Anda telah berhasil direset. Silakan login.");
+                toast.success("Kata sandi Anda telah berhasil diatur ulang. Silakan login.");
             },
             onError: (errors) => {
                 if (errors.password) {
@@ -27,105 +27,90 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
                 } else if (errors.email) {
                     toast.error(errors.email);
                 } else {
-                    toast.error("Gagal mereset password. Silakan coba lagi.");
+                    toast.error("Gagal mengatur ulang kata sandi. Silakan coba lagi.");
                 }
-            }
+            },
         });
     }
 
     return (
-        <div className={cn("flex flex-col gap-6", className)} {...props}>
-            <Card className="overflow-hidden p-0">
-                <CardContent className="grid p-0 md:grid-cols-2">
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8">
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col items-center text-center">
-                                <h1 className="text-2xl font-bold">
-                                    Atur Ulang Kata Sandi
-                                </h1>
-                                <p className="text-balance text-muted-foreground">
-                                    Masukkan kata sandi baru Anda.
+        <div className={cn("flex flex-col items-center gap-6", className)} {...props}>
+            {/* Logo & Title above card */}
+            <div className="flex flex-col items-center text-center gap-6">
+                <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="h-12 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110"
+                />
+                <div className="space-y-1">
+                    <p className="text-xl font-bold text-foreground tracking-tight leading-tight transition-colors duration-500">Sistem Akuntansi</p>
+                    <p className="text-1/2xl font-bold text-muted-foreground leading-tight transition-colors duration-500">PT. Sarana Pembangunan Riau Trada</p>
+                </div>
+            </div>
+
+            {/* Card */}
+            <Card className="w-full max-w-[450px] overflow-hidden p-0 shadow-2xl rounded-2xl border-border transition-colors duration-500">
+                <CardContent className="p-8 md:p-12 bg-card transition-colors duration-500">
+                    <form onSubmit={handleSubmit}>
+                        <div className="flex flex-col gap-8">
+                            {/* Heading */}
+                            <div className="flex flex-col gap-3">
+                                <h1 className="text-2xl font-bold text-foreground tracking-tight transition-colors duration-500">Masukan kata sandi baru.</h1>
+                                <p className="text-[15px] text-muted-foreground leading-relaxed font-medium transition-colors duration-500">
+                                    Pastikan untuk mengingat kata sandi baru anda.
                                 </p>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Kata Sandi Baru</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    value={data.password}
-                                    onChange={(e) =>
-                                        setData("password", e.target.value)
-                                    }
-                                    aria-invalid={errors.password ? "true" : undefined}
-                                />
-                                {errors.password && (
-                                    <p className="text-sm text-destructive mt-1">
-                                        {errors.password}
-                                    </p>
-                                )}
+
+                            <div className="flex flex-col gap-5">
+                                {/* Password */}
+                                <div className="grid gap-2.5">
+                                    <Label htmlFor="password" className="text-sm font-bold text-foreground/80 ml-1 transition-colors duration-500">Kata Sandi Baru</Label>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        placeholder="m@example.com"
+                                        required
+                                        value={data.password}
+                                        onChange={(e) => setData("password", e.target.value)}
+                                        autoFocus
+                                        className="h-12 px-4 border-input bg-muted/30 focus:bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all rounded-xl placeholder:text-muted-foreground/40"
+                                    />
+                                    {errors.password && (
+                                        <p className="text-sm font-medium text-destructive ml-1 transition-colors duration-500">{errors.password}</p>
+                                    )}
+                                </div>
+
+                                {/* Password Confirmation */}
+                                <div className="grid gap-2.5">
+                                    <Label htmlFor="password_confirmation" className="text-sm font-bold text-foreground/80 ml-1 transition-colors duration-500">Konfirmasi Kata Sandi Baru</Label>
+                                    <Input
+                                        id="password_confirmation"
+                                        type="password"
+                                        placeholder="m@example.com"
+                                        required
+                                        value={data.password_confirmation}
+                                        onChange={(e) => setData("password_confirmation", e.target.value)}
+                                        className="h-12 px-4 border-input bg-muted/30 focus:bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all rounded-xl placeholder:text-muted-foreground/40"
+                                    />
+                                    {errors.password_confirmation && (
+                                        <p className="text-sm font-medium text-destructive ml-1 transition-colors duration-500">{errors.password_confirmation}</p>
+                                    )}
+                                </div>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
-                                    Konfirmasi Kata Sandi Baru
-                                </Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    required
-                                    value={data.password_confirmation}
-                                    onChange={(e) =>
-                                        setData(
-                                            "password_confirmation",
-                                            e.target.value,
-                                        )
-                                    }
-                                    aria-invalid={errors.password_confirmation ? "true" : undefined}
-                                />
-                                {errors.password_confirmation && (
-                                    <p className="text-sm text-destructive mt-1">
-                                        {errors.password_confirmation}
-                                    </p>
-                                )}
-                            </div>
+
+                            {/* Submit */}
                             <Button
                                 type="submit"
-                                className="w-full"
+                                className="w-full h-12 bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-base rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-[0.99]"
                                 disabled={processing}
                             >
-                                {processing && (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                )}
-                                Atur Ulang Kata Sandi
+                                {processing && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                                Ganti
                             </Button>
                         </div>
                     </form>
-                    <div className="relative rounded-xl hidden bg-muted md:block">
-                        <img
-                            src="image.png"
-                            alt="Image"
-                            width="1920"
-                            height="1080"
-                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.8]"
-                        />
-                        <div
-                            className="absolute inset-0 rounded-xs pointer-events-none"
-                            style={{
-                                backgroundColor: "rgba(255, 0, 0, 0.5)", // subtle transparent red
-                                mixBlendMode: "screen", // or "soft-light" / "multiply"
-                            }}
-                        />
-                    </div>
                 </CardContent>
             </Card>
-            <div className="text-center text-xs text-muted-foreground">
-                <Link
-                    href={route("login")}
-                    className="underline underline-offset-4 hover:text-primary"
-                >
-                    Kembali ke login
-                </Link>
-            </div>
         </div>
     );
 }

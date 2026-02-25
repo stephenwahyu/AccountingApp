@@ -16,73 +16,90 @@ export function ForgotPasswordForm({ className, ...props }) {
         e.preventDefault()
         post(route("password.email"), {
             onSuccess: () => {
-                toast.success("Link reset password telah dikirim ke email Anda.");
+                toast.success("Link reset password telah dikirim ke email Anda.")
             },
             onError: (errors) => {
                 if (errors.email) {
-                    toast.error(errors.email);
+                    toast.error(errors.email)
                 } else {
-                    toast.error("Gagal mengirim link reset password. Silakan coba lagi.");
+                    toast.error("Gagal mengirim link reset password. Silakan coba lagi.")
                 }
-            }
+            },
         })
     }
 
     return (
-        <div className={cn("flex flex-col gap-6", className)} {...props}>
-            <Card className="overflow-hidden p-0">
-                <CardContent className="grid p-0 md:grid-cols-2">
-                    <form onSubmit={handleSubmit} className="p-6 md:p-8">
-                        <div className="flex flex-col gap-6">
-                            <div className="flex flex-col items-center text-center">
-                                <h1 className="text-2xl font-bold">Lupa Kata Sandi</h1>
-                                <p className="text-balance text-muted-foreground">
-                                    Masukkan email Anda untuk menerima tautan reset kata sandi.
+        <div className={cn("flex flex-col items-center gap-6", className)} {...props}>
+            {/* Logo & Title above card */}
+            <div className="flex flex-col items-center text-center gap-6">
+                <img
+                    src="/logo.png"
+                    alt="Logo"
+                    className="h-12 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110"
+                />
+                <div className="space-y-1">
+                    <p className="text-xl font-bold text-foreground tracking-tight leading-tight transition-colors duration-500">Sistem Akuntansi</p>
+                    <p className="text-1/2xl font-bold text-muted-foreground leading-tight transition-colors duration-500">PT. Sarana Pembangunan Riau Trada</p>
+                </div>
+            </div>
+
+            {/* Card */}
+            <Card className="w-full overflow-hidden p-0 shadow-2xl rounded-2xl border-border transition-colors duration-500">
+                <CardContent className="p-8 md:p-12 bg-card transition-colors duration-500">
+                    <form onSubmit={handleSubmit}>
+                        <div className="flex flex-col gap-8">
+                            {/* Heading */}
+                            <div className="flex flex-col gap-3">
+                                <h1 className="text-2xl font-bold text-foreground tracking-tight transition-colors duration-500">Lupa kata sandi.</h1>
+                                <p className="text-[15px] text-muted-foreground leading-relaxed font-medium transition-colors duration-500">
+                                    Untuk mengganti kata sandi,<br />
+                                    silahkan masukan email anda yang terdaftar pada akun anda.
                                 </p>
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
+
+                            {/* Email */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="email" className="text-sm font-bold text-foreground/80 ml-1 transition-colors duration-500">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
-                                    placeholder="nama@contoh.com"
+                                    placeholder="m@example.com"
                                     required
                                     value={data.email}
                                     onChange={(e) => setData("email", e.target.value)}
                                     autoFocus
-                                    aria-invalid={errors.email ? "true" : undefined}
+                                    className="h-12 px-4 border-input bg-muted/30 focus:bg-card focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all rounded-xl placeholder:text-muted-foreground/40"
                                 />
-                                {errors.email && <p className="text-sm text-destructive mt-1">{errors.email}</p>}
+                                {errors.email && (
+                                    <p className="text-sm text-destructive font-medium ml-1 transition-colors duration-500">{errors.email}</p>
+                                )}
                             </div>
-                            <Button type="submit" className="w-full" disabled={processing}>
-                                {processing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Kirim Tautan Reset Kata Sandi
-                            </Button>
+
+                            {/* Submit */}
+                            <div className="flex flex-col gap-4">
+                                <Button
+                                    type="submit"
+                                    className="w-full h-12 bg-primary hover:bg-primary-hover text-primary-foreground font-bold text-base rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-[0.99]"
+                                    disabled={processing}
+                                >
+                                    {processing && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
+                                    Kirimkan Kode
+                                </Button>
+
+                                {/* Back link */}
+                                <div className="text-center">
+                                    <Link
+                                        href={route("login")}
+                                        className="text-sm font-bold text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 duration-500"
+                                    >
+                                        Kembali
+                                    </Link>
+                                </div>
+                            </div>
                         </div>
                     </form>
-                    <div className="relative rounded-xl hidden bg-muted md:block">
-                        <img
-                            src="image.png"
-                            alt="Image"
-                            width="1920"
-                            height="1080"
-                            className="absolute rounded-xs inset-0 h-full w-full object-cover dark:brightness-[0.8]"
-                        />
-                        <div
-                            className="absolute inset-0 rounded-xs pointer-events-none"
-                            style={{
-                                backgroundColor: "rgba(255, 0, 0, 0.5)", // subtle transparent red
-                                mixBlendMode: "screen", // or "soft-light" / "multiply"
-                            }}
-                        />
-                    </div>
                 </CardContent>
             </Card>
-            <div className="text-center text-xs text-muted-foreground">
-                <Link href={route("login")} className="underline underline-offset-4 hover:text-primary">
-                    Kembali ke login
-                </Link>
-            </div>
         </div>
     )
 }

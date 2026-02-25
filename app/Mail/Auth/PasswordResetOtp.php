@@ -36,7 +36,7 @@ class PasswordResetOtp extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Password Reset OTP',
+            subject: 'Kode Verifikasi (OTP) Pengaturan Ulang Kata Sandi',
         );
     }
 
