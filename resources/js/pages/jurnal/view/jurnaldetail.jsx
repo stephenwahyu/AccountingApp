@@ -102,8 +102,8 @@ export default function ViewDetailJurnal({ journal }) {
     });
   };
 
-  const handlePrint = () => {
-      window.print();
+  const handlePrintVoucher = () => {
+      window.open(route('jurnal.print', journal.id), '_blank');
   }
 
   return (
@@ -135,10 +135,14 @@ export default function ViewDetailJurnal({ journal }) {
                 </div>
             </div>
             <div className="flex items-center gap-2 ml-auto">
-              <Button variant="outline" onClick={handlePrint}>
+              <Button variant="outline" onClick={handlePrintVoucher} className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary">
                 <Printer className="h-4 w-4 mr-2" />
                 Cetak
               </Button>
+              {/* <Button variant="outline" onClick={handlePrint}>
+                <Printer className="h-4 w-4 mr-2" />
+                Print Layar
+              </Button> */}
               <Button variant="outline" onClick={handleEdit}>
                 <Pencil className="h-4 w-4 mr-2" />
                 Edit

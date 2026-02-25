@@ -91,18 +91,18 @@ class JournalSeeder extends Seeder
         '115.200' => '1-1401', // Biaya Bunga Innova
         '115.300' => '1-1401', // Biaya Bunga Xpander
 
-        // ── Hutang Usaha & Hutang Lain ────────────────────────────────────
+        // ── Utang Usaha & Utang Lain ────────────────────────────────────
         '201.111' => '2-1101', // SPR Langgak
         '201.112' => '2-1101', // SPR Cipta Lestari
         '201.140' => '2-1101', // PT PP Tirta Riau
-        '201.160' => '2-1104', // Lain-lain → Hutang Lain-Lain
+        '201.160' => '2-1104', // Lain-lain → Utang Lain-Lain
         '201.172' => '2-1101', // Aktuaria
         '201.173' => '2-1101', // Konsultan Hukum
-        '201.210' => '2-1104', // Hutang PT SPR Trada
-        '201.221' => '2-1104', // Hutang Cashcall PT SPR Langgak
-        '201.222' => '2-1104', // Hutang Lain PT SPR Langgak
+        '201.210' => '2-1104', // Utang PT SPR Trada
+        '201.221' => '2-1104', // Utang Cashcall PT SPR Langgak
+        '201.222' => '2-1104', // Utang Lain PT SPR Langgak
         '202.100' => '2-1104', // Pemerintah Provinsi Riau
-        '202.200' => '2-1104', // Hutang Lain-Lain
+        '202.200' => '2-1104', // Utang Lain-Lain
         '202.210' => '2-1104', // Lain-lain
         '202.220' => '2-1104', // Utang ke Koperasi Rantau Kasih
 
@@ -114,21 +114,21 @@ class JournalSeeder extends Seeder
         '203.008' => '2-1305', // Zakat
         '203.009' => '2-1305', // Biaya Lain yang Masih Harus Dibayar
 
-        // ── Hutang Pajak ──────────────────────────────────────────────────
-        '204.001' => '2-1301', // Hutang PPN
-        '204.002' => '2-1302', // Hutang PPh 21
-        '204.003' => '2-1303', // Hutang PPh 23
-        '204.010' => '2-1302', // Hutang PPh 21  (Trada)
-        '204.020' => '2-1303', // Hutang PPh 23  (Trada)
+        // ── Utang Pajak ──────────────────────────────────────────────────
+        '204.001' => '2-1301', // Utang PPN
+        '204.002' => '2-1302', // Utang PPh 21
+        '204.003' => '2-1303', // Utang PPh 23
+        '204.010' => '2-1302', // Utang PPh 21  (Trada)
+        '204.020' => '2-1303', // Utang PPh 23  (Trada)
 
-        // ── Hutang Leasing / Pembiayaan ───────────────────────────────────
+        // ── Utang Leasing / Pembiayaan ───────────────────────────────────
         '207.101' => '2-2103', // Pembiayaan Xenia
         '207.102' => '2-2103', // Pembiayaan Innova
         '207.103' => '2-2103', // Pembiayaan Xpander
 
         // ── Liabilitas Lainnya ────────────────────────────────────────────
         '210.200' => '2-1307', // Jasa Produksi → Uang Muka Pelanggan
-        '210.300' => '2-2101', // Kewajiban Imbalan Kerja → Hutang JK Panjang
+        '210.300' => '2-2101', // Kewajiban Imbalan Kerja → Utang JK Panjang
 
         // ── Ekuitas ───────────────────────────────────────────────────────
         '300.500' => '3-2001', // Cadangan Umum → Laba Ditahan

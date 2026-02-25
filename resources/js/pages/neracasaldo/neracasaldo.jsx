@@ -211,14 +211,14 @@ export default function NeracaSaldoPage() {
                                  </CardDescription>
                              </div>
                              <Button variant="outline" asChild>
-                                <Link href={route('neraca-saldo.export', { 
+                                <a href={route('neraca-saldo.export', { 
                                     period: filters.period,
                                     start_date: filters.dateRange?.from ? new Date(filters.dateRange.from.getTime() - (filters.dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null,
                                     end_date: filters.dateRange?.to ? new Date(filters.dateRange.to.getTime() - (filters.dateRange.to.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null
                                 })}>
                                      <Printer className="h-4 w-4 mr-2" />
                                      Cetak
-                                </Link>
+                                </a>
                              </Button>
                          </CardHeader>
                          <CardContent>

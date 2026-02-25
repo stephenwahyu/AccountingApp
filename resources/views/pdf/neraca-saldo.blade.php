@@ -1,78 +1,70 @@
+{{-- resources/views/pdf/neraca-saldo.blade.php --}}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Neraca Saldo - {{ $periodName }}</title>
+    @include('pdf.partials.styles')
     <style>
-        body {
-            font-family: 'sans-serif';
-            font-size: 10px;
+        @page {
+            size: A4 landscape;
+            margin: 1.5cm;
         }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .font-bold { font-weight: bold; }
-        .w-full { width: 100%; }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .table th, .table td {
-            border: 1px solid #2B1F24;
-            padding: 4px;
-        }
-        .table th {
-            background-color: #FAFAFA;
-        }
-        .table-footer {
-            background-color: #FF0044;
-            color: #FAFAFA;
-            font-weight: bold;
-        }
-        .text-mono {
-            font-family: 'monospace';
-        }
+        .report-table th { font-size: 7.5pt; padding: 6px 3px; }
+        .report-table td { font-size: 8pt; padding: 4px 5px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1 class="text-center font-bold">{{ $companyName }}</h1>
-        <h2 class="text-center">Neraca Saldo</h2>
-        <p class="text-center">Untuk Periode {{ $periodName }}</p>
+<div class="page">
+    <div class="report-header">
+        <div class="company-name">{{ $companyName }}</div>
+        <div class="report-type">LAPORAN NERACA SALDO</div>
+        <div class="report-period">Periode: {{ $periodName }}</div>
+        <div class="report-currency">(Dalam Rupiah)</div>
     </div>
-    <table class="table">
+
+    <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2">Akun</th>
-                <th colspan="2" class="text-center">Saldo Awal</th>
-                <th colspan="2" class="text-center">Pergerakan</th>
-                <th colspan="2" class="text-center">Saldo Akhir</th>
+                <th rowspan="2" style="width: 25%; vertical-align: middle;">Keterangan Akun</th>
+                <th colspan="2">Saldo Awal</th>
+                <th colspan="2">Pergerakan (Mutasi)</th>
+                <th colspan="2">Saldo Akhir</th>
             </tr>
             <tr>
-                <th class="text-right">Debit</th>
-                <th class="text-right">Kredit</th>
-                <th class="text-right">Debit</th>
-                <th class="text-right">Kredit</th>
-                <th class="text-right">Debit</th>
-                <th class="text-right">Kredit</th>
+                <th style="width: 12.5%">Debit</th>
+                <th style="width: 12.5%">Kredit</th>
+                <th style="width: 12.5%">Debit</th>
+                <th style="width: 12.5%">Kredit</th>
+                <th style="width: 12.5%">Debit</th>
+                <th style="width: 12.5%">Kredit</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($accounts as $account)
+            @forelse ($accounts as $account)
                 @include('pdf.neraca-saldo-row', ['account' => $account, 'level' => 0])
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="7" class="text-center" style="padding: 30px; font-style: italic; color: #666;">
+                        Tidak ada data akun yang tersedia.
+                    </td>
+                </tr>
+            @endforelse
         </tbody>
         <tfoot>
-            <tr class="table-footer">
-                <td>Total</td>
-                <td class="text-right text-mono">{{ number_format($totals['opening_debit'], 2, ',', '.') }}</td>
-                <td class="text-right text-mono">{{ number_format($totals['opening_credit'], 2, ',', '.') }}</td>
-                <td class="text-right text-mono">{{ number_format($totals['debit_movement'], 2, ',', '.') }}</td>
-                <td class="text-right text-mono">{{ number_format($totals['credit_movement'], 2, ',', '.') }}</td>
-                <td class="text-right text-mono">{{ number_format($totals['closing_debit'], 2, ',', '.') }}</td>
-                <td class="text-right text-mono">{{ number_format($totals['closing_credit'], 2, ',', '.') }}</td>
+            <tr class="tr-total">
+                <td class="text-right">TOTAL</td>
+                <td class="text-right font-mono">{{ number_format($totals['opening_debit'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format($totals['opening_credit'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format($totals['debit_movement'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format($totals['credit_movement'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format($totals['closing_debit'], 2, ',', '.') }}</td>
+                <td class="text-right font-mono">{{ number_format($totals['closing_credit'], 2, ',', '.') }}</td>
             </tr>
         </tfoot>
     </table>
+
+    
+</div>
 </body>
 </html>

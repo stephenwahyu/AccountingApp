@@ -193,7 +193,7 @@ class BukuBesarController extends Controller
             'totalCredit' => $totalCredit,
             'endingBalance' => $endingBalance,
             'periodName' => $period->period_name,
-            'companyName' => config('app.name', 'Akuntansiku'),
+            'companyName' => config('app.company_name', 'Akuntansiku'),
             'dateRange' => $calculationStartDate->format('d/m/Y').' - '.$calculationEndDate->format('d/m/Y'),
         ];
 

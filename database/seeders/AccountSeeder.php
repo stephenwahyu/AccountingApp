@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\DB;
  *  Metode        : Saldo = rek_debet - rek_kredit (akun normal Debet)
  *                  Saldo = rek_kredit - rek_debet (akun normal Kredit)
  *  Sumber divisi : SPR TRADA (div_kode = 'SPR TRADA') + TRADA (div_kode = 'TRADA')
- *  Hasil filter  : 120 akun leaf. Divisi TRADA hanya punya 1 akun (Hutang PPH 4(2))
+ *  Hasil filter  : 120 akun leaf. Divisi TRADA hanya punya 1 akun (Utang PPH 4(2))
  *                  dengan saldo 0,00 — sehingga kontribusi nyata hanya dari SPR TRADA.
  *
  *  ┌─────────────────────────────────────────────────────────────────────────┐
@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
  *  │  101.212    │  SPR TRADA │  BRK TAB 1072001615         │          0,00 │ → 1-1108
  *  │  101.213    │  SPR TRADA │  Bank Mandiri 12700097564444│          0,00 │ → 1-1104
  *  │  101.214    │  SPR TRADA │  CIMB Niaga 202.01.00334    │          0,00 │
- *  │  204.008    │  TRADA     │  Hutang PPH 4(2)            │          0,00 │ → 2-1304
+ *  │  204.008    │  TRADA     │  Utang PPH 4(2)            │          0,00 │ → 2-1304
  *  └─────────────────────────────────────────────────────────────────────────┘
  *
  *  ⚠  PENTING — Balancing entry:
@@ -601,7 +601,7 @@ class AccountSeeder extends Seeder
             [
                 'id' => 48,
                 'account_code' => '2-1100',
-                'account_name' => 'Hutang',
+                'account_name' => 'Utang',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => null,
                 'is_cash_account' => 0,
@@ -611,18 +611,18 @@ class AccountSeeder extends Seeder
             [
                 'id' => 49,
                 'account_code' => '2-1101',
-                'account_name' => 'Hutang Usaha',
+                'account_name' => 'Utang Usaha',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 48,
-                // Lama: 201.xxx Hutang Usaha — semua saldo = 0
+                // Lama: 201.xxx Utang Usaha — semua saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
                 'id' => 50,
                 'account_code' => '2-1102',
-                'account_name' => 'Hutang Gaji',
+                'account_name' => 'Utang Gaji',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
@@ -633,29 +633,29 @@ class AccountSeeder extends Seeder
             [
                 'id' => 51,
                 'account_code' => '2-1103',
-                'account_name' => 'Hutang Pajak',
+                'account_name' => 'Utang Pajak',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 48,
-                // Lama: 204.xxx Hutang Pajak — semua saldo = 0
+                // Lama: 204.xxx Utang Pajak — semua saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
                 'id' => 52,
                 'account_code' => '2-1104',
-                'account_name' => 'Hutang Lain-Lain',
+                'account_name' => 'Utang Lain-Lain',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 48,
-                // Lama: 202.200 Hutang Lain-lain — saldo = 0
+                // Lama: 202.200 Utang Lain-lain — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
                 'id' => 53,
                 'account_code' => '2-1200',
-                'account_name' => 'Hutang Bank Jangka Pendek',
+                'account_name' => 'Utang Bank Jangka Pendek',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => null,
                 'is_cash_account' => 0,
@@ -665,7 +665,7 @@ class AccountSeeder extends Seeder
             [
                 'id' => 54,
                 'account_code' => '2-1201',
-                'account_name' => 'Hutang Bank BCA - Jangka Pendek',
+                'account_name' => 'Utang Bank BCA - Jangka Pendek',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 3,
                 'is_cash_account' => 0,
@@ -675,7 +675,7 @@ class AccountSeeder extends Seeder
             [
                 'id' => 55,
                 'account_code' => '2-1202',
-                'account_name' => 'Hutang Bank Mandiri - Jangka Pendek',
+                'account_name' => 'Utang Bank Mandiri - Jangka Pendek',
                 'account_category_id' => 4,
                 'cash_flow_activity_id' => 3,
                 'is_cash_account' => 0,
@@ -700,7 +700,7 @@ class AccountSeeder extends Seeder
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 56,
-                // Lama: 204.001 / 204.030 Hutang PPN — saldo = 0
+                // Lama: 204.001 / 204.030 Utang PPN — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
@@ -711,7 +711,7 @@ class AccountSeeder extends Seeder
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 56,
-                // Lama: 204.002 / 204.010 Hutang PPh 21 — saldo = 0
+                // Lama: 204.002 / 204.010 Utang PPh 21 — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
@@ -722,7 +722,7 @@ class AccountSeeder extends Seeder
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 56,
-                // Lama: 204.003 / 204.020 Hutang PPh 23 — saldo = 0
+                // Lama: 204.003 / 204.020 Utang PPh 23 — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
@@ -733,7 +733,7 @@ class AccountSeeder extends Seeder
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 0,
                 'parent_id' => 56,
-                // Lama: 204.008 Hutang PPh 4(2) — saldo = 0
+                // Lama: 204.008 Utang PPh 4(2) — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
@@ -784,18 +784,18 @@ class AccountSeeder extends Seeder
             [
                 'id' => 65,
                 'account_code' => '2-2101',
-                'account_name' => 'Hutang Bank Jangka Panjang',
+                'account_name' => 'Utang Bank Jangka Panjang',
                 'account_category_id' => 5,
                 'cash_flow_activity_id' => 3,
                 'is_cash_account' => 0,
                 'parent_id' => 64,
-                // Lama: 206.100 Hutang Bank Riau Kepri Syariah — saldo = 0
+                // Lama: 206.100 Utang Bank Riau Kepri Syariah — saldo = 0
                 'initial_balance' => 0.00,
             ],
             [
                 'id' => 66,
                 'account_code' => '2-2102',
-                'account_name' => 'Hutang Obligasi',
+                'account_name' => 'Utang Obligasi',
                 'account_category_id' => 5,
                 'cash_flow_activity_id' => 3,
                 'is_cash_account' => 0,
@@ -805,7 +805,7 @@ class AccountSeeder extends Seeder
             [
                 'id' => 67,
                 'account_code' => '2-2103',
-                'account_name' => 'Hutang Sewa Pembiayaan (Leasing)',
+                'account_name' => 'Utang Sewa Pembiayaan (Leasing)',
                 'account_category_id' => 5,
                 'cash_flow_activity_id' => 3,
                 'is_cash_account' => 0,

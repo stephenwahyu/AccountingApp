@@ -5,6 +5,7 @@ use App\Http\Controllers\BaganPerkiraanController;
 use App\Http\Controllers\BukuBesarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JurnalController;
+use App\Http\Controllers\JurnalPDFController;
 use App\Http\Controllers\LaporanKeuanganController;
 use App\Http\Controllers\LaporanKeuanganPDFController;
 use App\Http\Controllers\NeracaSaldoController;
@@ -67,6 +68,7 @@ Route::middleware('auth')->group(function () {
 
         // Detail & Actions
         Route::get('/{journal}', [JurnalController::class, 'show'])->name('show');
+        Route::get('/{journal}/print', [JurnalPDFController::class, 'print'])->name('print');
         Route::post('/{journal}/post', [JurnalController::class, 'postJournal'])->name('post');
         Route::delete('/{journal}', [JurnalController::class, 'destroy'])->name('destroy');
     });

@@ -244,7 +244,7 @@ export default function BukuBesarPage() {
                                     </CardDescription>
                                 </div>
                                 <Button variant="outline" asChild>
-                                    <Link href={route('buku-besar.export', { 
+                                    <a href={route('buku-besar.export', { 
                                         account: filters.account, 
                                         period: filters.period,
                                         start_date: filters.dateRange?.from ? new Date(filters.dateRange.from.getTime() - (filters.dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null,
@@ -252,7 +252,7 @@ export default function BukuBesarPage() {
                                     })}>
                                         <Printer className="h-4 w-4 mr-2" />
                                         Cetak
-                                    </Link>
+                                    </a>
                                 </Button>
                             </CardHeader>
                             <CardContent>
@@ -263,11 +263,21 @@ export default function BukuBesarPage() {
                                     </div>
                                     <div className="p-4 bg-muted/50 rounded-lg">
                                         <p className="text-muted-foreground">Total Debit</p>
-                                        <p className="font-semibold text-lg text-green-600">{formatCurrency(totalDebit)}</p>
+                                        <p className={cn(
+                                            "font-semibold text-lg",
+                                            selectedAccount?.normal_balance === 'Debit' ? "text-green-600" : "text-red-600"
+                                        )}>
+                                            {formatCurrency(totalDebit)}
+                                        </p>
                                     </div>
                                     <div className="p-4 bg-muted/50 rounded-lg">
                                         <p className="text-muted-foreground">Total Kredit</p>
-                                        <p className="font-semibold text-lg text-red-600">{formatCurrency(totalCredit)}</p>
+                                        <p className={cn(
+                                            "font-semibold text-lg",
+                                            selectedAccount?.normal_balance === 'Debit' ? "text-red-600" : "text-green-600"
+                                        )}>
+                                            {formatCurrency(totalCredit)}
+                                        </p>
                                     </div>
                                     <div className={cn("p-4 rounded-lg", endingBalance >= 0 ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground")}>
                                         <p>Saldo Akhir</p>

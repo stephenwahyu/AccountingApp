@@ -18,10 +18,14 @@ class NeracaSaldoController extends Controller
         $periodsCollection = FiscalPeriod::get();
         $getTypeWeight = function ($type) {
             switch ($type) {
-                case 'monthly': return 1;
-                case 'quarterly': return 2;
-                case 'annually': return 3;
-                default: return 4;
+                case 'monthly':
+                    return 1;
+                case 'quarterly':
+                    return 2;
+                case 'annually':
+                    return 3;
+                default:
+                    return 4;
             }
         };
         $periods = $periodsCollection->sortBy(function ($period) use ($getTypeWeight) {
@@ -222,11 +226,11 @@ class NeracaSaldoController extends Controller
             'accounts' => $accounts,
             'totals' => $totals,
             'periodName' => $period ? $period->period_name : 'Semua Periode',
-            'companyName' => config('app.name', 'Akuntansiku'),
+            'companyName' => config('app.company_name', 'Akuntansiku'),
         ];
 
-        $pdf = Pdf::loadView('pdf.neraca-saldo', $data);
-        $filename = 'neraca-saldo-'.($period ? str_replace(' ', '-', strtolower($period->period_name)) : 'semua').'.pdf';
+        $pdf = Pdf::loadView('pdf.neraca-saldo', $data)->setPaper('a4', 'landscape');
+        $filename = 'neraca-saldo-' . ($period ? str_replace(' ', '-', strtolower($period->period_name)) : 'semua') . '.pdf';
 
         return $pdf->download($filename);
     }
