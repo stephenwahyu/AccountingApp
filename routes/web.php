@@ -6,6 +6,7 @@ use App\Http\Controllers\BukuBesarController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\JurnalController;
 use App\Http\Controllers\LaporanKeuanganController;
+use App\Http\Controllers\LaporanKeuanganPDFController;
 use App\Http\Controllers\NeracaSaldoController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PeriodeController;
@@ -61,6 +62,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/bank/pengeluaran/{journal}/edit', [JurnalController::class, 'bankPengeluaranEdit'])->name('bank.pengeluaran.edit');
         Route::put('/bank/pengeluaran/{journal}', [JurnalController::class, 'bankPengeluaranUpdate'])->name('bank.pengeluaran.update');
 
+        // Account Balance API
+        Route::get('/account/{id}/balance', [JurnalController::class, 'getBalance'])->name('account.balance');
+
         // Detail & Actions
         Route::get('/{journal}', [JurnalController::class, 'show'])->name('show');
         Route::post('/{journal}/post', [JurnalController::class, 'postJournal'])->name('post');
@@ -103,7 +107,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/neraca-saldo/export', [NeracaSaldoController::class, 'export'])->name('neraca-saldo.export');
 
     Route::prefix('laporan-keuangan')->name('laporan-keuangan.')->group(function () {
-        // Route::get('/', [LaporanKeuanganController::class, 'semua'])->name('semua');
+        Route::get('/', [LaporanKeuanganController::class, 'semua'])->name('semua');
 
         // Posisi Keuangan (Neraca)
         Route::get('/posisi-keuangan', [LaporanKeuanganController::class, 'posisiKeuangan'])->name('posisi-keuangan');
@@ -120,6 +124,22 @@ Route::middleware('auth')->group(function () {
         // Perubahan Ekuitas
         Route::get('/perubahan-ekuitas', [LaporanKeuanganController::class, 'perubahanEkuitas'])->name('perubahan-ekuitas');
         Route::get('/perubahan-ekuitas/{id}', [LaporanKeuanganController::class, 'showPerubahanEkuitas'])->name('perubahan-ekuitas.show');
+
+        Route::get('/posisi-keuangan/{period}/pdf',
+            [LaporanKeuanganPDFController::class, 'posisiKeuangan']
+        )->name('posisi-keuangan.pdf');
+
+        Route::get('/laba-rugi/{period}/pdf',
+            [LaporanKeuanganPDFController::class, 'labaRugi']
+        )->name('laba-rugi.pdf');
+
+        Route::get('/perubahan-ekuitas/{period}/pdf',
+            [LaporanKeuanganPDFController::class, 'perubahanEkuitas']
+        )->name('perubahan-ekuitas.pdf');
+
+        Route::get('/arus-kas/{period}/pdf',
+            [LaporanKeuanganPDFController::class, 'arusKas']
+        )->name('arus-kas.pdf');
     });
 
     Route::prefix('periode')->name('periode.')->group(function () {

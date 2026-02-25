@@ -29,7 +29,8 @@ import {
 } from "@/components/ui/table";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
-import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, X, Printer, Loader2, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const buildTree = (accounts) => {
@@ -89,6 +90,35 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState({});
   const [submittedStatus, setSubmittedStatus] = React.useState(null);
+  const [currentBalance, setCurrentBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(false);
+
+  const fetchBalance = async (accountId) => {
+    if (!accountId) {
+      setCurrentBalance(null);
+      return;
+    }
+    setLoadingBalance(true);
+    try {
+      const url = new URL(route('jurnal.account.balance', accountId));
+      if (isEdit) {
+        url.searchParams.append('exclude_id', journal.id);
+      }
+      const response = await fetch(url);
+      const result = await response.json();
+      setCurrentBalance(result.balance);
+    } catch (error) {
+      console.error("Failed to fetch balance", error);
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (data.bank_account_id) {
+      fetchBalance(data.bank_account_id);
+    }
+  }, []);
 
   const selectedPeriod = useMemo(() => {
     return periods.find(
@@ -161,6 +191,11 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
     }
     if (!data.bank_account_id) {
         toast.error("Harap pilih akun bank sumber dana.");
+        return;
+    }
+
+    if (statusValue === 'Posted' && currentBalance < totalDebit) {
+        toast.error("Saldo tidak mencukupi untuk melakukan posting transaksi ini.");
         return;
     }
 
@@ -253,10 +288,15 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                             {errors.entry_date && <p className="text-xs text-destructive">{errors.entry_date}</p>}
                         </div>
                         <div className="grid gap-2 lg:col-span-2">
+                            <div className="flex flex-col gap-3 md:items-center md:flex-row">
+                                <div className="grid gap-2">
                             <Label htmlFor="bank_account_id" className="text-xs uppercase tracking-wider text-muted-foreground">Ambil dari Akun Bank</Label>
                             <Select
                                 value={data.bank_account_id}
-                                onValueChange={(value) => setData(prev => ({...prev, bank_account_id: value}))}
+                                onValueChange={(value) => {
+                                    setData(prev => ({...prev, bank_account_id: value}));
+                                    fetchBalance(value);
+                                }}
                                 >
                                 <SelectTrigger id="bank_account_id" className="bg-primary/5 border-primary/20">
                                     <SelectValue placeholder="Pilih Akun Bank" />
@@ -269,7 +309,32 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                                     ))}
                                 </SelectContent>
                             </Select>
+                            </div>
+                            {data.bank_account_id && (
+                                <div className="md:mt-6 mt-1 flex-col grow items-center justify-between ">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">Saldo Terkini:</span>
+                                        {loadingBalance ? (
+                                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                                        ) : (
+                                            <span className={cn(
+                                                "text-xs font-bold",
+                                                currentBalance < totalDebit ? "text-destructive" : "text-primary"
+                                            )}>
+                                                {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(currentBalance)}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {!loadingBalance && currentBalance < totalDebit && (
+                                        <div className="flex items-center gap-1 text-[10px] font-medium text-destructive">
+                                            <AlertCircle className="h-3 w-3" />
+                                            Saldo tidak cukup
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {errors.bank_account_id && <p className="text-xs text-destructive">{errors.bank_account_id}</p>}
+                            </div>
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="fiscal_period_id" className="text-xs uppercase tracking-wider text-muted-foreground">Periode</Label>

@@ -13,24 +13,32 @@ use Illuminate\Support\Facades\DB;
  *  Sumber data   : acc_ifmrekeningcoabu.csv (aplikasi lama)
  *  Metode        : Saldo = rek_debet - rek_kredit (akun normal Debet)
  *                  Saldo = rek_kredit - rek_debet (akun normal Kredit)
- *  Sumber divisi : SPR TRADA saja (div_kode = 'SPR TRADA')
- *  Total akun    : 120 akun leaf, hanya 2 yang memiliki saldo non-zero.
+ *  Sumber divisi : SPR TRADA (div_kode = 'SPR TRADA') + TRADA (div_kode = 'TRADA')
+ *  Hasil filter  : 120 akun leaf. Divisi TRADA hanya punya 1 akun (Hutang PPH 4(2))
+ *                  dengan saldo 0,00 — sehingga kontribusi nyata hanya dari SPR TRADA.
  *
- *  ┌──────────────────────────────────────────────────────────────────────┐
- *  │  AKUN LAMA      │  NAMA LAMA (TRADA)             │  SALDO           │
- *  ├──────────────────────────────────────────────────────────────────────┤
- *  │  101.101 (TRAD) │  KAS BESAR                     │    9.955.699,00  │ → 1-1102
- *  │  101.211 (TRAD) │  BRK SYARIAH AC. 1200808288    │   62.785.738,64  │ → 1-1107
- *  ├──────────────────────────────────────────────────────────────────────┤
- *  │  Akun tidak memiliki saldo di TRADA (diset 0.00):                    │
- *  │  101.211 (KP)   │  Bank Mandiri 108.0099085962   │            0,00  │ → 1-1104
- *  │  101.201 (CL)   │  BRK Syariah 1070801032        │            0,00  │ → 1-1106
- *  │  101.212 (KP)   │  BRK Syariah 1072001615        │            0,00  │ → 1-1108
- *  │  101.214 (KP)   │  BRK Syariah 191-08-00066      │            0,00  │ → 1-1109
- *  └──────────────────────────────────────────────────────────────────────┘
+ *  ┌─────────────────────────────────────────────────────────────────────────┐
+ *  │  AKUN LAMA  │  DIVISI    │  NAMA LAMA                  │  SALDO        │
+ *  ├─────────────────────────────────────────────────────────────────────────┤
+ *  │  101.101    │  SPR TRADA │  KAS BESAR                  │  9.955.699,00 │ → 1-1102
+ *  │  101.211    │  SPR TRADA │  BRK SYARIAH AC. 1200808288 │ 62.785.738,64 │ → 1-1107
+ *  ├─────────────────────────────────────────────────────────────────────────┤
+ *  │  Total Aset                                             │ 72.741.437,64 │
+ *  │  Laba Ditahan (balancing entry)                         │ 72.741.437,64 │ → 3-2001
+ *  ├─────────────────────────────────────────────────────────────────────────┤
+ *  │  Akun lain di SPR TRADA/TRADA memiliki saldo = 0,00 :                  │
+ *  │  101.212    │  SPR TRADA │  BRK TAB 1072001615         │          0,00 │ → 1-1108
+ *  │  101.213    │  SPR TRADA │  Bank Mandiri 12700097564444│          0,00 │ → 1-1104
+ *  │  101.214    │  SPR TRADA │  CIMB Niaga 202.01.00334    │          0,00 │
+ *  │  204.008    │  TRADA     │  Hutang PPH 4(2)            │          0,00 │ → 2-1304
+ *  └─────────────────────────────────────────────────────────────────────────┘
  *
- *  Semua akun Laba Rugi, Ekuitas, Piutang, Persediaan, Aset Tetap,
- *  dan Liabilitas di aplikasi lama memiliki saldo = 0 pada tanggal migrasi.
+ *  ⚠  PENTING — Balancing entry:
+ *     Karena modal disetor = 0, seluruh saldo aset (72.741.437,64) di-offset
+ *     ke akun 3-2001 Laba Ditahan sebagai saldo pembuka.
+ *
+ *  Semua akun Laba Rugi, Piutang, Persediaan, Aset Tetap, dan Liabilitas
+ *  lainnya memiliki saldo = 0,00 pada tanggal migrasi.
  *
  * ════════════════════════════════════════════════════════════════════════════
  */
@@ -125,51 +133,35 @@ class AccountSeeder extends Seeder
             ],
 
             // ── Bank BRK Syariah ────────────────────────────────
-            // Ditambahkan dari data aplikasi lama yang tidak memiliki
-            // padanan akun di susunan bagan akun baru sebelumnya.
+            // Filter: hanya div_kode = 'SPR TRADA' atau 'TRADA'.
+            //
+            //  101.211 (SPR TRADA) → BRK SYARIAH AC. 1200808288 → saldo 62.785.738,64  ← AKTIF
+            //  101.212 (SPR TRADA) → BRK TAB 1072001615          → saldo 0,00           ← AKTIF (saldo 0)
+            //
+            //  Akun dari divisi lain DIABAIKAN (bukan SPR TRADA / TRADA):
+            //    101.201 (SPR CL)      → BRK Syariah 1070801032   → tidak diinput
+            //    101.212 (KANTOR PUSAT)→ BRK Syariah 1072001615   → tidak diinput
+            //    101.214 (KANTOR PUSAT)→ CIMB/BRK 191-08-00066    → tidak diinput
             [
                 'id' => 157,
-                'account_code' => '1-1106',
-                'account_name' => 'Bank BRK Syariah (AC. 1070801032)',
-                'account_category_id' => 1,
-                'cash_flow_activity_id' => 1,
-                'is_cash_account' => 1,
-                'parent_id' => 2,
-                // Lama: 101.201 (div=SPR CL) — bukan divisi TRADA, saldo TRADA = 0
-                'initial_balance' => 0.00,
-            ],
-            [
-                'id' => 158,
                 'account_code' => '1-1107',
-                'account_name' => 'Bank BRK Syariah (AC. 1200808288)',
+                'account_name' => 'Bank BRK Syariah',
                 'account_category_id' => 1,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 1,
                 'parent_id' => 2,
-                // Lama: 101.211 (div=SPR TRADA) — BRK SYARIAH AC. NO. 1200808288
-                // 'initial_balance' => 0.00,
+                // Lama: 101.211 (div=SPR TRADA) — rek_debet = 62.785.738,64 | rek_kredit = 0
                 'initial_balance' => 62785738.64,
             ],
+            
             [
-                'id' => 159,
+                'id' => 158,
                 'account_code' => '1-1108',
-                'account_name' => 'Bank BRK Syariah (AC. 1072001615)',
+                'account_name' => 'Bank CIMB Niaga',
                 'account_category_id' => 1,
                 'cash_flow_activity_id' => 1,
                 'is_cash_account' => 1,
                 'parent_id' => 2,
-                // Lama: 101.212 (div=KANTOR PUSAT) — saldo divisi TRADA untuk akun ini = 0
-                'initial_balance' => 0.00,
-            ],
-            [
-                'id' => 160,
-                'account_code' => '1-1109',
-                'account_name' => 'Bank BRK Syariah (AC. 191-08-00066)',
-                'account_category_id' => 1,
-                'cash_flow_activity_id' => 1,
-                'is_cash_account' => 1,
-                'parent_id' => 2,
-                // Lama: 101.214 (div=KANTOR PUSAT) — saldo divisi TRADA untuk akun ini = 0
                 'initial_balance' => 0.00,
             ],
 

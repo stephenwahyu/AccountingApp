@@ -335,6 +335,12 @@ class JurnalController extends Controller
 
         $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
+        $totalDebit = collect($validated['details'])->sum('debit');
+
+        if ($validated['status'] === 'Posted') {
+            $this->validateBalanceAvailability($validated['cash_account_id'], $totalDebit);
+        }
+
         DB::beginTransaction();
         try {
             $entry_number = $request->input('entry_number');
@@ -547,6 +553,12 @@ class JurnalController extends Controller
         ]);
 
         $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
+
+        $totalDebit = collect($validated['details'])->sum('debit');
+
+        if ($validated['status'] === 'Posted') {
+            $this->validateBalanceAvailability($validated['bank_account_id'], $totalDebit);
+        }
 
         DB::beginTransaction();
         try {
@@ -939,6 +951,12 @@ class JurnalController extends Controller
 
         $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
+        $totalDebit = collect($validated['details'])->sum('debit');
+
+        if ($validated['status'] === 'Posted') {
+            $this->validateBalanceAvailability($validated['cash_account_id'], $totalDebit, $journal->id);
+        }
+
         DB::beginTransaction();
         try {
             $journal->update([
@@ -1145,6 +1163,12 @@ class JurnalController extends Controller
 
         $this->validateEntryDate($validated['entry_date'], $validated['fiscal_period_id']);
 
+        $totalDebit = collect($validated['details'])->sum('debit');
+
+        if ($validated['status'] === 'Posted') {
+            $this->validateBalanceAvailability($validated['bank_account_id'], $totalDebit, $journal->id);
+        }
+
         DB::beginTransaction();
         try {
             $journal->update([
@@ -1231,6 +1255,101 @@ class JurnalController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Jurnal berhasil di-posting.');
+    }
+
+    public function getBalance(Request $request, $id)
+    {
+        $excludeId = $request->query('exclude_id');
+        $currentBalance = $this->calculateAccountBalance($id);
+
+        // Jika dalam mode edit, kita tambahkan kembali efek dari jurnal ini 
+        // agar user melihat saldo "sebelum" jurnal ini ada.
+        if ($excludeId) {
+            $journal = JournalEntry::find($excludeId);
+            if ($journal && $journal->status === 'Posted') {
+                $detail = JournalDetail::where('journal_entry_id', $excludeId)
+                    ->where('account_id', $id)
+                    ->first();
+                
+                if ($detail) {
+                    $account = Account::with('accountCategory.accountType')->findOrFail($id);
+                    $normalBalance = $account->accountCategory->accountType->normal_balance;
+                    
+                    if ($normalBalance === 'Debit') {
+                        // Saldo = ... + Debit - Credit. 
+                        // Netralkan: Saldo - (Debit - Credit)
+                        $currentBalance -= (float) ($detail->debit - $detail->credit);
+                    } else {
+                        // Saldo = ... + Credit - Debit. 
+                        // Netralkan: Saldo - (Credit - Debit)
+                        $currentBalance -= (float) ($detail->credit - $detail->debit);
+                    }
+                }
+            }
+        }
+
+        $account = Account::with('accountCategory.accountType')->findOrFail($id);
+
+        return response()->json([
+            'balance' => $currentBalance,
+            'account_name' => $account->account_name,
+            'account_code' => $account->account_code,
+            'normal_balance' => $account->accountCategory->accountType->normal_balance
+        ]);
+    }
+
+    private function calculateAccountBalance($accountId)
+    {
+        $account = Account::with('accountCategory.accountType')->findOrFail($accountId);
+        $initialBalance = (float) $account->initial_balance;
+
+        $mutations = DB::table('journal_details')
+            ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
+            ->where('journal_details.account_id', $accountId)
+            ->where('journal_entries.status', 'Posted')
+            ->select(
+                DB::raw('SUM(debit) as total_debit'),
+                DB::raw('SUM(credit) as total_credit')
+            )
+            ->first();
+
+        $totalDebit = (float) ($mutations->total_debit ?? 0);
+        $totalCredit = (float) ($mutations->total_credit ?? 0);
+
+        $normalBalance = $account->accountCategory->accountType->normal_balance;
+
+        if ($normalBalance === 'Debit') {
+            return $initialBalance + $totalDebit - $totalCredit;
+        } else {
+            return $initialBalance + $totalCredit - $totalDebit;
+        }
+    }
+
+    private function validateBalanceAvailability($accountId, $amountNeeded, $excludeJournalId = null)
+    {
+        $currentBalance = $this->calculateAccountBalance($accountId);
+
+        // Jika ini adalah update, kita harus menambahkan kembali saldo yang dikurangi oleh jurnal ini sebelumnya
+        if ($excludeJournalId) {
+            $previousMutation = DB::table('journal_details')
+                ->join('journal_entries', 'journal_entries.id', '=', 'journal_details.journal_entry_id')
+                ->where('journal_details.journal_entry_id', $excludeJournalId)
+                ->where('journal_details.account_id', $accountId)
+                ->where('journal_entries.status', 'Posted')
+                ->select(DB::raw('SUM(credit - debit) as net_credit'))
+                ->first();
+            
+            // Karena ini pengeluaran, saldo berkurang (credit bertambah). 
+            // Jadi kita 'kembalikan' pengurangannya ke currentBalance untuk simulasi saldo sebelum jurnal ini ada.
+            $currentBalance += (float) ($previousMutation->net_credit ?? 0);
+        }
+
+        if ($currentBalance < $amountNeeded) {
+            throw ValidationException::withMessages([
+                'cash_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp' . number_format($currentBalance, 0, ',', '.') . ').',
+                'bank_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp' . number_format($currentBalance, 0, ',', '.') . ').',
+            ]);
+        }
     }
 
     private function generateNextEntryNumber($prefix, $date)

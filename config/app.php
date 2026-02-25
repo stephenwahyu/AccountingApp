@@ -99,6 +99,8 @@ return [
 
     'key' => env('APP_KEY'),
 
+    'company_name' => env('APP_COMPANY_NAME', env('APP_NAME')),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
