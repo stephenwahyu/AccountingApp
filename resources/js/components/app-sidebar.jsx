@@ -20,6 +20,7 @@ export function AppSidebar({
   ...props
 }) {
   const { auth } = usePage().props
+  const { url } = usePage()
   const { user } = auth
 
   const navMain = [
@@ -27,23 +28,28 @@ export function AppSidebar({
       title: "Dashboard",
       url: route('dashboard'),
       icon: Dashboard,
+      isActive: url === '/dashboard',
     },
     {
       title: "Bagan Perkiraan",
       url: route('bagan-perkiraan.index'),
       icon: AccountTree,
+      isActive: url.startsWith('/bagan-perkiraan'),
       items: [
         {
           title: "Akun",
           url: route('bagan-perkiraan.akun'),
+          isActive: url.startsWith('/bagan-perkiraan/akun'),
         },
         {
           title: "Kategori Akun",
           url: route('bagan-perkiraan.kategori-akun'),
+          isActive: url.startsWith('/bagan-perkiraan/kategori-akun'),
         },
         {
           title: "Tipe Akun",
           url: route('bagan-perkiraan.tipe-akun'),
+          isActive: url.startsWith('/bagan-perkiraan/tipe-akun'),
         },
       ],
     },
@@ -51,18 +57,22 @@ export function AppSidebar({
       title: "Jurnal",
       url: route('jurnal.index'),
       icon: MenuBook,
+      isActive: url.startsWith('/jurnal'),
       items: [
         {
           title: "Jurnal Umum",
           url: route('jurnal.umum'),
+          isActive: url.startsWith('/jurnal/umum'),
         },
         {
           title: "Jurnal Kas",
           url: route('jurnal.kas'),
+          isActive: url.startsWith('/jurnal/kas'),
         },
         {
           title: "Jurnal Bank",
           url: route('jurnal.bank'),
+          isActive: url.startsWith('/jurnal/bank'),
         },
       ],
     },
@@ -70,37 +80,45 @@ export function AppSidebar({
       title: "Buku Besar",
       url: route('buku-besar'),
       icon: TableChart,
+      isActive: url.startsWith('/buku-besar'),
     },
     {
       title: "Neraca Saldo",
       url: route('neraca-saldo'),
       icon: Balance,
+      isActive: url.startsWith('/neraca-saldo'),
     },
     {
       title: "Periode",
       url: route('periode.index'),
       icon: CalendarMonth,
+      isActive: url.startsWith('/periode'),
     },
     {
       title: "Laporan Keuangan",
-      url: route('laporan-keuangan.posisi-keuangan'),
+      url: route('laporan-keuangan.semua'),
       icon: Description,
+      isActive: url.startsWith('/laporan-keuangan'),
       items: [
         {
           title: "Posisi Keuangan",
           url: route('laporan-keuangan.posisi-keuangan'),
+          isActive: url.startsWith('/laporan-keuangan/posisi-keuangan'),
         },
         {
           title: "Laba Rugi",
           url: route('laporan-keuangan.laba-rugi'),
+          isActive: url.startsWith('/laporan-keuangan/laba-rugi'),
         },
         {
           title: "Arus Kas",
           url: route('laporan-keuangan.arus-kas'),
+          isActive: url.startsWith('/laporan-keuangan/arus-kas'),
         },
         {
           title: "Perubahan Ekuitas",
           url: route('laporan-keuangan.perubahan-ekuitas'),
+          isActive: url.startsWith('/laporan-keuangan/perubahan-ekuitas'),
         },
       ],
     },
@@ -108,6 +126,7 @@ export function AppSidebar({
       title: "Pengguna",
       url: route('pengguna.index'),
       icon: ManageAccounts,
+      isActive: url.startsWith('/pengguna'),
     },
   ]
 

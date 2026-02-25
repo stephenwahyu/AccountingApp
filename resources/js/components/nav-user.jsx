@@ -25,12 +25,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { router, Link } from "@inertiajs/react"
+import { router, Link, usePage } from "@inertiajs/react"
 
 export function NavUser({
   user
 }) {
   const { isMobile } = useSidebar()
+  const { url } = usePage()
 
   if (!user) {
     return null
@@ -85,8 +86,8 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                    <Link href="#">
+                <DropdownMenuItem asChild className={url.startsWith('/settings') ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}>
+                    <Link href={route('settings.profile')}>
                         <Settings className="mr-2 size-4" />
                         Pengaturan
                     </Link>

@@ -9,6 +9,7 @@ use App\Http\Controllers\JurnalPDFController;
 use App\Http\Controllers\LaporanKeuanganController;
 use App\Http\Controllers\LaporanKeuanganPDFController;
 use App\Http\Controllers\NeracaSaldoController;
+use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\PenggunaController;
 use App\Http\Controllers\PeriodeController;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +63,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/bank/pengeluaran', [JurnalController::class, 'bankPengeluaranStore'])->name('bank.pengeluaran.store');
         Route::get('/bank/pengeluaran/{journal}/edit', [JurnalController::class, 'bankPengeluaranEdit'])->name('bank.pengeluaran.edit');
         Route::put('/bank/pengeluaran/{journal}', [JurnalController::class, 'bankPengeluaranUpdate'])->name('bank.pengeluaran.update');
+
+        // Export Excel
+        Route::get('/export/excel', [JurnalController::class, 'exportExcel'])->name('export.excel');
 
         // Account Balance API
         Route::get('/account/{id}/balance', [JurnalController::class, 'getBalance'])->name('account.balance');
@@ -159,5 +163,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/{user}/edit', [PenggunaController::class, 'edit'])->name('edit');
         Route::put('/{user}', [PenggunaController::class, 'update'])->name('update');
         Route::delete('/{user}', [PenggunaController::class, 'destroy'])->name('destroy');
+    });
+
+    // Pengaturan Routes
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/profile', [PengaturanController::class, 'editProfile'])->name('profile');
+        Route::patch('/profile', [PengaturanController::class, 'updateProfile'])->name('profile.update');
+
+        Route::get('/password', [PengaturanController::class, 'editPassword'])->name('password');
+        Route::put('/password', [PengaturanController::class, 'updatePassword'])->name('password.update');
+
+        Route::get('/appearance', [PengaturanController::class, 'editAppearance'])->name('appearance');
     });
 });

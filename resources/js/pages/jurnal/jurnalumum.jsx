@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
@@ -32,26 +32,102 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, Plus, Search } from "lucide-react";
+import { MoreVertical, Plus, Search, FileDown } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 const breadcrumbs = [
   { title: "Jurnal", href: "/jurnal" },
   { title: "Jurnal Umum", href: "/jurnal/umum" },
 ];
 
-export default function JurnalUmum({ journals = [] }) {
+export default function JurnalUmum({ journals = [], periods = [], initialFilters = {} }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState(initialFilters.status || "all");
+  const [periodFilter, setPeriodFilter] = useState(initialFilters.period || "all");
+  
+  const initialFrom = initialFilters.start_date ? new Date(initialFilters.start_date.replace(/-/g, '/')) : undefined;
+  const initialTo = initialFilters.end_date ? new Date(initialFilters.end_date.replace(/-/g, '/')) : undefined;
+
+  const [dateRange, setDateRange] = useState({
+    from: initialFrom,
+    to: initialTo
+  });
+
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [journalToDelete, setJournalToDelete] = useState(null);
 
+  const currentPeriod = useMemo(() => {
+    return periods.find(p => p.id.toString() === periodFilter);
+  }, [periodFilter, periods]);
+
+  const disabledDates = useMemo(() => {
+    if (!currentPeriod) return undefined;
+    const startDate = new Date(currentPeriod.start_date.replace(/-/g, "/"));
+    const endDate = new Date(currentPeriod.end_date.replace(/-/g, "/"));
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
+    return (date) => date < startDate || date > endDate;
+  }, [currentPeriod]);
+
   const handleTabChange = (value) => {
     router.visit(value);
+  };
+
+  const handlePeriodChange = (value) => {
+    setPeriodFilter(value);
+    if (value !== "all") {
+        const selected = periods.find(p => p.id.toString() === value);
+        if (selected) {
+            setDateRange({
+                from: new Date(selected.start_date.replace(/-/g, '/')),
+                to: new Date(selected.end_date.replace(/-/g, '/'))
+            });
+        }
+    } else {
+        setDateRange({ from: undefined, to: undefined });
+    }
+  };
+
+  const handleSearch = () => {
+    const query = {
+        status: statusFilter,
+        period: periodFilter,
+    };
+
+    if (dateRange?.from) {
+        query.start_date = new Date(dateRange.from.getTime() - (dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+    if (dateRange?.to) {
+        query.end_date = new Date(dateRange.to.getTime() - (dateRange.to.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+
+    router.get(route('jurnal.umum'), query, {
+        preserveState: true,
+        preserveScroll: true,
+    });
+  };
+
+  const handleDownloadExcel = () => {
+    const query = {
+        type: 'umum',
+        status: statusFilter,
+        period: periodFilter,
+    };
+
+    if (dateRange?.from) {
+        query.start_date = new Date(dateRange.from.getTime() - (dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+    if (dateRange?.to) {
+        query.end_date = new Date(dateRange.to.getTime() - (dateRange.to.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    }
+
+    window.open(route('jurnal.export.excel', query), '_blank');
   };
 
   const filteredJournals = useMemo(() => {
@@ -139,39 +215,89 @@ export default function JurnalUmum({ journals = [] }) {
           </Tabs>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Daftar Jurnal Umum</CardTitle>
-              <CardDescription>
-                Anda dapat mencari, memfilter, dan mengelola jurnal umum dari
-                sini.
-              </CardDescription>
+            <CardHeader className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <CardTitle>Daftar Jurnal Umum</CardTitle>
+                <CardDescription>
+                    Anda dapat mencari, memfilter, dan mengelola jurnal umum dari
+                    sini.
+                </CardDescription>
+              </div>
+              <Button variant="outline" onClick={handleDownloadExcel} className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700">
+                <FileDown className="h-4 w-4 mr-2" />
+                Excel
+              </Button>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mb-4">
-                <div className="relative w-full">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Cari jurnal..."
-                    className="pl-8 w-full"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+              <div className="flex flex-col gap-4 mb-6">
+                <div className="flex flex-col md:flex-row gap-4 items-end w-full">
+                  {/* Kolom Cari */}
+                  <div className="grid gap-2 w-full md:flex-1">
+                    <Label className="text-xs uppercase text-muted-foreground font-semibold">Cari</Label>
+                    <div className="flex items-center border rounded-md px-2 w-full">
+                      <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                      <Input
+                        type="search"
+                        placeholder="No. Jurnal..."
+                        className="flex-1 border-none focus:ring-0 w-full"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                
+                  {/* Kolom Periode */}
+                  <div className="grid gap-2 w-full md:w-auto">
+                    <Label className="text-xs uppercase text-muted-foreground font-semibold">Periode</Label>
+                    <Select value={periodFilter} onValueChange={handlePeriodChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Periode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Periode</SelectItem>
+                        {periods.map((p) => (
+                          <SelectItem key={p.id} value={p.id.toString()}>
+                            {p.period_name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                
+                  {/* Kolom Status */}
+                  <div className="grid gap-2 w-full md:w-auto">
+                    <Label className="text-xs uppercase text-muted-foreground font-semibold">Status</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Status</SelectItem>
+                        <SelectItem value="Posted">Diposting</SelectItem>
+                        <SelectItem value="Draft">Draf</SelectItem>
+                        <SelectItem value="Cancelled">Dibatalkan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                
+                  {/* Kolom Rentang Tanggal */}
+                  <div className="grid gap-2 w-full md:w-auto">
+                    <Label className="text-xs uppercase text-muted-foreground font-semibold">Rentang Tanggal</Label>
+                    <DateRangePicker
+                      date={dateRange}
+                      onDateChange={setDateRange}
+                      disabledDates={disabledDates}
+                    />
+                  </div>
+                
+                  {/* Tombol Tampilkan */}
+                  <div className="flex justify-end w-full md:w-auto">
+                    <Button onClick={handleSearch} className="w-full md:w-auto">
+                      <Search className="h-4 w-4 mr-2" />
+                      Tampilkan
+                    </Button>
+                  </div>
                 </div>
-                <Select
-                  value={statusFilter}
-                  onValueChange={setStatusFilter}
-                >
-                  <SelectTrigger className="w-full md:w-[180px]">
-                    <SelectValue placeholder="Filter Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Status</SelectItem>
-                    <SelectItem value="Posted">Diposting</SelectItem>
-                    <SelectItem value="Draft">Draf</SelectItem>
-                    <SelectItem value="Cancelled">Dibatalkan</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="border rounded-lg overflow-x-auto">
                 <Table>

@@ -39,12 +39,17 @@ class JurnalController extends Controller
     }
 
     // Tampilkan semua jurnal
-    public function index()
+    public function index(Request $request)
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')->get();
+
+        $query = JournalEntry::with(['fiscalPeriod', 'user'])
             ->orderBy('entry_date', 'desc')
-            ->orderBy('entry_number', 'desc')
-            ->get()
+            ->orderBy('entry_number', 'desc');
+
+        $this->applyFilters($query, $request);
+
+        $journals = $query->get()
             ->map(function ($journal) {
                 return [
                     'id' => $journal->id,
@@ -58,17 +63,24 @@ class JurnalController extends Controller
 
         return Inertia::render('jurnal/semua', [
             'journals' => $journals,
+            'periods' => $periods,
+            'initialFilters' => $request->only(['period', 'start_date', 'end_date', 'status']),
         ]);
     }
 
     // Tampilkan jurnal umum
-    public function umum()
+    public function umum(Request $request)
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')->get();
+
+        $query = JournalEntry::with(['fiscalPeriod', 'user'])
             ->where('journal_type', 'Umum')
             ->orderBy('entry_date', 'desc')
-            ->orderBy('entry_number', 'desc')
-            ->get()
+            ->orderBy('entry_number', 'desc');
+
+        $this->applyFilters($query, $request);
+
+        $journals = $query->get()
             ->map(function ($journal) {
                 return [
                     'id' => $journal->id,
@@ -82,6 +94,8 @@ class JurnalController extends Controller
 
         return Inertia::render('jurnal/jurnalumum', [
             'journals' => $journals,
+            'periods' => $periods,
+            'initialFilters' => $request->only(['period', 'start_date', 'end_date', 'status']),
         ]);
     }
 
@@ -177,13 +191,18 @@ class JurnalController extends Controller
     }
 
     // Tampilkan jurnal kas
-    public function kas()
+    public function kas(Request $request)
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')->get();
+
+        $query = JournalEntry::with(['fiscalPeriod', 'user'])
             ->whereIn('journal_type', ['Kas Masuk', 'Kas Keluar'])
             ->orderBy('entry_date', 'desc')
-            ->orderBy('entry_number', 'desc')
-            ->get()
+            ->orderBy('entry_number', 'desc');
+
+        $this->applyFilters($query, $request);
+
+        $journals = $query->get()
             ->map(function ($journal) {
                 return [
                     'id' => $journal->id,
@@ -197,6 +216,8 @@ class JurnalController extends Controller
 
         return Inertia::render('jurnal/jurnalkas', [
             'journals' => $journals,
+            'periods' => $periods,
+            'initialFilters' => $request->only(['period', 'start_date', 'end_date', 'status']),
         ]);
     }
 
@@ -397,13 +418,18 @@ class JurnalController extends Controller
     }
 
     // Tampilkan jurnal bank
-    public function bank()
+    public function bank(Request $request)
     {
-        $journals = JournalEntry::with(['fiscalPeriod', 'user'])
+        $periods = FiscalPeriod::orderBy('end_date', 'desc')->get();
+
+        $query = JournalEntry::with(['fiscalPeriod', 'user'])
             ->whereIn('journal_type', ['Bank Masuk', 'Bank Keluar'])
             ->orderBy('entry_date', 'desc')
-            ->orderBy('entry_number', 'desc')
-            ->get()
+            ->orderBy('entry_number', 'desc');
+
+        $this->applyFilters($query, $request);
+
+        $journals = $query->get()
             ->map(function ($journal) {
                 return [
                     'id' => $journal->id,
@@ -417,6 +443,8 @@ class JurnalController extends Controller
 
         return Inertia::render('jurnal/jurnalbank', [
             'journals' => $journals,
+            'periods' => $periods,
+            'initialFilters' => $request->only(['period', 'start_date', 'end_date', 'status']),
         ]);
     }
 
@@ -1262,7 +1290,7 @@ class JurnalController extends Controller
         $excludeId = $request->query('exclude_id');
         $currentBalance = $this->calculateAccountBalance($id);
 
-        // Jika dalam mode edit, kita tambahkan kembali efek dari jurnal ini 
+        // Jika dalam mode edit, kita tambahkan kembali efek dari jurnal ini
         // agar user melihat saldo "sebelum" jurnal ini ada.
         if ($excludeId) {
             $journal = JournalEntry::find($excludeId);
@@ -1270,17 +1298,17 @@ class JurnalController extends Controller
                 $detail = JournalDetail::where('journal_entry_id', $excludeId)
                     ->where('account_id', $id)
                     ->first();
-                
+
                 if ($detail) {
                     $account = Account::with('accountCategory.accountType')->findOrFail($id);
                     $normalBalance = $account->accountCategory->accountType->normal_balance;
-                    
+
                     if ($normalBalance === 'Debit') {
-                        // Saldo = ... + Debit - Credit. 
+                        // Saldo = ... + Debit - Credit.
                         // Netralkan: Saldo - (Debit - Credit)
                         $currentBalance -= (float) ($detail->debit - $detail->credit);
                     } else {
-                        // Saldo = ... + Credit - Debit. 
+                        // Saldo = ... + Credit - Debit.
                         // Netralkan: Saldo - (Credit - Debit)
                         $currentBalance -= (float) ($detail->credit - $detail->debit);
                     }
@@ -1294,7 +1322,7 @@ class JurnalController extends Controller
             'balance' => $currentBalance,
             'account_name' => $account->account_name,
             'account_code' => $account->account_code,
-            'normal_balance' => $account->accountCategory->accountType->normal_balance
+            'normal_balance' => $account->accountCategory->accountType->normal_balance,
         ]);
     }
 
@@ -1338,18 +1366,87 @@ class JurnalController extends Controller
                 ->where('journal_entries.status', 'Posted')
                 ->select(DB::raw('SUM(credit - debit) as net_credit'))
                 ->first();
-            
-            // Karena ini pengeluaran, saldo berkurang (credit bertambah). 
+
+            // Karena ini pengeluaran, saldo berkurang (credit bertambah).
             // Jadi kita 'kembalikan' pengurangannya ke currentBalance untuk simulasi saldo sebelum jurnal ini ada.
             $currentBalance += (float) ($previousMutation->net_credit ?? 0);
         }
 
         if ($currentBalance < $amountNeeded) {
             throw ValidationException::withMessages([
-                'cash_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp' . number_format($currentBalance, 0, ',', '.') . ').',
-                'bank_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp' . number_format($currentBalance, 0, ',', '.') . ').',
+                'cash_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp'.number_format($currentBalance, 0, ',', '.').').',
+                'bank_account_id' => 'Saldo akun tidak mencukupi untuk melakukan transaksi ini (Saldo: Rp'.number_format($currentBalance, 0, ',', '.').').',
             ]);
         }
+    }
+
+    private function applyFilters($query, Request $request)
+    {
+        if ($request->filled('period') && $request->period !== 'all') {
+            $query->where('fiscal_period_id', $request->period);
+        }
+
+        if ($request->filled('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('entry_date', [$request->start_date, $request->end_date]);
+        }
+    }
+
+    public function exportExcel(Request $request)
+    {
+        $query = JournalEntry::with(['fiscalPeriod', 'journalDetails.account', 'user'])
+            ->orderBy('entry_date', 'asc')
+            ->orderBy('entry_number', 'asc');
+
+        if ($request->filled('type')) {
+            if ($request->type === 'umum') {
+                $query->where('journal_type', 'Umum');
+            } elseif ($request->type === 'kas') {
+                $query->whereIn('journal_type', ['Kas Masuk', 'Kas Keluar']);
+            } elseif ($request->type === 'bank') {
+                $query->whereIn('journal_type', ['Bank Masuk', 'Bank Keluar']);
+            }
+        }
+
+        $this->applyFilters($query, $request);
+
+        $journals = $query->get();
+
+        $filename = 'data-jurnal-'.now()->format('YmdHis').'.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ];
+
+        $callback = function () use ($journals) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['No. Jurnal', 'Tanggal', 'Periode', 'Tipe', 'Penerima', 'Status', 'Kode Akun', 'Nama Akun', 'Deskripsi', 'Debit', 'Kredit']);
+
+            foreach ($journals as $journal) {
+                foreach ($journal->journalDetails as $detail) {
+                    fputcsv($file, [
+                        "'".$journal->entry_number,
+                        $journal->entry_date->format('d/m/Y'),
+                        $journal->fiscalPeriod->period_name,
+                        $journal->journal_type,
+                        $journal->penerima,
+                        $journal->status,
+                        "'".$detail->account->account_code,
+                        $detail->account->account_name,
+                        $detail->description,
+                        $detail->debit,
+                        $detail->credit,
+                    ]);
+                }
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     private function generateNextEntryNumber($prefix, $date)

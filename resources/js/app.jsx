@@ -2,9 +2,9 @@ import "./bootstrap";
 import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "@/components/ui/sonner";
-// import { initializeTheme } from './hooks/use-appearance';
+import { initializeTheme } from './hooks/use-appearance';
 
-// initializeTheme();
+initializeTheme();
 
 createInertiaApp({
     resolve: (name) => {
