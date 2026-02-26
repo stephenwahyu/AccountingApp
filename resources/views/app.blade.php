@@ -18,6 +18,7 @@
     </script>
     @viteReactRefresh
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @inertiaHead

@@ -14,20 +14,20 @@ class RoleSeeder extends Seeder
     {
         DB::table('roles')->insert([
             [
+                'name' => 'Akuntan',
+                'description' => 'Accountant with access to accounting features and reports',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
                 'name' => 'Direktur',
-                'description' => 'Director with access to view reports and manage users',
+                'description' => 'Director with access to view reports',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
                 'name' => 'Admin',
                 'description' => 'Administrator with full access',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'name' => 'Akuntan',
-                'description' => 'Accountant with access to accounting features',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

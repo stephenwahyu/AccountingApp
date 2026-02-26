@@ -22,11 +22,15 @@ class SendJournalPostedNotification implements ShouldQueue
      */
     public function handle(JournalPosted $event): void
     {
-        // Send to the user who posted it
-        $recipient = $event->journal->postedByUser->email ?? $event->journal->user->email;
+        // Fetch all users with role 'Direktur' and 'Akuntan'
+        $recipients = \App\Models\User::whereHas('role', function ($query) {
+            $query->whereIn('name', ['Direktur', 'Akuntan']);
+        })->get();
 
-        if ($recipient) {
-            Mail::to($recipient)->send(new JournalPostedMail($event->journal));
+        foreach ($recipients as $recipient) {
+            if ($recipient->email) {
+                Mail::to($recipient->email)->send(new JournalPostedMail($event->journal));
+            }
         }
     }
 }

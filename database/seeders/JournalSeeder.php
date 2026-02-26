@@ -9,50 +9,35 @@ use Illuminate\Support\Carbon;
 class JournalSeeder extends Seeder
 {
     // =========================================================================
-    //  FILTER: Hanya memproses jurnal milik SPR TRADA / Trada
-    //
-    //  Strategi ganda untuk memastikan tidak ada data non-Trada masuk:
-    //    1. dep_kode = 'TR'          (kolom di acc_iftjurnalhdr)
-    //    2. rek_divisi = 'SPR TRADA' (kolom di acc_iftjurnalhdr, sinonim dari dep_kode=TR)
-    //
-    //  Hasil verifikasi data CSV (805 baris Trada):
-    //    dep_kode='TR'  ↔  rek_divisi='SPR TRADA'  →  100% konsisten, tidak ada mismatch.
-    //  Kedua kondisi digunakan sebagai filter OR sehingga tetap aman meski ada inkonsistensi
-    //  di masa mendatang.
-    //
-    //  Divisi lain yang TIDAK dimasukkan:
-    //    - KANTOR PUSAT (dep_kode = KP)
-    //    - SPR CL       (dep_kode = CL)
-    //    - SPAM         (dep_kode = '')
+    //  FILTER: Hanya memproses jurnal milik SPR TRADA (dep_kode = 'TR')
+    //  Digunakan sebagai data initial balance / saldo awal divisi Trada.
     // =========================================================================
-    private const FILTER_DEP_KODE   = 'TR';
-    private const FILTER_REK_DIVISI = 'SPR TRADA'; // sinonim dep_kode=TR
+    private const FILTER_DEP_KODE = 'TR';
 
     // =========================================================================
     //  MAPPING: kode rekening lama  →  account_code pada aplikasi baru
+    // =========================================================================
+    // Format: 'rek_kode_lama' => 'account_code_baru'
+    // Berdasarkan pemetaan acc_ifmrekeningcoabu.csv → AccountSeeder.php
     //
-    //  ⚠  Hanya kode yang BENAR-BENAR DIPAKAI oleh SPR TRADA yang diaktifkan.
-    //     Kode divisi lain (SPR CL, KANTOR PUSAT, dll.) di-comment sebagai referensi.
-    //
-    //  Daftar 57 rek_kode aktif Trada (hasil analisis acc_iftjurnaldtl.csv):
-    //    101.101, 101.211, 101.215,
-    //    103.101–103.201, 108.201–108.301,
-    //    201.111–202.220, 204.010, 204.020,
-    //    400.250, 500.420, 500.430,
-    //    620, 620.011–620.210,
-    //    700.100, 700.200,
-    //    800.100–800.300
+    // Kode rekening yang dipakai oleh SPR TRADA (dep_kode = TR):
+    //   101.101, 101.211, 101.215, 103.101, 103.102, 103.201,
+    //   108.201–108.301, 201.111, 201.112, 202.210, 202.220,
+    //   204.010, 204.020, 400.250, 500.420, 500.430,
+    //   620.xxx (beban adm & umum), 700.100, 700.200,
+    //   800.100, 800.200, 800.300
     // =========================================================================
     private const REK_KODE_MAP = [
 
         // ── Kas & Bank ──────────────────────────────────────────────────────
-        '101.101' => '1-1102', // Kas Besar (SPR TRADA)
-        // ─ Catatan per-akun bank SPR TRADA ─────────────────────────────────
-
-        '101.211' => '1-1107', // BRK Syariah 1200808288  → AKTIF di Trada  ← DIPERBAIKI (sebelumnya ter-comment salah)
-
-        '101.215' => '1-1108', // Bank Syariah 7219450049 → AKTIF di Trada
-
+        '101.101' => '1-1102', // Kas Besar
+        '101.201' => '1-1106', // BRK Syariah AC. 1070801032 (div=SPR CL)
+        '101.211' => '1-1107', // Bank BRK Syariah AC. 1200808288 (div=TR) — bukan Mandiri
+        '101.212' => '1-1108', // BRK Syariah AC. 1072001615 / 101-05-04909
+        '101.213' => '1-1107', // BRK Syariah AC. 120-05-55555
+        '101.214' => '1-1109', // BRK Syariah AC. 191-08-00066
+        '101.215' => '1-1108', // Bank CIMB Niaga Syariah AC. 860018922700 (div=TR)
+        '101.216' => '1-1109', // BSI AC. 4455663372 → dipetakan ke 1-1109
         '101.301' => '1-3104', // Deposito BRK Syariah
 
         // ── Piutang Usaha ────────────────────────────────────────────────────
@@ -91,18 +76,18 @@ class JournalSeeder extends Seeder
         '115.200' => '1-1401', // Biaya Bunga Innova
         '115.300' => '1-1401', // Biaya Bunga Xpander
 
-        // ── Utang Usaha & Utang Lain ────────────────────────────────────
+        // ── Hutang Usaha & Hutang Lain ────────────────────────────────────
         '201.111' => '2-1101', // SPR Langgak
         '201.112' => '2-1101', // SPR Cipta Lestari
         '201.140' => '2-1101', // PT PP Tirta Riau
-        '201.160' => '2-1104', // Lain-lain → Utang Lain-Lain
+        '201.160' => '2-1104', // Lain-lain → Hutang Lain-Lain
         '201.172' => '2-1101', // Aktuaria
         '201.173' => '2-1101', // Konsultan Hukum
-        '201.210' => '2-1104', // Utang PT SPR Trada
-        '201.221' => '2-1104', // Utang Cashcall PT SPR Langgak
-        '201.222' => '2-1104', // Utang Lain PT SPR Langgak
+        '201.210' => '2-1104', // Hutang PT SPR Trada
+        '201.221' => '2-1104', // Hutang Cashcall PT SPR Langgak
+        '201.222' => '2-1104', // Hutang Lain PT SPR Langgak
         '202.100' => '2-1104', // Pemerintah Provinsi Riau
-        '202.200' => '2-1104', // Utang Lain-Lain
+        '202.200' => '2-1104', // Hutang Lain-Lain
         '202.210' => '2-1104', // Lain-lain
         '202.220' => '2-1104', // Utang ke Koperasi Rantau Kasih
 
@@ -114,21 +99,21 @@ class JournalSeeder extends Seeder
         '203.008' => '2-1305', // Zakat
         '203.009' => '2-1305', // Biaya Lain yang Masih Harus Dibayar
 
-        // ── Utang Pajak ──────────────────────────────────────────────────
-        '204.001' => '2-1301', // Utang PPN
-        '204.002' => '2-1302', // Utang PPh 21
-        '204.003' => '2-1303', // Utang PPh 23
-        '204.010' => '2-1302', // Utang PPh 21  (Trada)
-        '204.020' => '2-1303', // Utang PPh 23  (Trada)
+        // ── Hutang Pajak ──────────────────────────────────────────────────
+        '204.001' => '2-1301', // Hutang PPN
+        '204.002' => '2-1302', // Hutang PPh 21
+        '204.003' => '2-1303', // Hutang PPh 23
+        '204.010' => '2-1302', // Hutang PPh 21
+        '204.020' => '2-1303', // Hutang PPh 23
 
-        // ── Utang Leasing / Pembiayaan ───────────────────────────────────
+        // ── Hutang Leasing / Pembiayaan ───────────────────────────────────
         '207.101' => '2-2103', // Pembiayaan Xenia
         '207.102' => '2-2103', // Pembiayaan Innova
         '207.103' => '2-2103', // Pembiayaan Xpander
 
         // ── Liabilitas Lainnya ────────────────────────────────────────────
         '210.200' => '2-1307', // Jasa Produksi → Uang Muka Pelanggan
-        '210.300' => '2-2101', // Kewajiban Imbalan Kerja → Utang JK Panjang
+        '210.300' => '2-2101', // Kewajiban Imbalan Kerja → Hutang JK Panjang
 
         // ── Ekuitas ───────────────────────────────────────────────────────
         '300.500' => '3-2001', // Cadangan Umum → Laba Ditahan
@@ -139,7 +124,7 @@ class JournalSeeder extends Seeder
         '400.110' => '4-1001', // Pendapatan Equity Share Langgak → Penjualan
         '400.120' => '4-1001', // DMO Fee Langgak
         '400.130' => '5-4004', // Corporate & Dividend Tax → Beban Pajak
-        '400.250' => '4-1001', // Pendapatan Komoditas Pangan  (Trada)
+        '400.250' => '4-1001', // Pendapatan Komoditas Pangan
         '400.300' => '4-2005', // Pengujian Kualitas Air Limbah → Pendapatan Lain
 
         // ── HPP & Beban Operasional Khusus (500.xxx) ─────────────────────
@@ -156,18 +141,18 @@ class JournalSeeder extends Seeder
         '500.212' => '5-4005', // Beban Sumbangan → Beban Lain-Lain
         '500.213' => '5-3202', // Beban Telepon/Fax
         '500.300' => '5-1001', // Sharing Cost → HPP
-        '500.420' => '5-1001', // Biaya Tenaga Kerja → HPP  (Trada)
-        '500.430' => '5-1001', // Biaya Overhead → HPP      (Trada)
+        '500.420' => '5-1001', // Biaya Tenaga Kerja → HPP
+        '500.430' => '5-1001', // Biaya Overhead → HPP
 
         // ── Beban Administrasi & Umum (620.xxx) ──────────────────────────
-        '620'     => '5-3000', // Group header beban (dilewati jika debit=0 & kredit=0)
+        '620'     => '5-3000', // Group header beban (dilewati jika saldo 0)
         '620.011' => '5-3101', // Gaji Direksi & Komisaris → Gaji Adm
         '620.012' => '5-3104', // THR/Tunjangan → THR & Bonus
         '620.014' => '5-3103', // Lembur → Tunjangan Karyawan
         '620.015' => '5-3103', // Tunjangan Cuti
         '620.016' => '5-3103', // Tunjangan Cuti
         '620.017' => '5-3103', // Tunjangan Pesangon
-        '620.021' => '5-3203', // Computer Supplies → ATK
+        '620.021' => '5-3206', // Computer Supplies → Perlengkapan Kantor (baterai, hardisk, mouse pad — bukan ATK)
         '620.031' => '5-3203', // Alat Tulis Kantor
         '620.032' => '5-3206', // Cetakan → Perlengkapan Kantor
         '620.033' => '5-3203', // Fotocopy → ATK
@@ -176,25 +161,25 @@ class JournalSeeder extends Seeder
         '620.061' => '5-3302', // Beban Pemeliharaan Bangunan
         '620.062' => '5-3303', // Beban Pemeliharaan Inventaris → Peralatan
         '620.070' => '5-3704', // Beban Perjalanan Dinas
-        '620.081' => '5-3503', // Beban Konsultan
+        '620.081' => '5-3701', // Beban Perizinan → Perizinan & Retribusi (pajak STNK kendaraan — bukan konsultan)
         '620.082' => '5-3503', // Beban Konsultan
         '620.083' => '5-3503', // Beban Pengembangan Usaha
-        '620.090' => '5-3601', // Beban Asuransi
+        '620.090' => '5-3105', // Beban Asuransi → seluruh transaksi TR adalah iuran BPJS
         '620.101' => '5-3205', // Beban Konsumsi
         '620.102' => '5-3705', // Beban Pendidikan & Latihan
         '620.103' => '5-3703', // Beban Pengiriman Dokumen → Materai & Pos
         '620.104' => '5-3206', // Beban Majalah → Perlengkapan
-        '620.105' => '5-3706', // Beban Entertaint → Entertainment
+        '620.105' => '5-3704', // Beban Transportasi → Perjalanan Dinas (travel darat, feri — bukan entertainment)
         '620.106' => '5-3706', // Beban Entertaint
-        '620.107' => '5-2304', // Parkir & Toll
+        '620.107' => '5-4005', // Sumbangan → Beban Lain-Lain (kado pernikahan, bantuan dana, jenguk sakit — bukan parkir)
         '620.108' => '5-2304', // Parkir & Toll
         '620.109' => '5-3205', // Beban Rapat → Konsumsi
         '620.110' => '5-2201', // Iklan & Promosi
         '620.111' => '5-4005', // Beban Umum Lain-Lain
         '620.112' => '5-3206', // Papan Bunga → Perlengkapan
-        '620.113' => '5-3204', // Retribusi Kebersihan → Kebersihan & Keamanan
+        '620.113' => '5-3103', // Pengobatan → Tunjangan Karyawan (biaya pengobatan komisaris & karyawan — bukan kebersihan)
         '620.114' => '5-3205', // Pengobatan → Konsumsi
-        '620.170' => '5-3105', // Beban Imbalan Kerja → BPJS & Asuransi Kes.
+        '620.170' => '5-3102', // Beban Imbalan Kerja → Jasa Pengabdian Komisaris → Gaji Direksi & Manajemen
         '620.181' => '5-2302', // Beban BBM
         '620.182' => '5-2303', // Beban Pemeliharaan Kendaraan
         '620.191' => '5-4004', // PPh Pasal 21 (beban) → Beban Pajak Penghasilan
@@ -205,13 +190,13 @@ class JournalSeeder extends Seeder
         '620.212' => '5-3206', // Perlengkapan Kantor Lainnya
 
         // ── Pendapatan Lain (700.xxx) ─────────────────────────────────────
-        '700.100' => '4-2001', // Jasa Giro / Fee Kerjasama → Pendapatan Bunga
+        '700.100' => '4-2005', // Fee Kerjasama → Pendapatan Lain-Lain (fee tegakan kayu, fee LPHD — bukan bunga)
         '700.200' => '4-2001', // Jasa Giro
         '700.410' => '4-2005', // Pendapatan Lain-Lainnya
 
         // ── Beban Keuangan / Bank (800.xxx) ──────────────────────────────
         '800.100' => '5-3702', // Administrasi Umum → Administrasi Bank
-        '800.200' => '5-3703', // Materai Bank → Beban Materai & Pos
+        '800.200' => '5-3702', // Materai Bank → Administrasi Bank (buku cek CIMB Niaga — bukan materai & pos)
         '800.300' => '5-4004', // Pajak Jasa Giro → Beban Pajak Penghasilan
         '800.400' => '5-4001', // Beban Bunga Pinjaman
     ];
@@ -247,8 +232,7 @@ class JournalSeeder extends Seeder
     public function run(): void
     {
         $this->command->info('═══════════════════════════════════════════════════════');
-        $this->command->info('  Journal Seeder — SPR TRADA / Trada (dep_kode = TR)');
-        $this->command->info('  Filter: dep_kode = "TR"  ATAU  rek_divisi = "SPR TRADA"');
+        $this->command->info('  Journal Seeder — Initial Balance SPR TRADA (dep_kode = TR)');
         $this->command->info('═══════════════════════════════════════════════════════');
 
         // ── 1. Muat CSV ──────────────────────────────────────────────────────
@@ -258,28 +242,24 @@ class JournalSeeder extends Seeder
         $this->command->info('  Header jurnal (total)  : ' . count($allHeaders) . ' baris');
         $this->command->info('  Detail jurnal (total)  : ' . count($allDetails) . ' baris');
 
-        // ── 2. Filter HANYA SPR TRADA / Trada ────────────────────────────────
-        //  Menggunakan filter ganda (OR) untuk keamanan:
-        //    - dep_kode  = 'TR'          → identifier utama divisi Trada di header
-        //    - rek_divisi = 'SPR TRADA'  → sinonim, 100% konsisten dengan dep_kode=TR
-        //  Jika salah satu terpenuhi, baris dianggap milik Trada.
-        //  Data dari KANTOR PUSAT, SPR CL, SPAM → TIDAK dimasukkan.
-        $headers = array_values(array_filter(
+        // ── 2. Filter hanya SPR TRADA (dep_kode = TR) ───────────────────────
+        $headers = array_filter(
             $allHeaders,
-            fn($row) => $this->isTrada($row)
-        ));
+            fn($row) => strtoupper(trim($row['dep_kode'])) === self::FILTER_DEP_KODE
+        );
+        $headers = array_values($headers);
 
-        // Kumpulkan nobkt milik Trada agar filter detail lebih cepat (O(1) lookup)
+        // Kumpulkan nobkt milik Trada agar filter detail lebih cepat
         $tradaNobktSet = array_flip(array_column($headers, 'jur_nobkt'));
 
-        $details = array_values(array_filter(
+        $details = array_filter(
             $allDetails,
             fn($row) => isset($tradaNobktSet[trim($row['jur_nobkt'])])
-        ));
+        );
+        $details = array_values($details);
 
         $this->command->info('  Header jurnal (Trada)  : ' . count($headers) . ' baris');
         $this->command->info('  Detail jurnal (Trada)  : ' . count($details) . ' baris');
-        $this->command->info('  (Data non-Trada diabaikan sepenuhnya)');
 
         // ── 3. Bangun cache ──────────────────────────────────────────────────
         $this->buildAccountCache();
@@ -334,28 +314,6 @@ class JournalSeeder extends Seeder
     }
 
     // =========================================================================
-    //  CEK APAKAH ROW HEADER MILIK TRADA
-    // =========================================================================
-
-    /**
-     * Mengembalikan true jika baris header jurnal milik SPR TRADA / Trada.
-     *
-     * Filter menggunakan OR atas dua kolom untuk memaksimalkan cakupan:
-     *   - dep_kode = 'TR'           (identifier resmi divisi Trada)
-     *   - rek_divisi = 'SPR TRADA'  (label tampilan yang setara)
-     *
-     * Seluruh divisi lain (KP, CL, SPAM, dll.) TIDAK lolos filter ini.
-     */
-    private function isTrada(array $row): bool
-    {
-        $depKode   = strtoupper(trim($row['dep_kode']   ?? ''));
-        $rekDivisi = strtoupper(trim($row['rek_divisi'] ?? ''));
-
-        return $depKode === strtoupper(self::FILTER_DEP_KODE)
-            || $rekDivisi === strtoupper(self::FILTER_REK_DIVISI);
-    }
-
-    // =========================================================================
     //  PROSES SATU ENTRY
     // =========================================================================
 
@@ -407,22 +365,21 @@ class JournalSeeder extends Seeder
     private function processDetail(array $dtl, int $entryId): void
     {
         $rekKode = trim($dtl['rek_kode']);
-        $debit   = round((float) $dtl['jur_debet'],  2);
-        $credit  = round((float) $dtl['jur_kredit'], 2);
+        $debit  = round((float) $dtl['jur_debet'], 2);
+        $credit = round((float) $dtl['jur_kredit'], 2);
 
-        // Normalisasi nilai negatif dari sistem lama:
-        //   Jika debit negatif  → pindahkan ke credit sebagai nilai positif
-        //   Jika credit negatif → pindahkan ke debit  sebagai nilai positif
+        // Normalisasi nilai negatif dari sistem lama
         if ($debit < 0) {
             $credit = abs($debit);
             $debit  = 0;
         }
+
         if ($credit < 0) {
             $debit  = abs($credit);
             $credit = 0;
         }
 
-        // Lewati baris yang kedua-duanya = 0 (melanggar CHECK constraint DB)
+        // Lewati baris yang kedua-duanya = 0 (melanggar CHECK constraint)
         if ($debit === 0.0 && $credit === 0.0) {
             $this->stats['details_skipped']++;
             return;
@@ -456,7 +413,7 @@ class JournalSeeder extends Seeder
     // =========================================================================
 
     /**
-     * Resolve account_id dari rek_kode lama:
+     * Resolve account_id:
      *  1. Cari via REK_KODE_MAP (old_code → new account_code → id)
      *  2. Fallback: cari old_code langsung di accountCache
      *     (berguna jika account_code di DB masih memakai format lama)
@@ -467,7 +424,6 @@ class JournalSeeder extends Seeder
         if ($newCode) {
             return $this->accountCache[$newCode] ?? null;
         }
-        // fallback: mungkin kode lama sudah ada di DB apa adanya
         return $this->accountCache[$rekKode] ?? null;
     }
 
@@ -481,23 +437,24 @@ class JournalSeeder extends Seeder
     }
 
     /**
-     * Dapatkan fiscal_period_id untuk tanggal tertentu.
-     * Menggunakan strategi start_date <= date <= end_date.
+     * Dapatkan fiscal_period_id, dengan dua strategi:
+     *  - Strategi 1: kolom year (int) + month (int)
+     *  - Strategi 2: start_date <= date <= end_date
      */
     private function getFiscalPeriodId(string $date): int
     {
-        $key = substr($date, 0, 7); // 'YYYY-MM'
+        $key = substr($date, 0, 7);
 
         if (! isset($this->periodCache[$key])) {
+
             $id = DB::table('fiscal_periods')
                 ->where('start_date', '<=', $date)
-                ->where('end_date',   '>=', $date)
+                ->where('end_date', '>=', $date)
                 ->value('id');
 
             if (! $id) {
                 throw new \RuntimeException(
-                    "Fiscal period untuk {$key} tidak ditemukan. "
-                    . "Pastikan FiscalPeriodSeeder sudah dijalankan."
+                    "Fiscal period untuk {$key} tidak ditemukan."
                 );
             }
 
@@ -553,7 +510,6 @@ class JournalSeeder extends Seeder
                 $header = $line;
                 continue;
             }
-            // Pastikan jumlah kolom sama (handle baris pendek)
             while (count($line) < count($header)) {
                 $line[] = '';
             }
@@ -569,12 +525,10 @@ class JournalSeeder extends Seeder
     {
         $this->command->info('');
         $this->command->info('═══════════════════════════════════════════════════════');
-        $this->command->info('  SELESAI — Ringkasan Hasil');
-        $this->command->info('  Filter aktif: SPR TRADA (dep_kode=TR / rek_divisi=SPR TRADA)');
-        $this->command->info('  Data non-Trada (KP, CL, SPAM) → TIDAK dimasukkan');
+        $this->command->info('  SELESAI — Ringkasan Hasil (SPR TRADA / dep_kode = TR)');
         $this->command->info('───────────────────────────────────────────────────────');
         $this->command->info('  Journal Entries diinsert : ' . $this->stats['entries_inserted']);
-        $this->command->info('  Journal Entries dilewati : ' . $this->stats['entries_skipped'] . ' (duplikat / sudah ada)');
+        $this->command->info('  Journal Entries dilewati : ' . $this->stats['entries_skipped'] . ' (sudah ada / duplikat)');
         $this->command->info('  Journal Details diinsert : ' . $this->stats['details_inserted']);
         $this->command->info('  Journal Details dilewati : ' . $this->stats['details_skipped']);
 
@@ -584,9 +538,8 @@ class JournalSeeder extends Seeder
             foreach ($this->stats['unmapped_codes'] as $code) {
                 $this->command->warn("     - {$code}");
             }
-            $this->command->warn('  → Tambahkan ke const REK_KODE_MAP atau buat akun baru di AccountSeeder.');
-        } else {
-            $this->command->info('  ✓  Semua kode rekening Trada berhasil dipetakan.');
+            $this->command->warn('  Tambahkan kode tersebut ke const REK_KODE_MAP');
+            $this->command->warn('  atau buat akun baru di AccountSeeder.');
         }
 
         $this->command->info('═══════════════════════════════════════════════════════');

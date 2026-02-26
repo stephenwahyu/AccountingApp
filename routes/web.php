@@ -32,7 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Jurnal Routes
-    Route::prefix('jurnal')->name('jurnal.')->group(function () {
+    Route::prefix('jurnal')->name('jurnal.')->middleware('can:manage-all')->group(function () {
         // Semua Jurnal
         Route::get('/', [JurnalController::class, 'index'])->name('index');
 
@@ -79,7 +79,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Bagan Perkiraan Routes
-    Route::prefix('bagan-perkiraan')->name('bagan-perkiraan.')->group(function () {
+    Route::prefix('bagan-perkiraan')->name('bagan-perkiraan.')->middleware('can:manage-all')->group(function () {
         Route::get('/', [BaganPerkiraanController::class, 'index'])->name('index');
 
         // Akun
@@ -149,14 +149,14 @@ Route::middleware('auth')->group(function () {
         )->name('arus-kas.pdf');
     });
 
-    Route::prefix('periode')->name('periode.')->group(function () {
+    Route::prefix('periode')->name('periode.')->middleware('can:manage-all')->group(function () {
         Route::get('/', [PeriodeController::class, 'index'])->name('index');
 
         Route::post('/{period}/close', [PeriodeController::class, 'close'])->name('close');
         Route::post('/{period}/open', [PeriodeController::class, 'open'])->name('open');
     });
 
-    Route::prefix('pengguna')->name('pengguna.')->group(function () {
+    Route::prefix('pengguna')->name('pengguna.')->middleware('can:manage-all')->group(function () {
         Route::get('/', [PenggunaController::class, 'index'])->name('index');
         Route::get('/create', [PenggunaController::class, 'create'])->name('create');
         Route::post('/', [PenggunaController::class, 'store'])->name('store');

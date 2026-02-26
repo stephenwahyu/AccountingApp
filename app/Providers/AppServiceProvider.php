@@ -22,5 +22,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         JournalEntry::observe(JournalEntryObserver::class);
+
+        \Illuminate\Support\Facades\Gate::define('manage-all', function ($user) {
+            return in_array($user->role?->name, ['Akuntan', 'Admin']);
+        });
+
+        \Illuminate\Support\Facades\Gate::define('view-reports', function ($user) {
+            return in_array($user->role?->name, ['Direktur', 'Akuntan', 'Admin']);
+        });
     }
 }

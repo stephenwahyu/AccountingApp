@@ -40,11 +40,15 @@ class SendFiscalPeriodClosedNotification implements ShouldQueue
             'perubahan_ekuitas' => $this->pdfService->getRawPerubahanEkuitas($perubahanEkuitas),
         ];
 
-        // Recipient (e.g., the user who closed it or a default admin)
-        $recipient = $period->closedByUser->email ?? config('mail.from.address');
+        // Fetch all users with role 'Direktur' and 'Akuntan'
+        $recipients = \App\Models\User::whereHas('role', function ($query) {
+            $query->whereIn('name', ['Direktur', 'Akuntan']);
+        })->get();
 
-        if ($recipient) {
-            Mail::to($recipient)->send(new FiscalPeriodClosedMail($period, $reportsRawData));
+        foreach ($recipients as $recipient) {
+            if ($recipient->email) {
+                Mail::to($recipient->email)->send(new FiscalPeriodClosedMail($period, $reportsRawData));
+            }
         }
     }
 }
