@@ -27,7 +27,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Printer, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [
     { title: "Buku Besar", href: route("buku-besar") },
@@ -96,8 +96,8 @@ export default function BukuBesarPage() {
         account: initialFilters.account || "",
         period: initialPeriodId,
         dateRange: {
-            from: initialFilters.start_date ? new Date(initialFilters.start_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.start_date.replace(/-/g, '/')) : undefined),
-            to: initialFilters.end_date ? new Date(initialFilters.end_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.end_date.replace(/-/g, '/')) : undefined),
+            from: initialFilters.start_date ? parseSafeDate(initialFilters.start_date) : (initialPeriod ? parseSafeDate(initialPeriod.start_date) : undefined),
+            to: initialFilters.end_date ? parseSafeDate(initialFilters.end_date) : (initialPeriod ? parseSafeDate(initialPeriod.end_date) : undefined),
         },
     });
 
@@ -107,8 +107,11 @@ export default function BukuBesarPage() {
 
     const disabledDates = useMemo(() => {
         if (!currentPeriod) return (date) => true; // Disable all if no period
-        const startDate = new Date(currentPeriod.start_date.replace(/-/g, "/"));
-        const endDate = new Date(currentPeriod.end_date.replace(/-/g, "/"));
+        const startDate = parseSafeDate(currentPeriod.start_date);
+        const endDate = parseSafeDate(currentPeriod.end_date);
+
+        if (!startDate || !endDate) return (date) => false;
+
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
         return (date) => date < startDate || date > endDate;
@@ -121,8 +124,8 @@ export default function BukuBesarPage() {
             if (field === 'period') {
                 const newPeriod = periods.find(p => p.id.toString() === value);
                 newFilters.dateRange = {
-                    from: newPeriod ? new Date(newPeriod.start_date.replace(/-/g, '/')) : undefined,
-                    to: newPeriod ? new Date(newPeriod.end_date.replace(/-/g, '/')) : undefined
+                    from: newPeriod ? parseSafeDate(newPeriod.start_date) : undefined,
+                    to: newPeriod ? parseSafeDate(newPeriod.end_date) : undefined
                 };
             }
             return newFilters;

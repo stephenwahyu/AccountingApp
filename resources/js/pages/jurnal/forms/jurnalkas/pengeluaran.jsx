@@ -38,7 +38,7 @@ import {
     Loader2,
     AlertCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, parseSafeDate } from "@/lib/utils";
 import { toast } from "sonner";
 
 const buildTree = (accounts) => {
@@ -93,7 +93,7 @@ export default function FormPengeluaranKas({
 
     const [data, setData] = useState({
         entry_date: journal?.entry_date
-            ? new Date(journal.entry_date.replace(/-/g, "/"))
+            ? parseSafeDate(journal.entry_date)
             : new Date(),
         entry_number: journal?.entry_number || "",
         fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
@@ -148,7 +148,7 @@ export default function FormPengeluaranKas({
             setData({
                 ...data,
                 fiscal_period_id: value,
-                entry_date: new Date(newPeriod.start_date.replace(/-/g, "/")),
+                entry_date: parseSafeDate(newPeriod.start_date),
             });
         }
     };
@@ -158,10 +158,9 @@ export default function FormPengeluaranKas({
             // Disable all dates if no period is selected
             return (date) => true;
         }
-        const startDate = new Date(
-            selectedPeriod.start_date.replace(/-/g, "/"),
-        );
-        const endDate = new Date(selectedPeriod.end_date.replace(/-/g, "/"));
+        const startDate = parseSafeDate(selectedPeriod.start_date);
+        const endDate = parseSafeDate(selectedPeriod.end_date);
+        if (!startDate || !endDate) return (date) => false;
         // Set time to 0 to compare dates only
         startDate.setHours(0, 0, 0, 0);
         endDate.setHours(23, 59, 59, 999);
@@ -380,12 +379,7 @@ export default function FormPengeluaranKas({
                                             disabled={disabledDates}
                                             defaultMonth={
                                                 selectedPeriod
-                                                    ? new Date(
-                                                          selectedPeriod.start_date.replace(
-                                                              /-/g,
-                                                              "/",
-                                                          ),
-                                                      )
+                                                    ? parseSafeDate(selectedPeriod.start_date)
                                                     : undefined
                                             }
                                             id="entry_date"

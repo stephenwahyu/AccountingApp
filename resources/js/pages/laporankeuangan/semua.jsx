@@ -36,6 +36,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MoreVertical, ChevronLeft, ChevronRight, Search, FileText } from "lucide-react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [
   { title: "Laporan Keuangan", href: "/laporan-keuangan" },
@@ -147,8 +150,18 @@ export default function LaporanKeuanganSemua({ periods = [] }) {
                           <TableCell className="font-medium">
                             {period.period_name}
                           </TableCell>
-                          <TableCell>{period.start_date}</TableCell>
-                          <TableCell>{period.end_date}</TableCell>
+                          <TableCell>
+                            {(() => {
+                              const d = parseSafeDate(period.start_date);
+                              return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                            })()}
+                          </TableCell>
+                          <TableCell>
+                            {(() => {
+                              const d = parseSafeDate(period.end_date);
+                              return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                            })()}
+                          </TableCell>
                           <TableCell className="text-right">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -1,13 +1,7 @@
 {{-- resources/views/pdf/arus-kas.blade.php --}}
 @php
     use Carbon\Carbon;
-
-    function fmtRp($value): string {
-        if ($value === null || $value === '') return '-';
-        $v = floatval($value);
-        $fmt = number_format(abs($v), 0, ',', '.');
-        return $v < 0 ? '(' . $fmt . ')' : $fmt;
-    }
+    use App\Helpers\CurrencyHelper;
 
     $period      = $report['period'];
     $endDate     = Carbon::parse($period['end_date'])->locale('id')->isoFormat('D MMMM Y');
@@ -26,7 +20,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Laporan Arus Kas - {{ $period['period_name'] }}</title>
-    @include('pdf.partials.styles')
+    @include('pdf.partials.styles-laporan')
 </head>
 <body>
 <div class="page">
@@ -56,7 +50,7 @@
             @forelse($operating['items'] ?? [] as $item)
             <tr class="tr-activity-item">
                 <td>{{ $item['description'] }}</td>
-                <td class="col-value">{{ fmtRp($item['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($item['balance']) }}</td>
             </tr>
             @empty
             <tr class="tr-activity-item">
@@ -65,7 +59,7 @@
             @endforelse
             <tr class="tr-activity-total">
                 <td>Kas Bersih dari Aktivitas Operasi</td>
-                <td class="col-value">{{ fmtRp($operating['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($operating['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -77,7 +71,7 @@
             @forelse($investing['items'] ?? [] as $item)
             <tr class="tr-activity-item">
                 <td>{{ $item['description'] }}</td>
-                <td class="col-value">{{ fmtRp($item['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($item['balance']) }}</td>
             </tr>
             @empty
             <tr class="tr-activity-item">
@@ -86,7 +80,7 @@
             @endforelse
             <tr class="tr-activity-total">
                 <td>Kas Bersih dari Aktivitas Investasi</td>
-                <td class="col-value">{{ fmtRp($investing['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($investing['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -98,7 +92,7 @@
             @forelse($financing['items'] ?? [] as $item)
             <tr class="tr-activity-item">
                 <td>{{ $item['description'] }}</td>
-                <td class="col-value">{{ fmtRp($item['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($item['balance']) }}</td>
             </tr>
             @empty
             <tr class="tr-activity-item">
@@ -107,7 +101,7 @@
             @endforelse
             <tr class="tr-activity-total">
                 <td>Kas Bersih dari Aktivitas Pendanaan</td>
-                <td class="col-value">{{ fmtRp($financing['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($financing['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -115,12 +109,12 @@
             {{-- ══════ RINGKASAN KAS ══════ --}}
             <tr class="tr-subtotal">
                 <td>Kenaikan (Penurunan) Bersih Kas dan Setara Kas</td>
-                <td class="col-value">{{ fmtRp($netFlow) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($netFlow) }}</td>
             </tr>
 
             <tr class="tr-item">
                 <td>Kas dan Setara Kas Awal Periode</td>
-                <td class="col-value">{{ fmtRp($beginCash) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($beginCash) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -128,7 +122,7 @@
             {{-- SALDO AKHIR KAS --}}
             <tr class="tr-total">
                 <td>KAS DAN SETARA KAS AKHIR PERIODE</td>
-                <td class="col-value">{{ fmtRp($endCash) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($endCash) }}</td>
             </tr>
 
         </tbody>

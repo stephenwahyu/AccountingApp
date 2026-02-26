@@ -38,8 +38,20 @@ import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MoreVertical, Plus, Search, FileDown } from "lucide-react";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [{ title: "Jurnal", href: "/jurnal" }];
+
+const formatDateForQuery = (date) => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+        return null;
+    }
+    try {
+        return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    } catch (e) {
+        return null;
+    }
+}
 
 export default function JurnalSemua({ journals = [], periods = [], initialFilters = {} }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,8 +61,8 @@ export default function JurnalSemua({ journals = [], periods = [], initialFilter
   const initialPeriod = useMemo(() => periods.find(p => p.id.toString() === periodFilter), [periodFilter, periods]);
 
   const [dateRange, setDateRange] = useState({
-    from: initialFilters.start_date ? new Date(initialFilters.start_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.start_date.replace(/-/g, '/')) : undefined),
-    to: initialFilters.end_date ? new Date(initialFilters.end_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.end_date.replace(/-/g, '/')) : undefined),
+    from: initialFilters.start_date ? parseSafeDate(initialFilters.start_date) : (initialPeriod ? parseSafeDate(initialPeriod.start_date) : undefined),
+    to: initialFilters.end_date ? parseSafeDate(initialFilters.end_date) : (initialPeriod ? parseSafeDate(initialPeriod.end_date) : undefined),
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -64,8 +76,11 @@ export default function JurnalSemua({ journals = [], periods = [], initialFilter
 
   const disabledDates = useMemo(() => {
     if (!currentPeriod) return undefined; // Allow all if no period selected (Semua Periode)
-    const startDate = new Date(currentPeriod.start_date.replace(/-/g, "/"));
-    const endDate = new Date(currentPeriod.end_date.replace(/-/g, "/"));
+    const startDate = parseSafeDate(currentPeriod.start_date);
+    const endDate = parseSafeDate(currentPeriod.end_date);
+    
+    if (!startDate || !endDate) return undefined;
+
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
     return (date) => date < startDate || date > endDate;
@@ -81,8 +96,8 @@ export default function JurnalSemua({ journals = [], periods = [], initialFilter
         const selected = periods.find(p => p.id.toString() === value);
         if (selected) {
             setDateRange({
-                from: new Date(selected.start_date.replace(/-/g, '/')),
-                to: new Date(selected.end_date.replace(/-/g, '/'))
+                from: parseSafeDate(selected.start_date),
+                to: parseSafeDate(selected.end_date)
             });
         }
     } else {
@@ -94,14 +109,9 @@ export default function JurnalSemua({ journals = [], periods = [], initialFilter
     const query = {
         status: statusFilter,
         period: periodFilter,
+        start_date: formatDateForQuery(dateRange?.from),
+        end_date: formatDateForQuery(dateRange?.to)
     };
-
-    if (dateRange?.from) {
-        query.start_date = new Date(dateRange.from.getTime() - (dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    }
-    if (dateRange?.to) {
-        query.end_date = new Date(dateRange.to.getTime() - (dateRange.to.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    }
 
     router.get(route('jurnal.index'), query, {
         preserveState: true,
@@ -113,14 +123,9 @@ export default function JurnalSemua({ journals = [], periods = [], initialFilter
     const query = {
         status: statusFilter,
         period: periodFilter,
+        start_date: formatDateForQuery(dateRange?.from),
+        end_date: formatDateForQuery(dateRange?.to)
     };
-
-    if (dateRange?.from) {
-        query.start_date = new Date(dateRange.from.getTime() - (dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    }
-    if (dateRange?.to) {
-        query.end_date = new Date(dateRange.to.getTime() - (dateRange.to.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-    }
 
     window.open(route('jurnal.export.excel', query), '_blank');
   };

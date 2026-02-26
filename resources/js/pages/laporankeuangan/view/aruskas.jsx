@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Printer, FileDown, Loader2 } from "lucide-react";
+import { parseSafeDate } from "@/lib/utils";
 
 /* ─── Helpers ─────────────────────────────────────────── */
 const formatCurrency = (value) => {
@@ -28,11 +29,11 @@ const ReportHeader = ({ period }) => (
     <h2 className="text-xl font-bold mt-4 uppercase">Laporan Arus Kas</h2>
     <p className="text-sm mt-1">
       Periode yang Berakhir pada{" "}
-      {new Date(period.end_date).toLocaleDateString("id-ID", {
+      {parseSafeDate(period.end_date)?.toLocaleDateString("id-ID", {
         year: "numeric",
         month: "long",
         day: "numeric",
-      })}
+      }) || "-"}
     </p>
   </div>
 );

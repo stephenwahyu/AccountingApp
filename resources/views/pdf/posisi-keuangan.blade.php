@@ -1,17 +1,7 @@
 {{-- resources/views/pdf/posisi-keuangan.blade.php --}}
 @php
     use Carbon\Carbon;
-
-    /**
-     * Format angka ke Rupiah: 1.234.567
-     * Nilai negatif ditampilkan dengan kurung: (1.234.567)
-     */
-    function fmtRp($value): string {
-        if ($value === null || $value === '') return '-';
-        $v = floatval($value);
-        $fmt = number_format(abs($v), 0, ',', '.');
-        return $v < 0 ? '(' . $fmt . ')' : $fmt;
-    }
+    use App\Helpers\CurrencyHelper;
 
     $period      = $report['period'];
     $endDate     = Carbon::parse($period['end_date'])->locale('id')->isoFormat('D MMMM Y');
@@ -27,7 +17,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Laporan Posisi Keuangan - {{ $period['period_name'] }}</title>
-    @include('pdf.partials.styles')
+    @include('pdf.partials.styles-laporan')
 </head>
 <body>
 <div class="page">
@@ -62,12 +52,12 @@
             @foreach($cat['accounts'] ?? [] as $acc)
             <tr class="tr-item">
                 <td>{{ $acc['account_name'] }}</td>
-                <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
             </tr>
             @endforeach
             <tr class="tr-subtotal">
                 <td>Jumlah {{ $cat['category_name'] }}</td>
-                <td class="col-value">{{ fmtRp($cat['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($cat['total'] ?? 0) }}</td>
             </tr>
             <tr class="tr-spacer"><td colspan="2"></td></tr>
             @endforeach
@@ -75,7 +65,7 @@
             {{-- JUMLAH ASET --}}
             <tr class="tr-total">
                 <td>JUMLAH ASET</td>
-                <td class="col-value">{{ fmtRp($assets['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($assets['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -95,19 +85,19 @@
             @foreach($cat['accounts'] ?? [] as $acc)
             <tr class="tr-item">
                 <td>{{ $acc['account_name'] }}</td>
-                <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
             </tr>
             @endforeach
             <tr class="tr-subtotal">
                 <td>Jumlah {{ $cat['category_name'] }}</td>
-                <td class="col-value">{{ fmtRp($cat['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($cat['total'] ?? 0) }}</td>
             </tr>
             <tr class="tr-spacer"><td colspan="2"></td></tr>
             @endforeach
 
             <tr class="tr-total">
                 <td>JUMLAH LIABILITAS</td>
-                <td class="col-value">{{ fmtRp($liabilities['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($liabilities['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -123,19 +113,19 @@
             @foreach($cat['accounts'] ?? [] as $acc)
             <tr class="tr-item">
                 <td>{{ $acc['account_name'] }}</td>
-                <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
             </tr>
             @endforeach
             <tr class="tr-subtotal">
                 <td>Jumlah {{ $cat['category_name'] }}</td>
-                <td class="col-value">{{ fmtRp($cat['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($cat['total'] ?? 0) }}</td>
             </tr>
             <tr class="tr-spacer"><td colspan="2"></td></tr>
             @endforeach
 
             <tr class="tr-total">
                 <td>JUMLAH EKUITAS{{ ($equity['total'] ?? 0) < 0 ? ' (DEFISIENSI)' : '' }}</td>
-                <td class="col-value">{{ fmtRp($equity['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($equity['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -143,14 +133,14 @@
             {{-- TOTAL LIABILITAS + EKUITAS --}}
             <tr class="tr-total">
                 <td>JUMLAH LIABILITAS DAN EKUITAS{{ ($totalLE) < 0 ? ' (DEFISIENSI)' : '' }}</td>
-                <td class="col-value">{{ fmtRp($totalLE) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($totalLE) }}</td>
             </tr>
 
             {{-- Balance warning --}}
             @if(!$isBalance)
             <tr>
                 <td colspan="2" style="color:red;font-size:7.5pt;text-align:center;padding:6px 0;">
-                    ⚠ Laporan tidak balance! Selisih: {{ fmtRp(($assets['total'] ?? 0) - $totalLE) }}
+                    ⚠ Laporan tidak balance! Selisih: {{ CurrencyHelper::format(($assets['total'] ?? 0) - $totalLE) }}
                 </td>
             </tr>
             @endif

@@ -1,13 +1,7 @@
 {{-- resources/views/pdf/perubahan-ekuitas.blade.php --}}
 @php
     use Carbon\Carbon;
-
-    function fmtRp($value): string {
-        if ($value === null || $value === '') return '-';
-        $v = floatval($value);
-        $fmt = number_format(abs($v), 0, ',', '.');
-        return $v < 0 ? '(' . $fmt . ')' : $fmt;
-    }
+    use App\Helpers\CurrencyHelper;
 
     $period       = $report['period'];
     $startDate    = Carbon::parse($period['start_date'])->locale('id')->isoFormat('D MMMM Y');
@@ -24,7 +18,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Laporan Perubahan Ekuitas - {{ $period['period_name'] }}</title>
-    @include('pdf.partials.styles')
+    @include('pdf.partials.styles-laporan')
 </head>
 <body>
 <div class="page">
@@ -53,7 +47,7 @@
             </tr>
             <tr class="tr-item">
                 <td>Jumlah Ekuitas Awal</td>
-                <td class="col-value">{{ fmtRp($beginBal) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($beginBal) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -69,13 +63,13 @@
 
             <tr class="tr-pe-change">
                 <td>Laba (Rugi) Bersih Periode Berjalan</td>
-                <td class="col-value">{{ fmtRp($netIncome) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($netIncome) }}</td>
             </tr>
 
             @if($others != 0)
             <tr class="tr-pe-change">
                 <td>Perubahan Modal Lainnya</td>
-                <td class="col-value">{{ fmtRp($others) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($others) }}</td>
             </tr>
             @endif
 
@@ -83,7 +77,7 @@
             @foreach($report['custom_changes'] ?? [] as $change)
             <tr class="tr-pe-change">
                 <td>{{ $change['label'] }}</td>
-                <td class="col-value">{{ fmtRp($change['value']) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($change['value']) }}</td>
             </tr>
             @endforeach
 
@@ -91,7 +85,7 @@
 
             <tr class="tr-subtotal">
                 <td>Total Kenaikan (Penurunan) Ekuitas</td>
-                <td class="col-value">{{ fmtRp($totalChanges) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($totalChanges) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2">&nbsp;</td></tr>
@@ -99,7 +93,7 @@
             {{-- SALDO AKHIR --}}
             <tr class="tr-total">
                 <td>SALDO AKHIR PER {{ strtoupper($endDate) }}</td>
-                <td class="col-value">{{ fmtRp($endBal) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($endBal) }}</td>
             </tr>
 
         </tbody>

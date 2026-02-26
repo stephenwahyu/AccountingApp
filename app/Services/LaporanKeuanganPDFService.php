@@ -10,7 +10,7 @@ class LaporanKeuanganPDFService
 {
     private function makeDompdf(): Dompdf
     {
-        $options = new Options();
+        $options = new Options;
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', true);
         $options->set('isHtml5ParserEnabled', true);
@@ -22,39 +22,76 @@ class LaporanKeuanganPDFService
 
     private function streamPDF(string $html, string $filename): \Illuminate\Http\Response
     {
+        return response($this->generateRawPDF($html), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
+
+    public function generateRawPDF(string $html): string
+    {
         $dompdf = $this->makeDompdf();
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
-        return response($dompdf->output(), 200, [
-            'Content-Type'        => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-            'Cache-Control'       => 'no-store, no-cache',
-        ]);
+        return $dompdf->output();
     }
 
     public function posisiKeuangan(array $report): \Illuminate\Http\Response
     {
         $html = View::make('pdf.posisi-keuangan', compact('report'))->render();
-        return $this->streamPDF($html, 'laporan-posisi-keuangan-' . date('Ymd') . '.pdf');
+
+        return $this->streamPDF($html, 'laporan-posisi-keuangan-'.date('Ymd').'.pdf');
+    }
+
+    public function getRawPosisiKeuangan(array $report): string
+    {
+        $html = View::make('pdf.posisi-keuangan', compact('report'))->render();
+
+        return $this->generateRawPDF($html);
     }
 
     public function labaRugi(array $report): \Illuminate\Http\Response
     {
         $html = View::make('pdf.laba-rugi', compact('report'))->render();
-        return $this->streamPDF($html, 'laporan-laba-rugi-' . date('Ymd') . '.pdf');
+
+        return $this->streamPDF($html, 'laporan-laba-rugi-'.date('Ymd').'.pdf');
+    }
+
+    public function getRawLabaRugi(array $report): string
+    {
+        $html = View::make('pdf.laba-rugi', compact('report'))->render();
+
+        return $this->generateRawPDF($html);
     }
 
     public function perubahanEkuitas(array $report): \Illuminate\Http\Response
     {
         $html = View::make('pdf.perubahan-ekuitas', compact('report'))->render();
-        return $this->streamPDF($html, 'laporan-perubahan-ekuitas-' . date('Ymd') . '.pdf');
+
+        return $this->streamPDF($html, 'laporan-perubahan-ekuitas-'.date('Ymd').'.pdf');
+    }
+
+    public function getRawPerubahanEkuitas(array $report): string
+    {
+        $html = View::make('pdf.perubahan-ekuitas', compact('report'))->render();
+
+        return $this->generateRawPDF($html);
     }
 
     public function arusKas(array $report): \Illuminate\Http\Response
     {
         $html = View::make('pdf.arus-kas', compact('report'))->render();
-        return $this->streamPDF($html, 'laporan-arus-kas-' . date('Ymd') . '.pdf');
+
+        return $this->streamPDF($html, 'laporan-arus-kas-'.date('Ymd').'.pdf');
+    }
+
+    public function getRawArusKas(array $report): string
+    {
+        $html = View::make('pdf.arus-kas', compact('report'))->render();
+
+        return $this->generateRawPDF($html);
     }
 }

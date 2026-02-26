@@ -37,4 +37,18 @@ class FiscalPeriod extends Model
     {
         return $this->hasMany(JournalEntry::class);
     }
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'start_date' => 'date',
+            'end_date' => 'date',
+            'closed_at' => 'datetime',
+        ];
+    }
 }

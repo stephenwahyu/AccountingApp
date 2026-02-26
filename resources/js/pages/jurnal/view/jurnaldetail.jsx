@@ -22,6 +22,7 @@ import { ArrowLeft, Pencil, Trash2, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+import { parseSafeDate } from "@/lib/utils";
 
 export default function ViewDetailJurnal({ journal }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -163,7 +164,10 @@ export default function ViewDetailJurnal({ journal }) {
                     </div>
                     <div className="text-left @lg:text-right">
                         <p className="text-sm text-muted-foreground">Tanggal Jurnal</p>
-                        <p className="font-medium">{journal.entry_date ? format(new Date(journal.entry_date), "d MMMM yyyy", { locale: id }) : '-'}</p>
+                        <p className="font-medium">{(() => {
+                            const d = parseSafeDate(journal.entry_date);
+                            return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                        })()}</p>
                     </div>
                 </div>
             </CardHeader>

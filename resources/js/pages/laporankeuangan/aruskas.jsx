@@ -40,6 +40,9 @@ import {
     Search,
     FileText,
 } from "lucide-react";
+import { format } from "date-fns";
+import { id } from "date-fns/locale";
+import { parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [
     { title: "Laporan Keuangan", href: "#" },
@@ -161,10 +164,16 @@ export default function ArusKasList({ periods = [] }) {
                                                             {period.period_name}
                                                         </TableCell>
                                                         <TableCell>
-                                                            {period.start_date}
+                                                            {(() => {
+                                                            const d = parseSafeDate(period.start_date);
+                                                            return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                                                            })()}
                                                         </TableCell>
                                                         <TableCell>
-                                                            {period.end_date}
+                                                            {(() => {
+                                                            const d = parseSafeDate(period.end_date);
+                                                            return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                                                            })()}
                                                         </TableCell>
                                                         <TableCell>
                                                             <Badge

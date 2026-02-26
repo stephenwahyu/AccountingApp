@@ -13,7 +13,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { formatCurrency, cn } from "@/lib/utils"
+import { formatCurrency, cn, parseSafeDate } from "@/lib/utils"
 
 const chartConfig = {
   pendapatan: {
@@ -102,11 +102,11 @@ export function RevenueExpenseChart({
                             tickMargin={8}
                             minTickGap={32}
                             tickFormatter={value => {
-                                const date = new Date(value)
-                                return date.toLocaleDateString("id-ID", {
+                                const date = parseSafeDate(value)
+                                return date ? date.toLocaleDateString("id-ID", {
                                     month: "short",
                                     day: "numeric",
-                                })
+                                }) : value
                             }}
                         />
                         <YAxis 

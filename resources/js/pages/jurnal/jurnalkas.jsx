@@ -40,6 +40,7 @@ import { ChevronDown, MoreVertical, Plus, Search, FileDown } from "lucide-react"
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [
   { title: "Jurnal", href: "/jurnal" },
@@ -55,8 +56,8 @@ export default function JurnalKas({ journals = [], periods = [], initialFilters 
   const initialPeriod = useMemo(() => periods.find(p => p.id.toString() === periodFilter), [periodFilter, periods]);
 
   const [dateRange, setDateRange] = useState({
-    from: initialFilters.start_date ? new Date(initialFilters.start_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.start_date.replace(/-/g, '/')) : undefined),
-    to: initialFilters.end_date ? new Date(initialFilters.end_date.replace(/-/g, '/')) : (initialPeriod ? new Date(initialPeriod.end_date.replace(/-/g, '/')) : undefined),
+    from: initialFilters.start_date ? parseSafeDate(initialFilters.start_date) : (initialPeriod ? parseSafeDate(initialPeriod.start_date) : undefined),
+    to: initialFilters.end_date ? parseSafeDate(initialFilters.end_date) : (initialPeriod ? parseSafeDate(initialPeriod.end_date) : undefined),
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -70,8 +71,9 @@ export default function JurnalKas({ journals = [], periods = [], initialFilters 
 
   const disabledDates = useMemo(() => {
     if (!currentPeriod) return undefined;
-    const startDate = new Date(currentPeriod.start_date.replace(/-/g, "/"));
-    const endDate = new Date(currentPeriod.end_date.replace(/-/g, "/"));
+    const startDate = parseSafeDate(currentPeriod.start_date);
+    const endDate = parseSafeDate(currentPeriod.end_date);
+    if (!startDate || !endDate) return undefined;
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
     return (date) => date < startDate || date > endDate;
@@ -87,8 +89,8 @@ export default function JurnalKas({ journals = [], periods = [], initialFilters 
         const selected = periods.find(p => p.id.toString() === value);
         if (selected) {
             setDateRange({
-                from: new Date(selected.start_date.replace(/-/g, '/')),
-                to: new Date(selected.end_date.replace(/-/g, '/'))
+                from: parseSafeDate(selected.start_date),
+                to: parseSafeDate(selected.end_date)
             });
         }
     } else {

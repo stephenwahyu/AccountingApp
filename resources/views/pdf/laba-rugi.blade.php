@@ -1,13 +1,7 @@
 {{-- resources/views/pdf/laba-rugi.blade.php --}}
 @php
     use Carbon\Carbon;
-
-    function fmtRp($value): string {
-        if ($value === null || $value === '') return '-';
-        $v = floatval($value);
-        $fmt = number_format(abs($v), 0, ',', '.');
-        return $v < 0 ? '(' . $fmt . ')' : $fmt;
-    }
+    use App\Helpers\CurrencyHelper;
 
     $period    = $report['period'];
     $endDate   = Carbon::parse($period['end_date'])->locale('id')->isoFormat('D MMMM Y');
@@ -27,7 +21,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Laporan Laba Rugi - {{ $period['period_name'] }}</title>
-    @include('pdf.partials.styles')
+    @include('pdf.partials.styles-laporan')
 </head>
 <body>
 <div class="page">
@@ -58,13 +52,13 @@
                 @foreach($cat['accounts'] ?? [] as $acc)
                 <tr class="tr-item">
                     <td>{{ $acc['account_name'] }}</td>
-                    <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                    <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
                 </tr>
                 @endforeach
             @endforeach
             <tr class="tr-subtotal">
                 <td>Total Pendapatan Usaha</td>
-                <td class="col-value">{{ fmtRp($sales['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($sales['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2"></td></tr>
@@ -77,13 +71,13 @@
                 @foreach($cat['accounts'] ?? [] as $acc)
                 <tr class="tr-item">
                     <td>{{ $acc['account_name'] }}</td>
-                    <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                    <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
                 </tr>
                 @endforeach
             @endforeach
             <tr class="tr-subtotal">
                 <td>Total Harga Pokok Penjualan</td>
-                <td class="col-value">{{ fmtRp($cogs['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($cogs['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2"></td></tr>
@@ -91,7 +85,7 @@
             {{-- 3. LABA KOTOR --}}
             <tr class="tr-total" style="background-color: #f9f9f9;">
                 <td>LABA KOTOR</td>
-                <td class="col-value">{{ fmtRp($grossProfit) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($grossProfit) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2"></td></tr>
@@ -107,13 +101,13 @@
                 @foreach($cat['accounts'] ?? [] as $acc)
                 <tr class="tr-item">
                     <td>{{ $acc['account_name'] }}</td>
-                    <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                    <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
                 </tr>
                 @endforeach
             @endforeach
             <tr class="tr-subtotal">
                 <td>Total Beban Operasional</td>
-                <td class="col-value">{{ fmtRp($operatingExpenses['total'] ?? 0) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($operatingExpenses['total'] ?? 0) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2"></td></tr>
@@ -121,7 +115,7 @@
             {{-- 5. LABA OPERASIONAL --}}
             <tr class="tr-total" style="background-color: #f9f9f9;">
                 <td>LABA OPERASIONAL</td>
-                <td class="col-value">{{ fmtRp($operatingProfit) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($operatingProfit) }}</td>
             </tr>
 
             <tr class="tr-spacer"><td colspan="2"></td></tr>
@@ -134,7 +128,7 @@
                 @foreach($cat['accounts'] ?? [] as $acc)
                 <tr class="tr-item">
                     <td>{{ $acc['account_name'] }}</td>
-                    <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                    <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
                 </tr>
                 @endforeach
             @endforeach
@@ -142,7 +136,7 @@
                 @foreach($cat['accounts'] ?? [] as $acc)
                 <tr class="tr-item">
                     <td>{{ $acc['account_name'] }}</td>
-                    <td class="col-value">{{ fmtRp($acc['balance']) }}</td>
+                    <td class="col-value">{{ CurrencyHelper::format($acc['balance']) }}</td>
                 </tr>
                 @endforeach
             @endforeach
@@ -152,7 +146,7 @@
             {{-- 7. LABA BERSIH --}}
             <tr class="tr-total">
                 <td>{{ $isProfit ? 'LABA BERSIH' : 'RUGI BERSIH' }}</td>
-                <td class="col-value">{{ fmtRp($net) }}</td>
+                <td class="col-value">{{ CurrencyHelper::format($net) }}</td>
             </tr>
 
         </tbody>

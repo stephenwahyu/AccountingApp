@@ -52,7 +52,11 @@ class PeriodeController extends Controller
                         $beginningBalance = $this->calculateLiveBalance($account, Carbon::parse('1900-01-01'), $calculationStartDate->copy()->subDay());
                     }
                 } else {
-                    $beginningBalance = (float) $account->initial_balance;
+                    $initial = (float) $account->initial_balance;
+                    if ($account->accountCategory->accountType->normal_balance !== 'Debit') {
+                        $initial = -$initial;
+                    }
+                    $beginningBalance = $initial;
                 }
 
                 // 2. Calculate current period movements
@@ -90,7 +94,12 @@ class PeriodeController extends Controller
             )
             ->first();
 
-        $balance = (float) $account->initial_balance + (float) ($movement->total_debit ?? 0) - (float) ($movement->total_credit ?? 0);
+        $initial = (float) $account->initial_balance;
+        if ($account->accountCategory->accountType->normal_balance !== 'Debit') {
+            $initial = -$initial;
+        }
+
+        $balance = $initial + (float) ($movement->total_debit ?? 0) - (float) ($movement->total_credit ?? 0);
 
         // Note: The above calculation treats everything as Debit-centered because of the table schema constraint.
         // We will stick to this for consistency with the 'ending_balance' stored column.

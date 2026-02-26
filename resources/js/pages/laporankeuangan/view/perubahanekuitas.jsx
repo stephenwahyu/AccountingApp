@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Printer, FileDown, Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import { parseSafeDate } from "@/lib/utils";
 
 /* ─── Helpers ─────────────────────────────────────────── */
 const formatCurrency = (value) => {
@@ -27,11 +28,11 @@ const ReportHeader = ({ period }) => (
     <h2 className="text-xl font-bold mt-4 uppercase">Laporan Perubahan Ekuitas</h2>
     <p className="text-sm mt-1">
       Periode yang Berakhir pada{" "}
-      {new Date(period.end_date).toLocaleDateString("id-ID", {
+      {parseSafeDate(period.end_date)?.toLocaleDateString("id-ID", {
         year: "numeric",
         month: "long",
         day: "numeric",
-      })}
+      }) || "-"}
     </p>
   </div>
 );
@@ -57,12 +58,12 @@ export default function ViewPerubahanEkuitas({ report }) {
   const totalChanges = (changes.net_income ?? 0) + (changes.others ?? 0);
   const isPositive   = totalChanges >= 0;
 
-  const startDateStr = new Date(period.start_date).toLocaleDateString("id-ID", {
+  const startDateStr = parseSafeDate(period.start_date)?.toLocaleDateString("id-ID", {
     year: "numeric", month: "long", day: "numeric",
-  });
-  const endDateStr = new Date(period.end_date).toLocaleDateString("id-ID", {
+  }) || "-";
+  const endDateStr = parseSafeDate(period.end_date)?.toLocaleDateString("id-ID", {
     year: "numeric", month: "long", day: "numeric",
-  });
+  }) || "-";
 
   const breadcrumbs = [
     { title: "Laporan Keuangan", href: "/laporan-keuangan" },

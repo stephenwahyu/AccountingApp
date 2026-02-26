@@ -38,3 +38,14 @@ export function formatCompactNumber(value) {
   
   return formatter.format(numericValue);
 }
+
+export function parseSafeDate(dateStr) {
+  if (!dateStr || dateStr === "null" || dateStr === "undefined") return undefined;
+  if (dateStr instanceof Date) {
+    return isNaN(dateStr.getTime()) ? undefined : dateStr;
+  }
+  const str = String(dateStr);
+  const normalizedStr = str.includes('T') ? str : str.replace(/-/g, '/');
+  const d = new Date(normalizedStr);
+  return isNaN(d.getTime()) ? undefined : d;
+}

@@ -8,6 +8,7 @@ import {
   Table, TableBody, TableCell, TableFooter, TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Printer, FileDown, Loader2 } from "lucide-react";
+import { parseSafeDate } from "@/lib/utils";
 
 /* ─── Helpers ─────────────────────────────────────────── */
 const formatCurrency = (value) => {
@@ -30,11 +31,11 @@ const ReportHeader = ({ period }) => (
     <h2 className="text-xl font-bold mt-4 uppercase">Laporan Laba Rugi</h2>
     <p className="text-sm mt-1">
       Periode yang Berakhir pada{" "}
-      {new Date(period.end_date).toLocaleDateString("id-ID", {
+      {parseSafeDate(period.end_date)?.toLocaleDateString("id-ID", {
         year: "numeric",
         month: "long",
         day: "numeric",
-      })}
+      }) || "-"}
     </p>
   </div>
 );

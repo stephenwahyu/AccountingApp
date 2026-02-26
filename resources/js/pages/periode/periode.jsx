@@ -38,6 +38,7 @@ import { Badge } from "@/components/ui/badge";
 import { MoreVertical, Lock, Unlock } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { parseSafeDate } from "@/lib/utils";
 
 const breadcrumbs = [{ title: "Periode Akuntansi", href: "/periode" }];
 
@@ -101,16 +102,16 @@ export default function PeriodeIndex({ periods = [] }) {
                             {period.period_name}
                           </TableCell>
                           <TableCell>
-                            {format(
-                              new Date(period.start_date),
-                              "d MMMM yyyy",
-                              { locale: id }
-                            )}
+                            {(() => {
+                              const d = parseSafeDate(period.start_date);
+                              return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                            })()}
                           </TableCell>
                           <TableCell>
-                            {format(new Date(period.end_date), "d MMMM yyyy", {
-                              locale: id,
-                            })}
+                            {(() => {
+                              const d = parseSafeDate(period.end_date);
+                              return d ? format(d, "d MMMM yyyy", { locale: id }) : "-";
+                            })()}
                           </TableCell>
                           <TableCell>
                             <Badge variant={getStatusVariant(period.status)}>
