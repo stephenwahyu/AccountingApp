@@ -40,9 +40,9 @@ class SendFiscalPeriodClosedNotification implements ShouldQueue
             'perubahan_ekuitas' => $this->pdfService->getRawPerubahanEkuitas($perubahanEkuitas),
         ];
 
-        // Fetch all users with role 'Direktur' and 'Akuntan'
+        // Fetch all users with role 'Pemimpin', 'Admin', and 'Akuntan'
         $recipients = \App\Models\User::whereHas('role', function ($query) {
-            $query->whereIn('name', ['Direktur', 'Akuntan']);
+            $query->whereIn('name', ['Pemimpin', 'Admin', 'Akuntan']);
         })->get();
 
         foreach ($recipients as $recipient) {

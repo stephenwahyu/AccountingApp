@@ -40,7 +40,7 @@ export function AppSidebar({ ...props }) {
             url: route("bagan-perkiraan.index"),
             icon: AccountTree,
             isActive: url.startsWith("/bagan-perkiraan"),
-            hidden: user.role?.name === "Direktur",
+            hidden: user.role?.name !== "Akuntan",
             items: [
                 {
                     title: "Akun",
@@ -64,7 +64,7 @@ export function AppSidebar({ ...props }) {
             url: route("jurnal.index"),
             icon: MenuBook,
             isActive: url.startsWith("/jurnal"),
-            hidden: user.role?.name === "Direktur",
+            hidden: user.role?.name !== "Akuntan",
             items: [
                 {
                     title: "Jurnal Umum",
@@ -100,7 +100,7 @@ export function AppSidebar({ ...props }) {
             url: route("periode.index"),
             icon: CalendarMonth,
             isActive: url.startsWith("/periode"),
-            hidden: user.role?.name === "Direktur",
+            hidden: user.role?.name !== "Akuntan",
         },
         {
             title: "Laporan Keuangan",
@@ -139,7 +139,7 @@ export function AppSidebar({ ...props }) {
             url: route("pengguna.index"),
             icon: ManageAccounts,
             isActive: url.startsWith("/pengguna"),
-            hidden: user.role?.name === "Direktur",
+            hidden: !["Admin", "Akuntan"].includes(user.role?.name),
         },
     ].filter(item => !item.hidden);
 

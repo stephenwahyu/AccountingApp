@@ -20,17 +20,17 @@ class RoleSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'name' => 'Direktur',
-                'description' => 'Director with access to view reports',
+                'name' => 'Pemimpin',
+                'description' => 'Leader with access to view reports and dashboard',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            [
-                'name' => 'Admin',
-                'description' => 'Administrator with full access',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+            // [
+            //     'name' => 'Admin',
+            //     'description' => 'Administrator with full access',
+            //     'created_at' => now(),
+            //     'updated_at' => now(),
+            // ],
         ]);
     }
 }

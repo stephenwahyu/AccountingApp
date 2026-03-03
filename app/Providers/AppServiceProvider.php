@@ -23,12 +23,19 @@ class AppServiceProvider extends ServiceProvider
     {
         JournalEntry::observe(JournalEntryObserver::class);
 
-        \Illuminate\Support\Facades\Gate::define('manage-all', function ($user) {
-            return in_array($user->role?->name, ['Akuntan', 'Admin']);
+        // Can manage users (Manajer/Admin/Akuntan)
+        \Illuminate\Support\Facades\Gate::define('manage-users', function ($user) {
+            return in_array($user->role?->name, ['Admin', 'Akuntan']);
         });
 
+        // Can manage accounting transactions (Akuntan)
+        \Illuminate\Support\Facades\Gate::define('manage-accounting', function ($user) {
+            return $user->role?->name === 'Akuntan';
+        });
+
+        // Can view reports and dashboard (All)
         \Illuminate\Support\Facades\Gate::define('view-reports', function ($user) {
-            return in_array($user->role?->name, ['Direktur', 'Akuntan', 'Admin']);
+            return in_array($user->role?->name, ['Pemimpin', 'Admin', 'Akuntan']);
         });
     }
 }

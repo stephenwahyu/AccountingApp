@@ -18,6 +18,7 @@
 /public/storage
 /storage/*.key
 /storage/pail
+database/seeders/data
 /vendor
 Homestead.json
 Homestead.yaml
