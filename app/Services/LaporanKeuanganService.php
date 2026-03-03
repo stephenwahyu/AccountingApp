@@ -9,7 +9,7 @@ class LaporanKeuanganService
 {
     public function getPosisiKeuangan(FiscalPeriod $period)
     {
-        $balances = $this->calculateBalancesForPeriod($period);
+        $balances = $this->calculateBalancesForPeriod($period, true);
 
         $groupByCategory = function ($typeBalances) {
             return $typeBalances->groupBy('category_name')->map(function ($items, $categoryName) {
@@ -83,7 +83,8 @@ class LaporanKeuanganService
 
     public function getLabaRugi(FiscalPeriod $period)
     {
-        $balances = $this->calculateBalancesForPeriod($period);
+        // For Profit & Loss, we only want the movements within the period (not cumulative from start)
+        $balances = $this->calculateBalancesForPeriod($period, false);
 
         $getGroup = function ($categoryNames) use ($balances) {
             $names = is_array($categoryNames) ? $categoryNames : [$categoryNames];
@@ -243,7 +244,7 @@ class LaporanKeuanganService
         ];
     }
 
-    private function calculateBalancesForPeriod(FiscalPeriod $period)
+    private function calculateBalancesForPeriod(FiscalPeriod $period, bool $cumulative = true)
     {
         $snapshotBalances = DB::table('account_balances as ab')
             ->join('accounts as a', 'ab.account_id', '=', 'a.id')
@@ -267,26 +268,36 @@ class LaporanKeuanganService
             ->get();
 
         if ($snapshotBalances->isNotEmpty()) {
-            return $snapshotBalances->map(function ($item) {
-                // Because ending_balance is stored as (beg + deb) - cred (Debit-centered),
-                // we must flip the sign for Credit-normal accounts to get their positive balance.
-                if ($item->normal_balance === 'Debit') {
-                    $item->balance = (float) $item->raw_ending_balance;
+            return $snapshotBalances->map(function ($item) use ($cumulative) {
+                if ($cumulative) {
+                    $rawBalance = (float) $item->raw_ending_balance;
                 } else {
-                    $item->balance = -(float) $item->raw_ending_balance;
+                    // Non-cumulative calculation: strictly period movement
+                    $rawBalance = (float) $item->total_debit - (float) $item->total_credit;
+                }
+
+                if ($item->normal_balance === 'Debit') {
+                    $item->balance = $rawBalance;
+                } else {
+                    $item->balance = -$rawBalance;
                 }
 
                 return $item;
             });
         }
 
+        // Fallback for periods without snapshots (like Quarterly/Annually)
+        $dateFilter = $cumulative
+            ? "je.entry_date <= '{$period->end_date}'"
+            : "je.entry_date BETWEEN '{$period->start_date}' AND '{$period->end_date}'";
+
         return DB::table('accounts as a')
             ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
             ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
+            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as period_debit, SUM(jd.credit) as period_credit 
                                 FROM journal_details jd 
                                 JOIN journal_entries je ON jd.journal_entry_id = je.id 
-                                WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
+                                WHERE je.status = 'Posted' AND {$dateFilter}
                                 GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
             ->select(
                 'a.id as account_id',
@@ -296,17 +307,19 @@ class LaporanKeuanganService
                 'at.normal_balance',
                 'ac.id as category_id',
                 'ac.name as category_name',
-                'a.initial_balance as start_balance',
-                DB::raw('COALESCE(period_jd.cumulative_debit, 0) as total_debit'),
-                DB::raw('COALESCE(period_jd.cumulative_credit, 0) as total_credit')
+                'a.initial_balance as initial_migration_balance',
+                DB::raw('COALESCE(period_jd.period_debit, 0) as total_debit'),
+                DB::raw('COALESCE(period_jd.period_credit, 0) as total_credit')
             )
             ->where('a.is_active', 1)
             ->get()
-            ->map(function ($item) {
+            ->map(function ($item) use ($cumulative) {
+                $start = $cumulative ? (float) $item->initial_migration_balance : 0;
+
                 if ($item->normal_balance === 'Debit') {
-                    $item->balance = (float) $item->start_balance + (float) $item->total_debit - (float) $item->total_credit;
+                    $item->balance = $start + (float) $item->total_debit - (float) $item->total_credit;
                 } else {
-                    $item->balance = (float) $item->start_balance + (float) $item->total_credit - (float) $item->total_debit;
+                    $item->balance = $start + (float) $item->total_credit - (float) $item->total_debit;
                 }
 
                 return $item;

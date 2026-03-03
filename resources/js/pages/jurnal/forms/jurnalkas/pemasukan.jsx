@@ -255,12 +255,12 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
                 {processing && submittedStatus === 'Posted' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Simpan & Posting
               </Button>
-               {isEdit && (
+               {/* {isEdit && (
                  <Button type="button" variant="outline" className="w-full sm:w-auto">
                     <Printer className="h-4 w-4 mr-2" />
                     Cetak
                  </Button>
-              )}
+              )} */}
             </div>
           </div>
 

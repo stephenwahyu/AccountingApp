@@ -169,7 +169,7 @@ body {
                 </tr>
             </thead>
             <tbody>
-                @foreach ($journal->journalDetails as $detail)
+                @foreach ($details as $detail)
                 <tr>
                     <td class="text-center">{{ $detail->account->account_code }}</td>
                     <td>{{ $detail->description }}</td>
@@ -184,7 +184,7 @@ body {
                 @endforeach
 
                 <!-- Baris kosong agar tabel stabil -->
-                @for ($i = count($journal->journalDetails); $i < 5; $i++)
+                @for ($i = count($details); $i < 5; $i++)
                 <tr>
                     <td>&nbsp;</td>
                     <td>&nbsp;</td>

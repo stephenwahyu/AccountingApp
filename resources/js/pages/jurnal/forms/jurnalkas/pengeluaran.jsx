@@ -334,7 +334,7 @@ export default function FormPengeluaranKas({
                                 )}
                                 Simpan & Posting
                             </Button>
-                            {isEdit && (
+                            {/* {isEdit && (
                                 <Button
                                     type="button"
                                     variant="outline"
@@ -343,7 +343,7 @@ export default function FormPengeluaranKas({
                                     <Printer className="h-4 w-4 mr-2" />
                                     Cetak
                                 </Button>
-                            )}
+                            )} */}
                         </div>
                     </div>
 

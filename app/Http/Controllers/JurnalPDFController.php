@@ -15,6 +15,15 @@ class JurnalPDFController extends Controller
     {
         $journal->load(['journalDetails.account', 'user']);
 
+        // Filter out cash/bank accounts for Cash/Bank vouchers
+        // (Don't show the cash account itself in the voucher table as requested)
+        $details = $journal->journalDetails;
+        if (str_contains($journal->journal_type, 'Kas') || str_contains($journal->journal_type, 'Bank')) {
+            $details = $journal->journalDetails->filter(function($detail) {
+                return !$detail->account->is_cash_account;
+            });
+        }
+
         // Judul Voucher berdasarkan tipe
         $title = "Voucher Jurnal";
         if ($journal->journal_type === 'Kas Masuk') $title = "Penerimaan Kas";
@@ -38,6 +47,7 @@ class JurnalPDFController extends Controller
             'company_name' => config('app.company_name', 'PT. Sarana Pembangunan Riau'),
             'title' => $title,
             'journal' => $journal,
+            'details' => $details,
             'total' => $total,
             'terbilang' => $terbilang,
         ];
