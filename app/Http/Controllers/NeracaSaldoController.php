@@ -112,7 +112,7 @@ class NeracaSaldoController extends Controller
         $hierarchy = collect();
 
         foreach ($accounts->where('parent_id', $parentId) as $account) {
-            $isCreditNormal = $account->accountCategory->accountType->normal_balance === 'credit';
+            $isCreditNormal = $account->accountCategory->accountType->normal_balance === 'Kredit';
 
             $openingMovement = $openingMovements->get($account->id);
             $periodMovement = $periodMovements->get($account->id);

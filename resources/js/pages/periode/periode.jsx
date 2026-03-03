@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import {
@@ -17,12 +17,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -35,7 +29,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MoreVertical, Lock, Unlock } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { MoreVertical, Lock, Unlock, Search } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { parseSafeDate } from "@/lib/utils";
@@ -43,6 +40,10 @@ import { parseSafeDate } from "@/lib/utils";
 const breadcrumbs = [{ title: "Periode Akuntansi", href: "/periode" }];
 
 export default function PeriodeIndex({ periods = [] }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const getStatusVariant = (status) => {
     switch (status) {
       case "Open":
@@ -61,6 +62,25 @@ export default function PeriodeIndex({ periods = [] }) {
         : route("periode.open", period.id);
     router.post(url, {}, { preserveScroll: true });
   };
+
+  const filteredPeriods = useMemo(() => {
+    return periods.filter((period) => {
+      const searchTermLower = searchTerm.toLowerCase();
+      return (
+        period.period_name.toLowerCase().includes(searchTermLower) ||
+        period.period_type.toLowerCase().includes(searchTermLower) ||
+        period.status.toLowerCase().includes(searchTermLower)
+      );
+    });
+  }, [periods, searchTerm]);
+
+  const totalRows = filteredPeriods.length;
+  const totalPages = Math.ceil(totalRows / rowsPerPage);
+
+  const paginatedPeriods = useMemo(() => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    return filteredPeriods.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredPeriods, currentPage, rowsPerPage]);
 
   return (
     <>
@@ -83,11 +103,32 @@ export default function PeriodeIndex({ periods = [] }) {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex flex-col md:flex-row gap-4 mb-6">
+                <div className="grid gap-2 w-full md:max-w-sm">
+                  <Label className="text-xs uppercase text-muted-foreground font-semibold">Cari</Label>
+                  <div className="flex items-center border rounded-md px-2 w-full">
+                    <Search className="h-4 w-4 text-muted-foreground mr-2" />
+                    <Input
+                      type="search"
+                      placeholder="Cari periode..."
+                      className="flex-1 border-none focus:ring-0 w-full"
+                      value={searchTerm}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="border rounded-lg overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-16">No.</TableHead>
                       <TableHead>Nama Periode</TableHead>
+                      <TableHead>Tipe</TableHead>
                       <TableHead>Tanggal Mulai</TableHead>
                       <TableHead>Tanggal Selesai</TableHead>
                       <TableHead>Status</TableHead>
@@ -95,11 +136,17 @@ export default function PeriodeIndex({ periods = [] }) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {periods.length > 0 ? (
-                      periods.map((period) => (
+                    {paginatedPeriods.length > 0 ? (
+                      paginatedPeriods.map((period, index) => (
                         <TableRow key={period.id}>
+                          <TableCell>
+                            {(currentPage - 1) * rowsPerPage + index + 1}.
+                          </TableCell>
                           <TableCell className="font-medium">
                             {period.period_name}
+                          </TableCell>
+                          <TableCell className="capitalize">
+                            {period.period_type}
                           </TableCell>
                           <TableCell>
                             {(() => {
@@ -135,7 +182,7 @@ export default function PeriodeIndex({ periods = [] }) {
                                   ) : (
                                     <Unlock className="mr-2 h-4 w-4" />
                                   )}
-                                  <span>{period.status === "Open" ? "Tutup Periode" : "Buka Periode"}</span>
+                                  <span>{period.status === "Open" ? "Tutup" : "Buka"}</span>
                                 </Button>
                               </AlertDialogTrigger>
                               <AlertDialogContent>
@@ -176,7 +223,7 @@ export default function PeriodeIndex({ periods = [] }) {
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center h-24">
+                        <TableCell colSpan={7} className="text-center h-24">
                           Tidak ada data periode.
                         </TableCell>
                       </TableRow>
@@ -184,6 +231,18 @@ export default function PeriodeIndex({ periods = [] }) {
                   </TableBody>
                 </Table>
               </div>
+              <DataTablePagination
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={(value) => {
+                  setRowsPerPage(value);
+                  setCurrentPage(1);
+                }}
+                currentPage={currentPage}
+                onPageChange={setCurrentPage}
+                totalPages={totalPages}
+                totalRows={totalRows}
+                paginatedRows={paginatedPeriods}
+              />
             </CardContent>
           </Card>
         </div>

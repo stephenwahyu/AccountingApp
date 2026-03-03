@@ -150,15 +150,6 @@ export default function ViewPosisiKeuangan({ report }) {
                         </Button>
                         <div className="flex gap-2">
                             <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handlePrint}
-                                className="gap-2"
-                            >
-                                <Printer className="h-4 w-4" />
-                                Cetak
-                            </Button>
-                            <Button
                                 variant="default"
                                 size="sm"
                                 onClick={handleDownloadPDF}
@@ -193,7 +184,7 @@ export default function ViewPosisiKeuangan({ report }) {
                                     ))}
 
                                     {/* Total Aset */}
-                                    <div className="flex justify-between items-center p-3 bg-muted/50 border font-bold text-sm uppercase tracking-wide">
+                                    <div className="flex justify-between items-center p-3 text-primary-foreground bg-primary border font-bold text-sm uppercase tracking-wide">
                                         <span>Total Aset</span>
                                         <span className="font-mono">
                                             {formatCurrency(assets.total)}

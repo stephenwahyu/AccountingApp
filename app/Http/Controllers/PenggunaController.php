@@ -111,8 +111,17 @@ class PenggunaController extends Controller
             return redirect()->back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
-        $user->delete();
+        // Check if user has associated records (e.g., journal entries, closed periods)
+        if ($user->journalEntries()->exists() || $user->postedJournalEntries()->exists() || $user->closedFiscalPeriods()->exists()) {
+            return redirect()->back()->with('error', 'Tidak dapat menghapus pengguna yang sudah memiliki riwayat aktivitas (jurnal/periode).');
+        }
 
-        return redirect()->route('pengguna.index')->with('success', 'Pengguna berhasil dihapus.');
+        try {
+            $user->delete();
+
+            return redirect()->route('pengguna.index')->with('success', 'Pengguna berhasil dihapus.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal menghapus pengguna: '.$e->getMessage());
+        }
     }
 }

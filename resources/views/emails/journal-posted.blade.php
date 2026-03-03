@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Notifikasi Posting Jurnal</title>
+    <title>Voucher Jurnal Transaksi</title>
     <style>
         body { font-family: sans-serif; line-height: 1.6; color: #333; }
         .container { width: 80%; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
@@ -15,15 +15,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h2>Notifikasi Posting Jurnal</h2>
+            <h2>Voucher Jurnal Transaksi</h2>
         </div>
         
         <p>Halo,</p>
-        <p>Jurnal berikut telah berhasil di-posting:</p>
+        <p>Jurnal transaksi berikut telah berhasil di-posting ke dalam sistem. Silakan lihat file PDF yang dilampirkan pada email ini untuk rincian Voucher Transaksi lengkap.</p>
         
         <table>
             <tr>
-                <th>Nomor Jurnal</th>
+                <th width="30%">Nomor Jurnal</th>
                 <td>{{ $journal->entry_number }}</td>
             </tr>
             <tr>
@@ -42,33 +42,9 @@
                 <th>Penerima</th>
                 <td>{{ $journal->penerima ?: '-' }}</td>
             </tr>
-            <tr>
-                <th>Di-posting Oleh</th>
-                <td>{{ $journal->postedByUser->name ?? 'System' }}</td>
-            </tr>
         </table>
 
-        <h3>Detail Transaksi:</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Akun</th>
-                    <th>Deskripsi</th>
-                    <th>Debit</th>
-                    <th>Kredit</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($journal->journalDetails as $detail)
-                <tr>
-                    <td>{{ $detail->account->account_code }} - {{ $detail->account->account_name }}</td>
-                    <td>{{ $detail->description }}</td>
-                    <td style="text-align: right;">{{ number_format($detail->debit, 0, ',', '.') }}</td>
-                    <td style="text-align: right;">{{ number_format($detail->credit, 0, ',', '.') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <p style="margin-top: 20px;">Detail rincian akun dan nominal dapat Anda temukan pada lampiran dokumen PDF.</p>
 
         <div class="footer">
             <p>Email ini dikirim secara otomatis oleh Sistem Akuntansi.</p>

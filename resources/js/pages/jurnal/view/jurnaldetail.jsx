@@ -121,13 +121,7 @@ export default function ViewDetailJurnal({ journal }) {
         <div className="flex flex-col gap-6 @container">
           <div className="flex flex-col @lg:flex-row items-start @lg:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-                <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => window.history.back()}
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
+                
                 <div>
                     <h1 className="text-2xl font-bold">Detail Jurnal</h1>
                     <p className="text-muted-foreground">
@@ -136,6 +130,12 @@ export default function ViewDetailJurnal({ journal }) {
                 </div>
             </div>
             <div className="flex items-center gap-2 ml-auto">
+                <Button variant="outline" asChild>
+                    <Link onClick={() => window.history.back()}>
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Kembali
+                    </Link>
+                </Button>
               <Button variant="outline" onClick={handlePrintVoucher} className="bg-primary/5 hover:bg-primary/10 border-primary/20 text-primary">
                 <Printer className="h-4 w-4 mr-2" />
                 Cetak

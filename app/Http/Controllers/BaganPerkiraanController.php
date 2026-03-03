@@ -118,7 +118,7 @@ class BaganPerkiraanController extends Controller
 
         Account::create($data);
 
-        return redirect()->route('bagan-perkiraan.akun')->with('message', 'Akun berhasil dibuat.');
+        return redirect()->route('bagan-perkiraan.akun')->with('success', 'Akun berhasil dibuat.');
     }
 
     public function editAkun(Account $account)
@@ -162,7 +162,7 @@ class BaganPerkiraanController extends Controller
 
         $account->update($data);
 
-        return redirect()->route('bagan-perkiraan.akun')->with('message', 'Akun berhasil diperbarui.');
+        return redirect()->route('bagan-perkiraan.akun')->with('success', 'Akun berhasil diperbarui.');
     }
 
     public function generateAccountCode(?Account $parent = null)
@@ -238,9 +238,23 @@ class BaganPerkiraanController extends Controller
 
     public function destroyAkun(Account $account)
     {
-        $account->delete();
+        // Check if account has children
+        if ($account->children()->exists()) {
+            return back()->with('error', 'Tidak dapat menghapus akun yang memiliki sub-akun.');
+        }
 
-        return redirect()->route('bagan-perkiraan.akun')->with('message', 'Akun berhasil dihapus.');
+        // Check if account has journal entries
+        if ($account->journalDetails()->exists()) {
+            return back()->with('error', 'Tidak dapat menghapus akun yang sudah memiliki transaksi.');
+        }
+
+        try {
+            $account->delete();
+
+            return redirect()->route('bagan-perkiraan.akun')->with('success', 'Akun berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus akun: '.$e->getMessage());
+        }
     }
 
     // Account Category (Kategori Akun) CRUD
@@ -260,7 +274,7 @@ class BaganPerkiraanController extends Controller
 
         AccountCategory::create($request->all());
 
-        return redirect()->route('bagan-perkiraan.kategori-akun')->with('message', 'Kategori Akun berhasil dibuat.');
+        return redirect()->route('bagan-perkiraan.kategori-akun')->with('success', 'Kategori Akun berhasil dibuat.');
     }
 
     public function editKategoriAkun(AccountCategory $kategori_akun)
@@ -280,14 +294,23 @@ class BaganPerkiraanController extends Controller
 
         $kategori_akun->update($request->all());
 
-        return redirect()->route('bagan-perkiraan.kategori-akun')->with('message', 'Kategori Akun berhasil diperbarui.');
+        return redirect()->route('bagan-perkiraan.kategori-akun')->with('success', 'Kategori Akun berhasil diperbarui.');
     }
 
     public function destroyKategoriAkun(AccountCategory $kategori_akun)
     {
-        $kategori_akun->delete();
+        // Check if category has accounts
+        if ($kategori_akun->accounts()->exists()) {
+            return back()->with('error', 'Tidak dapat menghapus kategori yang memiliki akun.');
+        }
 
-        return redirect()->route('bagan-perkiraan.kategori-akun')->with('message', 'Kategori Akun berhasil dihapus.');
+        try {
+            $kategori_akun->delete();
+
+            return redirect()->route('bagan-perkiraan.kategori-akun')->with('success', 'Kategori Akun berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus kategori akun: '.$e->getMessage());
+        }
     }
 
     // Account Type (Tipe Akun) CRUD
@@ -305,7 +328,7 @@ class BaganPerkiraanController extends Controller
 
         AccountType::create($request->all());
 
-        return redirect()->route('bagan-perkiraan.tipe-akun')->with('message', 'Tipe Akun berhasil dibuat.');
+        return redirect()->route('bagan-perkiraan.tipe-akun')->with('success', 'Tipe Akun berhasil dibuat.');
     }
 
     public function editTipeAkun(AccountType $tipe_akun)
@@ -324,13 +347,22 @@ class BaganPerkiraanController extends Controller
 
         $tipe_akun->update($request->all());
 
-        return redirect()->route('bagan-perkiraan.tipe-akun')->with('message', 'Tipe Akun berhasil diperbarui.');
+        return redirect()->route('bagan-perkiraan.tipe-akun')->with('success', 'Tipe Akun berhasil diperbarui.');
     }
 
     public function destroyTipeAkun(AccountType $tipe_akun)
     {
-        $tipe_akun->delete();
+        // Check if type has categories
+        if ($tipe_akun->accountCategories()->exists()) {
+            return back()->with('error', 'Tidak dapat menghapus tipe akun yang memiliki kategori.');
+        }
 
-        return redirect()->route('bagan-perkiraan.tipe-akun')->with('message', 'Tipe Akun berhasil dihapus.');
+        try {
+            $tipe_akun->delete();
+
+            return redirect()->route('bagan-perkiraan.tipe-akun')->with('success', 'Tipe Akun berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus tipe akun: '.$e->getMessage());
+        }
     }
 }

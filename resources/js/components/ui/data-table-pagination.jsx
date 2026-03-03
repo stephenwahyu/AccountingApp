@@ -48,7 +48,7 @@ export function DataTablePagination({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
             >
@@ -58,7 +58,7 @@ export function DataTablePagination({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
             >
@@ -67,7 +67,7 @@ export function DataTablePagination({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
@@ -76,7 +76,7 @@ export function DataTablePagination({
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
             >

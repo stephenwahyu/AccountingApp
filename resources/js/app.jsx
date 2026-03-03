@@ -3,14 +3,16 @@ import { createInertiaApp } from "@inertiajs/react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "@/components/ui/sonner";
 import { initializeTheme } from './hooks/use-appearance';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
 initializeTheme();
 
 createInertiaApp({
-    resolve: (name) => {
-        const pages = import.meta.glob("./pages/**/*.jsx", { eager: true });
-        return pages[`./pages/${name}.jsx`];
-    },
+    resolve: (name) =>
+        resolvePageComponent(
+            `./pages/${name}.jsx`,
+            import.meta.glob("./pages/**/*.jsx")
+        ),
     setup({ el, App, props }) {
         createRoot(el).render(
             <>

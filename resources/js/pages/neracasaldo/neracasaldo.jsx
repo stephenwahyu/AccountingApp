@@ -212,7 +212,7 @@ export default function NeracaSaldoPage() {
                                      Untuk periode <span className="font-semibold">{currentPeriod?.period_name}</span>
                                  </CardDescription>
                              </div>
-                             <Button variant="outline" asChild>
+                             {/* <Button variant="outline" asChild>
                                 <a href={route('neraca-saldo.export', { 
                                     period: filters.period,
                                     start_date: filters.dateRange?.from ? new Date(filters.dateRange.from.getTime() - (filters.dateRange.from.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null,
@@ -221,7 +221,7 @@ export default function NeracaSaldoPage() {
                                      <Printer className="h-4 w-4 mr-2" />
                                      Cetak
                                 </a>
-                             </Button>
+                             </Button> */}
                          </CardHeader>
                          <CardContent>
                              <div className="border rounded-lg overflow-x-auto">

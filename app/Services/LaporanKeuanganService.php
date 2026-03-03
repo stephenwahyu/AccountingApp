@@ -268,6 +268,8 @@ class LaporanKeuanganService
 
         if ($snapshotBalances->isNotEmpty()) {
             return $snapshotBalances->map(function ($item) {
+                // Because ending_balance is stored as (beg + deb) - cred (Debit-centered),
+                // we must flip the sign for Credit-normal accounts to get their positive balance.
                 if ($item->normal_balance === 'Debit') {
                     $item->balance = (float) $item->raw_ending_balance;
                 } else {

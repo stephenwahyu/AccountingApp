@@ -223,7 +223,7 @@ export default function PerubahanEkuitasList({ periods = [] }) {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
                       >
@@ -233,7 +233,7 @@ export default function PerubahanEkuitasList({ periods = [] }) {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage((prev) => prev - 1)}
                         disabled={currentPage === 1}
                       >
@@ -242,7 +242,7 @@ export default function PerubahanEkuitasList({ periods = [] }) {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage((prev) => prev + 1)}
                         disabled={currentPage === totalPages}
                       >
@@ -251,7 +251,7 @@ export default function PerubahanEkuitasList({ periods = [] }) {
                       <Button
                         variant="outline"
                         size="icon"
-                        className="h-8 w-8"
+                        className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage(totalPages)}
                         disabled={currentPage === totalPages}
                       >

@@ -1255,13 +1255,25 @@ class JurnalController extends Controller
         //     return back()->withErrors(['error' => 'Jurnal yang sudah di-posting tidak dapat dihapus.']);
         // }
 
+        $journalType = $journal->journal_type;
+
         DB::beginTransaction();
         try {
             $journal->journalDetails()->delete();
             $journal->delete();
             DB::commit();
 
-            return redirect()->back()->with('success', 'Jurnal draft berhasil dihapus.');
+            // Determine redirect route based on journal type
+            $redirectRoute = 'jurnal.index';
+            if ($journalType === 'Umum') {
+                $redirectRoute = 'jurnal.umum';
+            } elseif (str_contains($journalType, 'Kas')) {
+                $redirectRoute = 'jurnal.kas';
+            } elseif (str_contains($journalType, 'Bank')) {
+                $redirectRoute = 'jurnal.bank';
+            }
+
+            return redirect()->route($redirectRoute)->with('success', 'Jurnal berhasil dihapus.');
         } catch (\Exception $e) {
             DB::rollBack();
 
