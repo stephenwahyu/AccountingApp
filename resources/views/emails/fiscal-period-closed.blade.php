@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <title>Notifikasi Penutupan Periode</title>
     <style>

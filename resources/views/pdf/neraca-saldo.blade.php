@@ -26,18 +26,18 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 25%; vertical-align: middle;">Keterangan Akun</th>
-                <th colspan="2">Saldo Awal</th>
-                <th colspan="2">Pergerakan (Mutasi)</th>
-                <th colspan="2">Saldo Akhir</th>
+                <th scope="col" rowspan="2" style="width: 25%; vertical-align: middle;">Keterangan Akun</th>
+                <th scope="colgroup" colspan="2">Saldo Awal</th>
+                <th scope="colgroup" colspan="2">Pergerakan (Mutasi)</th>
+                <th scope="colgroup" colspan="2">Saldo Akhir</th>
             </tr>
             <tr>
-                <th style="width: 12.5%">Debit</th>
-                <th style="width: 12.5%">Kredit</th>
-                <th style="width: 12.5%">Debit</th>
-                <th style="width: 12.5%">Kredit</th>
-                <th style="width: 12.5%">Debit</th>
-                <th style="width: 12.5%">Kredit</th>
+                <th scope="col" style="width: 12.5%">Debit</th>
+                <th scope="col" style="width: 12.5%">Kredit</th>
+                <th scope="col" style="width: 12.5%">Debit</th>
+                <th scope="col" style="width: 12.5%">Kredit</th>
+                <th scope="col" style="width: 12.5%">Debit</th>
+                <th scope="col" style="width: 12.5%">Kredit</th>
             </tr>
         </thead>
         <tbody>

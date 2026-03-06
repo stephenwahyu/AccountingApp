@@ -39,7 +39,7 @@ const MobileRow = ({ account }) => (
 );
 
 export function CashEquivalentBalance({ accounts }) {
-    const totalBalance = accounts.reduce((sum, acc) => sum + parseFloat(acc.balance), 0);
+    const totalBalance = accounts.reduce((sum, acc) => sum + Number.parseFloat(acc.balance), 0);
 
     return (
         <Card className="shadow-sm overflow-hidden">

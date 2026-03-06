@@ -64,13 +64,12 @@ export function RecentJournals({ journals }) {
                                             </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button asChild variant="ghost" size="icon">
+                                            <Button asChild variant="ghost" size="icon" aria-label="Lihat Detail">
                                                 <Link href={route('jurnal.show', journal.id)}>
                                                     <ArrowUpRight className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                        </TableCell>
-                                    </TableRow>
+                                        </TableCell>                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>

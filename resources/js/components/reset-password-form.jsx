@@ -38,8 +38,10 @@ export function ResetPasswordForm({ token, email, className, ...props }) {
             {/* Logo & Title above card */}
             <div className="flex flex-col items-center text-center gap-6">
                 <img
-                    src="/logo.png"
+                    src="/logo.webp"
                     alt="Logo"
+                    width={48}
+                    height={48}
                     className="h-12 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110"
                 />
                 <div className="space-y-1">

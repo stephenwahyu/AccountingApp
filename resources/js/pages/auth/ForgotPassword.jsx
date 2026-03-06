@@ -18,11 +18,11 @@ export default function ForgotPasswordPage() {
     return (
         <>
             <Head title="Lupa Kata Sandi" />
-            <div className="flex min-h-svh w-full items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
+            <main className="flex min-h-svh w-full items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
                 <div className="w-full max-w-[450px]">
                     <ForgotPasswordForm />
                 </div>
-            </div>
+            </main>
         </>
     );
 }

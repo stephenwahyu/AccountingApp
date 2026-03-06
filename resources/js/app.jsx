@@ -8,6 +8,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 initializeTheme();
 
 createInertiaApp({
+    title: (title) => title ? `${title} - Sistem Akuntansi` : 'Sistem Akuntansi',
     resolve: (name) =>
         resolvePageComponent(
             `./pages/${name}.jsx`,

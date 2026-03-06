@@ -18,11 +18,11 @@ export default function OTPPage({ token, email }) {
     return (
         <>
             <Head title="Verifikasi OTP" />
-            <div className="flex min-h-svh w-full items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
+            <main className="flex min-h-svh w-full items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
                 <div className="w-full max-w-[450px]">
                     <OTPForm token={token} email={email} />
                 </div>
-            </div>
+            </main>
         </>
     );
 }

@@ -37,7 +37,7 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th class="col-label"></th>
+                <th class="col-label">Keterangan</th>
                 <th class="col-value th-value">Jumlah</th>
             </tr>
         </thead>
@@ -133,20 +133,6 @@
         {{ $report['catatan_bawah'] ?? 'Catatan atas laporan keuangan merupakan bagian tidak terpisahkan dari laporan keuangan secara keseluruhan.' }}
     </div>
 
-    {{-- <table class="signature-area">
-        <tr>
-            <td>
-                <div class="signature-label">Dibuat Oleh,</div>
-                <div class="signature-blank"></div>
-                <div class="signature-line">Accounting</div>
-            </td>
-            <td>
-                <div class="signature-label">Disetujui Oleh,</div>
-                <div class="signature-blank"></div>
-                <div class="signature-line">Direktur Utama</div>
-            </td>
-        </tr>
-    </table> --}}
 
     <div class="page-number">1</div>
 

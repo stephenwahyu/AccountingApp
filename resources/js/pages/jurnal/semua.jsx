@@ -43,7 +43,7 @@ import { parseSafeDate } from "@/lib/utils";
 const breadcrumbs = [{ title: "Jurnal", href: "/jurnal" }];
 
 const formatDateForQuery = (date) => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+    if (!date || !(date instanceof Date) || Number.isNaN(date.getTime())) {
         return null;
     }
     try {

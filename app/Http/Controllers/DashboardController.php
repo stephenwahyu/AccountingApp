@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Account;
 use App\Models\FiscalPeriod;
 use App\Models\JournalDetail;
+use App\Services\LaporanKeuanganService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,6 +13,10 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    public function __construct(protected LaporanKeuanganService $laporanService)
+    {
+    }
+
     public function index(Request $request)
     {
         $periodsCollection = FiscalPeriod::get();
@@ -38,211 +43,90 @@ class DashboardController extends Controller
             $selectedPeriod = $fiscalPeriods->first();
         }
 
-        $openingMovements = $this->getOpeningMovements($selectedPeriod->id);
-        $periodMovements = $this->getPeriodMovements($selectedPeriod->id);
-
-        // Cash and Cash Equivalents
-        $cashAndEquivalents = Account::where('is_cash_account', true)
-            ->get()
-            ->map(function ($account) use ($openingMovements, $periodMovements) {
-                $openingMovement = $openingMovements->get($account->id);
-                $periodMovement = $periodMovements->get($account->id);
-
-                $openingBalance = bcadd(
-                    $account->initial_balance,
-                    bcsub($openingMovement->total_debit ?? '0', $openingMovement->total_credit ?? '0', 2),
-                    2
-                );
-
-                $balance = bcadd(
-                    $openingBalance,
-                    bcsub($periodMovement->total_debit ?? '0', $periodMovement->total_credit ?? '0', 2),
-                    2
-                );
-
-                return [
-                    'id' => $account->id,
-                    'account_code' => $account->account_code,
-                    'account_name' => $account->account_name,
-                    'balance' => $balance,
-                ];
-            });
-
-        // Revenue and Expense
-        $revenue = $this->calculateTotalForType('Pendapatan', $openingMovements, $periodMovements);
-        $expense = $this->calculateTotalForType('Beban', $openingMovements, $periodMovements);
-
-        // Financial KPIs
-        $netProfit = bcsub($revenue, $expense, 2);
-
-        // Calculate Assets, Liabilities, Equity (Adapting logic from LaporanKeuanganController)
-        $balances = $this->calculateBalancesForPeriod($selectedPeriod);
-        $totalAssets = $balances->where('account_type', 'Aset')->sum('balance');
-        $totalLiabilities = $balances->where('account_type', 'Liabilitas')->sum('balance');
-
-        // Equity needs cumulative net income
-        $cumulativeNetIncome = $this->calculateCumulativeNetIncome($selectedPeriod);
-        $totalEquity = $balances->where('account_type', 'Ekuitas')->sum('balance') + $cumulativeNetIncome;
-
-        // Revenue vs Expense Chart Data
-        $revenueExpenseChart = $this->getRevenueExpenseChartData($selectedPeriod->id);
-
-        // Cash Flow Data
-        $cashFlowData = $this->getCashFlowData($selectedPeriod->id);
-
-        // Recent Transactions
-        $recentJournals = \App\Models\JournalEntry::with(['fiscalPeriod', 'user'])
-            ->where('status', 'Posted')
-            ->orderBy('entry_date', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get()
-            ->map(function ($journal) {
-                return [
-                    'id' => $journal->id,
-                    'entry_number' => $journal->entry_number,
-                    'entry_date' => $journal->entry_date->format('d/m/Y'),
-                    'journal_type' => $journal->journal_type,
-                    'penerima' => $journal->penerima,
-                ];
-            });
-
-        return Inertia::render('dashboard/dashboard', [
+        // Essential data needed for initial render
+        $essentialData = [
             'fiscalPeriods' => $fiscalPeriods,
             'selectedPeriod' => $selectedPeriod,
+        ];
+
+        // Cash and Cash Equivalents - Batch calculation
+        $cashAccounts = Account::where('is_cash_account', true)
+            ->where('is_active', 1)
+            ->get();
+
+        $accountIds = $cashAccounts->pluck('id');
+        
+        $balancesMap = DB::table('account_balances')
+            ->whereIn('account_id', $accountIds)
+            ->where('fiscal_period_id', $selectedPeriod->id)
+            ->pluck('ending_balance', 'account_id');
+
+        $cashAndEquivalents = $cashAccounts->map(function ($account) use ($selectedPeriod, $balancesMap) {
+            $balance = $balancesMap->get($account->id);
+            
+            if ($balance === null) {
+                // Fallback to manual calculation if no snapshot exists
+                $mutation = DB::table('journal_details as jd')
+                    ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+                    ->where('je.status', 'Posted')
+                    ->where('je.entry_date', '<=', $selectedPeriod->end_date)
+                    ->where('jd.account_id', $account->id)
+                    ->sum(DB::raw('jd.debit - jd.credit'));
+                
+                $balance = bcadd($account->initial_balance, $mutation, 2);
+            }
+
+            return [
+                'id' => $account->id,
+                'account_code' => $account->account_code,
+                'account_name' => $account->account_name,
+                'balance' => (float) $balance,
+            ];
+        });
+
+        return Inertia::render('dashboard/dashboard', [
+            ...$essentialData,
             'cashAndEquivalents' => $cashAndEquivalents,
-            'stats' => [
-                'revenue' => (float) $revenue,
-                'expense' => (float) $expense,
-                'net_profit' => (float) $netProfit,
-                'total_assets' => (float) $totalAssets,
-                'total_liabilities' => (float) $totalLiabilities,
-                'total_equity' => (float) $totalEquity,
-            ],
-            'revenueExpenseChart' => $revenueExpenseChart,
-            'cashFlowChart' => $cashFlowData,
-            'recentJournals' => $recentJournals,
+            
+            // Defer heavy calculations
+            'stats' => Inertia::defer(function() use ($selectedPeriod) {
+                $reportData = $this->laporanService->getPosisiKeuangan($selectedPeriod);
+                $pnlData = $this->laporanService->getLabaRugi($selectedPeriod);
+                
+                return [
+                    'revenue' => (float) ($pnlData['sales']['total'] + $pnlData['others']['income']['total']),
+                    'expense' => (float) ($pnlData['operating_expenses']['total'] + $pnlData['cogs']['total'] + $pnlData['others']['expenses']['total']),
+                    'net_profit' => (float) $pnlData['net_income'],
+                    'total_assets' => (float) $reportData['assets']['total'],
+                    'total_liabilities' => (float) $reportData['liabilities']['total'],
+                    'total_equity' => (float) $reportData['equity']['total'],
+                ];
+            }),
+            
+            'revenueExpenseChart' => Inertia::defer(fn() => $this->getRevenueExpenseChartData($selectedPeriod)),
+            
+            'cashFlowChart' => Inertia::defer(fn() => $this->getCashFlowData($selectedPeriod)),
+            
+            'recentJournals' => Inertia::defer(fn() => 
+                \App\Models\JournalEntry::with(['fiscalPeriod', 'user'])
+                    ->where('status', 'Posted')
+                    ->orderBy('entry_date', 'desc')
+                    ->orderBy('created_at', 'desc')
+                    ->take(5)
+                    ->get()
+                    ->map(fn($journal) => [
+                        'id' => $journal->id,
+                        'entry_number' => $journal->entry_number,
+                        'entry_date' => $journal->entry_date->format('d/m/Y'),
+                        'journal_type' => $journal->journal_type,
+                        'penerima' => $journal->penerima,
+                    ])
+            ),
         ]);
     }
 
-    private function calculateBalancesForPeriod($period)
+    private function getRevenueExpenseChartData($period)
     {
-        return DB::table('accounts as a')
-            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
-            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->leftJoin(DB::raw("(SELECT jd.account_id, SUM(jd.debit) as cumulative_debit, SUM(jd.credit) as cumulative_credit 
-                                FROM journal_details jd 
-                                JOIN journal_entries je ON jd.journal_entry_id = je.id 
-                                WHERE je.status = 'Posted' AND je.entry_date <= '{$period->end_date}'
-                                GROUP BY jd.account_id) as period_jd"), 'a.id', '=', 'period_jd.account_id')
-            ->select(
-                'a.id as account_id',
-                'at.name as account_type',
-                'at.normal_balance',
-                'a.initial_balance as start_balance',
-                DB::raw('COALESCE(period_jd.cumulative_debit, 0) as total_debit'),
-                DB::raw('COALESCE(period_jd.cumulative_credit, 0) as total_credit')
-            )
-            ->where('a.is_active', 1)
-            ->get()
-            ->map(function ($item) {
-                if ($item->normal_balance === 'Debit') {
-                    $item->balance = (float) $item->start_balance + (float) $item->total_debit - (float) $item->total_credit;
-                } else {
-                    $item->balance = (float) $item->start_balance + (float) $item->total_credit - (float) $item->total_debit;
-                }
-
-                return $item;
-            });
-    }
-
-    private function calculateCumulativeNetIncome($period)
-    {
-        return DB::table('journal_details as jd')
-            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
-            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
-            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
-            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->where('je.status', 'Posted')
-            ->where('je.entry_date', '<=', $period->end_date)
-            ->whereIn('at.name', ['Pendapatan', 'Beban'])
-            ->select(
-                DB::raw('SUM(jd.credit - jd.debit) as net_balance')
-            )
-            ->first()->net_balance ?? 0;
-    }
-
-    private function getOpeningMovements($periodId)
-    {
-        if (! $periodId) {
-            return collect();
-        }
-        $period = FiscalPeriod::find($periodId);
-        if (! $period) {
-            return collect();
-        }
-
-        return JournalDetail::select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
-            ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_entries.status', 'Posted')
-            ->where('journal_entries.entry_date', '<', $period->start_date)
-            ->groupBy('account_id')
-            ->get()
-            ->keyBy('account_id');
-    }
-
-    private function getPeriodMovements($periodId)
-    {
-        $query = JournalDetail::select('account_id', DB::raw('SUM(debit) as total_debit'), DB::raw('SUM(credit) as total_credit'))
-            ->join('journal_entries', 'journal_details.journal_entry_id', '=', 'journal_entries.id')
-            ->where('journal_entries.status', 'Posted')
-            ->groupBy('account_id');
-
-        if ($periodId) {
-            $period = FiscalPeriod::find($periodId);
-            if ($period) {
-                $query->whereBetween('journal_entries.entry_date', [$period->start_date, $period->end_date]);
-            }
-        }
-
-        return $query->get()->keyBy('account_id');
-    }
-
-    private function calculateTotalForType($accountType, $openingMovements, $periodMovements)
-    {
-        $accountIds = Account::whereHas('accountCategory.accountType', function ($query) use ($accountType) {
-            $query->where('name', $accountType);
-        })->pluck('id');
-
-        $total = '0.00';
-
-        foreach ($accountIds as $accountId) {
-            $periodMovement = $periodMovements->get($accountId);
-
-            $periodChange = '0.00';
-            if ($periodMovement) {
-                $periodChange = ($accountType === 'Pendapatan')
-                    ? bcsub($periodMovement->total_credit, $periodMovement->total_debit, 2)
-                    : bcsub($periodMovement->total_debit, $periodMovement->total_credit, 2);
-            }
-
-            $total = bcadd($total, $periodChange, 2);
-        }
-
-        return $total;
-    }
-
-    private function getRevenueExpenseChartData($periodId)
-    {
-        if (! $periodId) {
-            return [];
-        }
-
-        $period = FiscalPeriod::find($periodId);
-        if (! $period) {
-            return [];
-        }
-
         $revenueAccountIds = Account::whereHas('accountCategory.accountType', function ($query) {
             $query->where('name', 'Pendapatan');
         })->pluck('id');
@@ -279,10 +163,12 @@ class DashboardController extends Controller
             ->keyBy(fn ($item) => $item->date);
 
         $chartData = [];
+        // To avoid performance issues with very long periods, we could aggregate by month if needed, 
+        // but for a dashboard usually it's one fiscal period (month).
         for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
             $dateStr = $date->format('Y-m-d');
             $chartData[] = [
-                'date' => $date->format('Y-m-d'),
+                'date' => $dateStr,
                 'pendapatan' => (float) ($revenues->get($dateStr)->amount ?? 0),
                 'beban' => (float) ($expenses->get($dateStr)->amount ?? 0),
                 'period' => $period->period_name,
@@ -292,27 +178,8 @@ class DashboardController extends Controller
         return $chartData;
     }
 
-    private function getCashFlowData($periodId)
+    private function getCashFlowData($period)
     {
-        if (! $periodId) {
-            return [
-                'operasional' => 0,
-                'investasi' => 0,
-                'pendanaan' => 0,
-                'chartData' => ['operasional' => [], 'investasi' => [], 'pendanaan' => []],
-            ];
-        }
-
-        $period = FiscalPeriod::find($periodId);
-        if (! $period) {
-            return [
-                'operasional' => 0,
-                'investasi' => 0,
-                'pendanaan' => 0,
-                'chartData' => ['operasional' => [], 'investasi' => [], 'pendanaan' => []],
-            ];
-        }
-
         $startDate = Carbon::parse($period->start_date);
         $endDate = Carbon::parse($period->end_date);
         $cashAccountIds = Account::where('is_cash_account', true)->pluck('id');
@@ -345,9 +212,8 @@ class DashboardController extends Controller
         $chartData = ['operasional' => [], 'investasi' => [], 'pendanaan' => []];
         $totals = ['operasional' => 0, 'investasi' => 0, 'pendanaan' => 0];
 
-        $dateRange = collect(new \DatePeriod($startDate, new \DateInterval('P1D'), $endDate->copy()->addDay()));
-
-        foreach ($dateRange as $date) {
+        // Optimized date loop
+        for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
             foreach ($activityMap as $activity => $keyName) {
                 $chartData[$keyName][$date->format('Y-m-d')] = [
                     'date' => $date->format('Y-m-d'),

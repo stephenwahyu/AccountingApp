@@ -15,7 +15,7 @@
         <div class="report-currency">(Dalam Rupiah)</div>
     </div>
 
-    <table style="width: 100%; border: none; margin-bottom: 10px; font-size: 10pt;">
+    <table role="presentation" style="width: 100%; border: none; margin-bottom: 10px; font-size: 10pt;">
         <tr>
             <td style="width: 100px; font-weight: bold; padding: 2px 0;">Kode Akun</td>
             <td>: {{ $account->account_code }}</td>
@@ -29,12 +29,12 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th style="width: 12%">Tanggal</th>
-                <th style="width: 15%">No. Bukti</th>
-                <th style="width: 33%">Uraian / Keterangan</th>
-                <th style="width: 13%">Debit</th>
-                <th style="width: 13%">Kredit</th>
-                <th style="width: 14%">Saldo</th>
+                <th scope="col" style="width: 12%">Tanggal</th>
+                <th scope="col" style="width: 15%">No. Bukti</th>
+                <th scope="col" style="width: 33%">Uraian / Keterangan</th>
+                <th scope="col" style="width: 13%">Debit</th>
+                <th scope="col" style="width: 13%">Kredit</th>
+                <th scope="col" style="width: 14%">Saldo</th>
             </tr>
         </thead>
         <tbody>

@@ -10,6 +10,7 @@ function Table({
     <div data-slot="table-container" className="relative w-full overflow-x-auto">
       <table
         data-slot="table"
+        aria-label="Data Table"
         className={cn("w-full caption-bottom text-sm", className)}
         {...props} />
     </div>
@@ -74,8 +75,9 @@ function TableHead({
   return (
     <th
       data-slot="table-head"
+      scope="col"
       className={cn(
-        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "text-foreground h-10 px-2 text-left align-middle font-medium whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5",
         className
       )}
       {...props} />
@@ -90,7 +92,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 *:[[role=checkbox]]:translate-y-0.5",
         className
       )}
       {...props} />

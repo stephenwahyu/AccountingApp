@@ -140,11 +140,11 @@ body {
         </div>
 
         <!-- INFO -->
-        <table class="info-table" style="width:100%;">
+        <table class="info-table" role="presentation" style="width:100%;">
     <tr>
         <td style="width:60%;"></td> <!-- kolom kosong di kiri -->
         <td style="width:40%;">
-            <table style="width:100%;">
+            <table role="presentation" style="width:100%;">
                 <tr>
                     <td class="info-label" style="text-align:left;">Nomor Bukti</td>
                     <td>: {{ $journal->entry_number }}</td>
@@ -162,10 +162,10 @@ body {
         <table class="report-table">
             <thead>
                 <tr>
-                    <th style="width:15%">AKUN</th>
-                    <th style="width:45%">URAIAN / KETERANGAN</th>
-                    <th style="width:20%">REF</th>
-                    <th style="width:20%">JUMLAH</th>
+                    <th scope="col" style="width:15%">AKUN</th>
+                    <th scope="col" style="width:45%">URAIAN / KETERANGAN</th>
+                    <th scope="col" style="width:20%">REF</th>
+                    <th scope="col" style="width:20%">JUMLAH</th>
                 </tr>
             </thead>
             <tbody>
@@ -208,7 +208,7 @@ body {
     </div>
 
     <!-- TANDA TANGAN -->
-    <table class="signature-table">
+    <table class="signature-table" role="presentation">
     <tr>
         <td>
             Disetujui Oleh,

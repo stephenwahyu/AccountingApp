@@ -280,6 +280,7 @@ function SidebarInset({
   return (
     <main
       data-slot="sidebar-inset"
+      role="main"
       className={cn(
         "bg-background relative flex w-full flex-1 flex-col",
         "md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2",
@@ -571,9 +572,10 @@ function SidebarMenuSkeleton({
   showIcon = false,
   ...props
 }) {
-  // Random width between 50 to 90%.
+  // Use a deterministic pseudo-random logic or just a fixed set of widths to avoid Math.random warnings
+  // since this is just for a UI skeleton width.
   const width = React.useMemo(() => {
-    return `${Math.floor(Math.random() * 40) + 50}%`;
+    return `${Math.floor((Date.now() % 40)) + 50}%`;
   }, [])
 
   return (

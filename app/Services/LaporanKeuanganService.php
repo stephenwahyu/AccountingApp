@@ -328,6 +328,23 @@ class LaporanKeuanganService
 
     private function calculateCumulativeNetIncome(FiscalPeriod $period)
     {
+        // Try to get from snapshots first
+        $snapshotIncome = DB::table('account_balances as ab')
+            ->join('accounts as a', 'ab.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('ab.fiscal_period_id', $period->id)
+            ->whereIn('at.name', ['Pendapatan', 'Beban'])
+            ->select(
+                DB::raw('SUM(ab.credit_total - ab.debit_total) as net_balance')
+            )
+            ->first()->net_balance;
+
+        if ($snapshotIncome !== null) {
+            return $snapshotIncome;
+        }
+
+        // Fallback to scanning journal entries
         return DB::table('journal_details as jd')
             ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
             ->join('accounts as a', 'jd.account_id', '=', 'a.id')

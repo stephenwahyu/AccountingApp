@@ -51,12 +51,12 @@ export default function ViewDetailJurnal({ journal }) {
       ];
 
   const totalDebit = journal.journal_details.reduce(
-    (sum, detail) => sum + parseFloat(detail.debit || 0),
+    (sum, detail) => sum + Number.parseFloat(detail.debit || 0),
     0
   );
 
   const totalCredit = journal.journal_details.reduce(
-    (sum, detail) => sum + parseFloat(detail.credit || 0),
+    (sum, detail) => sum + Number.parseFloat(detail.credit || 0),
     0
   );
 

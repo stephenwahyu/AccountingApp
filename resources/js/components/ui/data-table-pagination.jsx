@@ -51,6 +51,7 @@ export function DataTablePagination({
               className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(1)}
               disabled={currentPage === 1}
+              aria-label="Halaman Pertama"
             >
               <ChevronLeft className="h-4 w-4" />
               <ChevronLeft className="h-4 w-4 -ml-2.5" />
@@ -61,6 +62,7 @@ export function DataTablePagination({
               className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
+              aria-label="Halaman Sebelumnya"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -70,6 +72,7 @@ export function DataTablePagination({
               className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
+              aria-label="Halaman Selanjutnya"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -79,6 +82,7 @@ export function DataTablePagination({
               className="h-8 w-8 bg-accent"
               onClick={() => onPageChange(totalPages)}
               disabled={currentPage === totalPages}
+              aria-label="Halaman Terakhir"
             >
               <ChevronRight className="h-4 w-4" />
               <ChevronRight className="h-4 w-4 -ml-2.5" />

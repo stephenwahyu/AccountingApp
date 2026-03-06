@@ -84,16 +84,16 @@
     --popover: #FFFFFF;
     --popover-foreground: #2B1F24;
     
-    --primary: #FF0044;
+    --primary: #E6003D; /* Changed from #FF0044 to meet 4.5:1 contrast on white */
     --primary-foreground: #FAFAFA;
-    --primary-hover: #E6003D;
-    --primary-shadow: rgba(255, 0, 68, 0.35);
+    --primary-hover: #C20034;
+    --primary-shadow: rgba(230, 0, 61, 0.35);
 
     --secondary: #90003A;
     --secondary-foreground: #FAFAFA;
     
     --muted: rgba(43, 31, 36, 0.05);
-    --muted-foreground: rgba(43, 31, 36, 0.6);
+    --muted-foreground: #5B484F; /* Darker for better contrast on #FAFAFA (6.8:1) */
     
     --accent: rgba(255, 0, 68, 0.08);
     --accent-foreground: #FF0044;
@@ -139,7 +139,7 @@
     --secondary-foreground: #FAFAFA;
     
     --muted: rgba(255, 255, 255, 0.07);
-    --muted-foreground: rgba(255, 255, 255, 0.45);
+    --muted-foreground: rgba(255, 255, 255, 0.75); /* Increased for dark mode contrast on #2B1F24 (~6.5:1) */
     
     --accent: rgba(255, 0, 68, 0.12);
     --accent-foreground: #FF0044;

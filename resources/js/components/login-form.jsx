@@ -32,8 +32,10 @@ export function LoginForm({ className, ...props }) {
                             {/* Logo & Title */}
                             <div className="flex flex-col items-center text-center gap-5">
                                 <img
-                                    src="/logo.png"
+                                    src="/logo.webp"
                                     alt="Logo PT. SPR Trada"
+                                    width={80}
+                                    height={80}
                                     className="h-20 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110"
                                 />
                                 <div className="space-y-1">
@@ -43,7 +45,7 @@ export function LoginForm({ className, ...props }) {
                                     <h2 className="text-xl font-semibold text-muted-foreground leading-tight">
                                         PT. Sarana Pembangunan Riau Trada
                                     </h2>
-                                    <p className="text-sm text-muted-foreground/80 mt-2 font-medium">
+                                    <p className="text-sm text-muted-foreground mt-2 font-medium">
                                         Masuk untuk menggunakan layanan
                                     </p>
                                 </div>
@@ -91,6 +93,7 @@ export function LoginForm({ className, ...props }) {
                                             onClick={() => setShowPassword(!showPassword)}
                                             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                                             tabIndex={-1}
+                                            aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                                         >
                                             {showPassword ? (
                                                 <EyeOff className="h-5 w-5" />
@@ -142,11 +145,18 @@ export function LoginForm({ className, ...props }) {
 
                     {/* Right: Brand Illustration */}
                     <div className="relative hidden md:block bg-muted overflow-hidden border-l border-border transition-colors duration-500">
-                        <img
-                            src="/image.png"
-                            alt="Finance Illustration"
-                            className="h-full w-full object-cover opacity-90 transition-opacity hover:opacity-100 duration-500 dark:brightness-[0.8] dark:contrast-125"
-                        />
+                        <picture>
+                            <source media="(max-width: 767px)" srcSet="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
+                            <img
+                                src="/image.webp"
+                                alt="Finance Illustration"
+                                width={600}
+                                height={800}
+                                fetchpriority="high"
+                                loading="eager"
+                                className="h-full w-full object-cover opacity-90 transition-opacity hover:opacity-100 duration-500 dark:brightness-[0.8] dark:contrast-125"
+                            />
+                        </picture>
                         <div className="absolute inset-0 bg-linear-to-l from-transparent to-background/10 pointer-events-none" />
                     </div>
                 </CardContent>

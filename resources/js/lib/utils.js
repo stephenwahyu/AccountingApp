@@ -42,10 +42,23 @@ export function formatCompactNumber(value) {
 export function parseSafeDate(dateStr) {
   if (!dateStr || dateStr === "null" || dateStr === "undefined") return undefined;
   if (dateStr instanceof Date) {
-    return isNaN(dateStr.getTime()) ? undefined : dateStr;
+    return Number.isNaN(dateStr.getTime()) ? undefined : dateStr;
   }
   const str = String(dateStr);
   const normalizedStr = str.includes('T') ? str : str.replace(/-/g, '/');
   const d = new Date(normalizedStr);
-  return isNaN(d.getTime()) ? undefined : d;
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+export function generateUniqueId() {
+  if (typeof self !== 'undefined' && self.crypto) {
+    if (self.crypto.randomUUID) {
+      return self.crypto.randomUUID();
+    }
+    const array = new Uint32Array(4);
+    self.crypto.getRandomValues(array);
+    return Array.from(array, dec => dec.toString(16).padStart(8, '0')).join('');
+  }
+  // extreme fallback
+  return Date.now().toString(36) + Math.floor(performance.now()).toString(36);
 }

@@ -16,6 +16,7 @@ export function SiteHeader({ breadcrumbs = [] }) {
           variant="ghost"
           size="icon"
           onClick={toggleSidebar}
+          aria-label="Toggle Sidebar"
         >
           <SidebarIcon />
         </Button>

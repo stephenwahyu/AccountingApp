@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
@@ -29,24 +30,24 @@ import {
 } from "@/components/ui/table";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
-import { Plus, Trash2, Save, X, Printer, Loader2, AlertCircle } from "lucide-react";
-import { cn, parseSafeDate } from "@/lib/utils";
+import { Plus, Trash2, Save, X, Loader2, AlertCircle } from "lucide-react";
+import { cn, parseSafeDate, generateUniqueId } from "@/lib/utils";
 import { toast } from "sonner";
 
 const buildTree = (accounts) => {
     const accountsById = {};
-    accounts.forEach(acc => {
+    for (const acc of accounts) {
         accountsById[acc.id] = { ...acc, children: [] };
-    });
+    }
 
     const tree = [];
-    accounts.forEach(acc => {
+    for (const acc of accounts) {
         if (acc.parent_id && accountsById[acc.parent_id]) {
             accountsById[acc.parent_id].children.push(accountsById[acc.id]);
         } else {
             tree.push(accountsById[acc.id]);
         }
-    });
+    }
 
     return tree;
 };
@@ -82,10 +83,11 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
     penerima: journal?.penerima || "",
     bank_account_id: journal?.bank_account_id?.toString() || "",
     details: journal?.details?.map(d => ({
+      temp_id: d.id || generateUniqueId(),
       account_id: d.account_id.toString(),
       description: d.description || "",
       debit: d.debit
-    })) || [{ account_id: "", description: "", debit: 0 }],
+    })) || [{ temp_id: generateUniqueId(), account_id: "", description: "", debit: 0 }],
   });
   const [processing, setProcessing] = useState(false);
   const [errors, setErrors] = useState({});
@@ -165,7 +167,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
   }));
 
   const addRow = () => {
-    setData(prev => ({...prev, details: [...prev.details, { account_id: "", description: "", debit: 0 }]}));
+    setData(prev => ({...prev, details: [...prev.details, { temp_id: generateUniqueId(), account_id: "", description: "", debit: 0 }]}));
   };
 
   const updateDetail = (index, field, value) => {
@@ -181,7 +183,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
   };
 
   const totalDebit = useMemo(
-    () => data.details.reduce((sum, detail) => sum + parseFloat(detail.debit || 0), 0),
+    () => data.details.reduce((sum, detail) => sum + Number.parseFloat(detail.debit || 0), 0),
     [data.details]
   );
 
@@ -259,12 +261,6 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                 {processing && submittedStatus === 'Posted' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Simpan & Posting
               </Button>
-              {/* {isEdit && (
-                 <Button type="button" variant="outline" className="w-full sm:w-auto">
-                    <Printer className="h-4 w-4 mr-2" />
-                    Cetak
-                 </Button>
-              )} */}
             </div>
           </div>
 
@@ -403,7 +399,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                             </TableHeader>
                             <TableBody>
                                 {data.details.map((detail, index) => (
-                                <TableRow key={index} className="hover:bg-muted/5 transition-colors">
+                                <TableRow key={detail.temp_id} className="hover:bg-muted/5 transition-colors">
                                     <TableCell className="pl-6 py-3">
                                         <Combobox
                                             options={accountOptions}
@@ -477,3 +473,10 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
     </>
   );
 }
+
+FormPengeluaranBank.propTypes = {
+    journal: PropTypes.object,
+    accounts: PropTypes.array.isRequired,
+    periods: PropTypes.array.isRequired,
+    bankAccounts: PropTypes.array.isRequired,
+};

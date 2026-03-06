@@ -1,5 +1,5 @@
 import { AppLayouts } from "@/pages/layouts/app-layout";
-import { Head } from "@inertiajs/react";
+import { Head, Deferred } from "@inertiajs/react";
 import { RevenueExpenseChart } from "./components/RevenueExpenseChart";
 import { CashFlowChart } from "./components/CashFlowChart";
 import { CashEquivalentBalance } from "./components/CashEquivalentBalance";
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/select";
 import { router } from "@inertiajs/react";
 import { CalendarDays } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const breadcrumbs = [
     {
@@ -22,6 +24,65 @@ const breadcrumbs = [
         href: "/",
     },
 ];
+
+const StatsSkeleton = () => (
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="overflow-hidden shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                </CardHeader>
+                <CardContent>
+                    <Skeleton className="h-8 w-32 mb-2" />
+                    <Skeleton className="h-3 w-40" />
+                </CardContent>
+            </Card>
+        ))}
+    </div>
+);
+
+const ChartSkeleton = () => (
+    <Card className="shadow-sm">
+        <CardHeader className="flex flex-col items-stretch border-b p-0 xl:flex-row">
+            <div className="flex flex-1 flex-col justify-center gap-1 px-6 py-5 sm:py-6">
+                <Skeleton className="h-6 w-32 mb-2" />
+                <Skeleton className="h-4 w-48" />
+            </div>
+            <div className="flex grow border-t xl:border-t-0">
+                <div className="flex-1 p-6 border-l"><Skeleton className="h-8 w-24" /></div>
+                <div className="flex-1 p-6 border-l"><Skeleton className="h-8 w-24" /></div>
+            </div>
+        </CardHeader>
+        <CardContent className="p-6">
+            <Skeleton className="h-[300px] w-full" />
+        </CardContent>
+    </Card>
+);
+
+const RecentJournalsSkeleton = () => (
+    <Card className="col-span-full xl:col-span-1">
+        <CardHeader className="flex flex-row items-center justify-between">
+            <div className="grid gap-1">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-48" />
+            </div>
+        </CardHeader>
+        <CardContent>
+            <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                    <div key={i} className="flex items-center justify-between">
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
+                        <Skeleton className="h-8 w-8 rounded-md" />
+                    </div>
+                ))}
+            </div>
+        </CardContent>
+    </Card>
+);
 
 export default function Dashboard({
     fiscalPeriods,
@@ -80,7 +141,9 @@ export default function Dashboard({
                     </div>
 
                     {/* Stats Overview */}
-                    <StatsCards stats={stats} />
+                    <Deferred data="stats" fallback={<StatsSkeleton />}>
+                        <StatsCards stats={stats} />
+                    </Deferred>
 
                     {/* Quick Actions */}
                     <QuickShortcuts />
@@ -89,18 +152,26 @@ export default function Dashboard({
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {/* Charts Column */}
                         <div className="xl:col-span-2 space-y-6">
-                            <RevenueExpenseChart
-                                revenue={stats.revenue}
-                                expense={stats.expense}
-                                data={revenueExpenseChart}
-                            />
-                            <CashFlowChart data={cashFlowChart} />
+                            <Deferred data={['stats', 'revenueExpenseChart']} fallback={<ChartSkeleton />}>
+                                <RevenueExpenseChart
+                                    revenue={stats?.revenue || 0}
+                                    expense={stats?.expense || 0}
+                                    data={revenueExpenseChart}
+                                />
+                            </Deferred>
+                            
+                            <Deferred data="cashFlowChart" fallback={<ChartSkeleton />}>
+                                <CashFlowChart data={cashFlowChart} />
+                            </Deferred>
                         </div>
 
                         {/* Sidebar Column */}
                         <div className="xl:col-span-1 space-y-6">
                             <CashEquivalentBalance accounts={cashAndEquivalents} />
-                            <RecentJournals journals={recentJournals} />
+                            
+                            <Deferred data="recentJournals" fallback={<RecentJournalsSkeleton />}>
+                                <RecentJournals journals={recentJournals} />
+                            </Deferred>
                         </div>
                     </div>
                 </div>

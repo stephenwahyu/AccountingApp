@@ -12,4 +12,17 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    "react-vendor": ["react", "react-dom"],
+                    "inertia-vendor": ["@inertiajs/react"],
+                    "recharts-vendor": ["recharts"],
+                    "ui-vendor": ["lucide-react", "clsx", "tailwind-merge"],
+                },
+            },
+        },
+        chunkSizeWarningLimit: 1000,
+    },
 });

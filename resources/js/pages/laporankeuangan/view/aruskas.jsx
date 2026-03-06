@@ -124,10 +124,7 @@ export default function ViewArusKas({ report }) {
               Kembali
             </Button>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint} className="gap-2">
-                <Printer className="h-4 w-4" />
-                Cetak
-              </Button>
+              
               <Button
                 variant="default"
                 size="sm"

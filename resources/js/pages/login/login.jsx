@@ -18,14 +18,14 @@ export default function LoginPage() {
   return (
     <>
       <Head title="Masuk" />
-      <div className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
+      <main className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
         <div className="w-full max-w-sm md:max-w-5xl">
           <LoginForm />
         </div>
         <p className="mt-8 text-sm text-muted-foreground font-medium">
           2025 &copy; PT. Sarana Pembangunan Riau Trada
         </p>
-      </div>
+      </main>
     </>
   );
 }

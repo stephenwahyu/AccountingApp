@@ -155,8 +155,10 @@ export function AppSidebar({ ...props }) {
                             <a href="#" className="flex items-center gap-3">
                                 <div className=" text-sidebar-primary-foreground flex size-8 aspect-square items-center justify-center rounded-lg overflow-hidden">
                                     <img
-                                        src="/logo.png"
+                                        src="/logo.webp"
                                         alt="Logo"
+                                        width={20}
+                                        height={20}
                                         className="h-5 w-auto object-contain transition-transform duration-300 hover:scale-105"
                                     />
                                 </div>

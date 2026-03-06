@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import PropTypes from "prop-types";
 import { Head, Link, router } from "@inertiajs/react";
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
@@ -29,24 +30,24 @@ import {
 } from "@/components/ui/table";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Combobox } from "@/components/ui/combobox";
-import { Plus, Trash2, Save, X, Printer, Loader2 } from "lucide-react";
-import { cn, parseSafeDate } from "@/lib/utils";
+import { Plus, Trash2, Save, X, Loader2 } from "lucide-react";
+import { cn, parseSafeDate, generateUniqueId } from "@/lib/utils";
 import { toast } from "sonner";
 
 const buildTree = (accounts) => {
     const accountsById = {};
-    accounts.forEach(acc => {
+    for (const acc of accounts) {
         accountsById[acc.id] = { ...acc, children: [] };
-    });
+    }
 
     const tree = [];
-    accounts.forEach(acc => {
+    for (const acc of accounts) {
         if (acc.parent_id && accountsById[acc.parent_id]) {
             accountsById[acc.parent_id].children.push(accountsById[acc.id]);
         } else {
             tree.push(accountsById[acc.id]);
         }
-    });
+    }
 
     return tree;
 };
@@ -90,13 +91,14 @@ export default function FormJurnalUmum({
         fiscal_period_id: journal?.fiscal_period_id?.toString() || "",
         penerima: journal?.penerima || "",
         details: journal?.details?.map((d) => ({
-            ...d,
+            temp_id: d.id || generateUniqueId(),
             account_id: d.account_id.toString(),
-            debit: parseFloat(d.debit || 0),
-            credit: parseFloat(d.credit || 0),
+            description: d.description || "",
+            debit: Number.parseFloat(d.debit || 0),
+            credit: Number.parseFloat(d.credit || 0),
         })) || [
-            { account_id: "", description: "", debit: 0, credit: 0 },
-            { account_id: "", description: "", debit: 0, credit: 0 },
+            { temp_id: generateUniqueId(), account_id: "", description: "", debit: 0, credit: 0 },
+            { temp_id: generateUniqueId(), account_id: "", description: "", debit: 0, credit: 0 },
         ],
     });
 
@@ -148,7 +150,7 @@ export default function FormJurnalUmum({
             ...data,
             details: [
                 ...data.details,
-                { account_id: "", description: "", debit: 0, credit: 0 },
+                { temp_id: generateUniqueId(), account_id: "", description: "", debit: 0, credit: 0 },
             ],
         });
     };
@@ -176,7 +178,7 @@ export default function FormJurnalUmum({
     const totalDebit = useMemo(
         () =>
             data.details.reduce(
-                (sum, detail) => sum + parseFloat(detail.debit || 0),
+                (sum, detail) => sum + Number.parseFloat(detail.debit || 0),
                 0
             ),
         [data.details]
@@ -185,7 +187,7 @@ export default function FormJurnalUmum({
     const totalCredit = useMemo(
         () =>
             data.details.reduce(
-                (sum, detail) => sum + parseFloat(detail.credit || 0),
+                (sum, detail) => sum + Number.parseFloat(detail.credit || 0),
                 0
             ),
         [data.details]
@@ -210,8 +212,6 @@ export default function FormJurnalUmum({
             entry_date: data.entry_date ? new Date(data.entry_date.getTime() - (data.entry_date.getTimezoneOffset() * 60000)).toISOString().split('T')[0] : null,
         };
 
-        console.log("Sending data:", submitData); // Debug
-
         const url = isEdit
             ? route("jurnal.umum.update", journal.id)
             : route("jurnal.umum.store");
@@ -224,7 +224,6 @@ export default function FormJurnalUmum({
                 setSubmittedStatus(null);
             },
             onError: (errors) => {
-                console.error("Validation errors:", errors);
                 setErrors(errors);
                 toast.error("Gagal menyimpan jurnal. Harap periksa kembali inputan Anda.");
                 setProcessing(false);
@@ -287,16 +286,6 @@ export default function FormJurnalUmum({
                                 )}
                                 Simpan & Posting
                             </Button>
-                            {/* {isEdit && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="w-full sm:w-auto"
-                                >
-                                    <Printer className="h-4 w-4 mr-2" />
-                                    Cetak
-                                </Button>
-                            )} */}
                         </div>
                     </div>
 
@@ -311,7 +300,7 @@ export default function FormJurnalUmum({
                         <Card>
                             <CardHeader>
                                 <CardTitle className="text-lg">Informasi Jurnal</CardTitle>
-                                <CardDescription>Atur data administratif jurnal di sini.</CardDescription>
+                                <CardDescription>Atur data administratif di sini.</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -399,7 +388,7 @@ export default function FormJurnalUmum({
                                         </TableHeader>
                                         <TableBody>
                                             {data.details.map((detail, index) => (
-                                                <TableRow key={index} className="hover:bg-muted/5 transition-colors">
+                                                <TableRow key={detail.temp_id} className="hover:bg-muted/5 transition-colors">
                                                     <TableCell className="pl-6 py-3">
                                                         <Combobox
                                                             options={accountOptions}
@@ -504,3 +493,9 @@ export default function FormJurnalUmum({
         </>
     );
 }
+
+FormJurnalUmum.propTypes = {
+    journal: PropTypes.object,
+    accounts: PropTypes.array.isRequired,
+    periods: PropTypes.array.isRequired,
+};
