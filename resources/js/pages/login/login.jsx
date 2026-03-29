@@ -1,12 +1,12 @@
+import * as React from "react";
 import { LoginForm } from "@/components/login-form"
 import { Head, usePage } from "@inertiajs/react";
-import { useEffect } from "react";
 import { toast } from "sonner";
 
 export default function LoginPage() {
   const { flash } = usePage().props;
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (flash?.success) {
       toast.success(flash.success);
     }
@@ -17,7 +17,10 @@ export default function LoginPage() {
 
   return (
     <>
-      <Head title="Masuk" />
+      <Head>
+        <title>Masuk</title>
+        <meta name="description" content="Masuk ke akun Anda untuk mengelola transaksi keuangan dan laporan akuntansi." />
+      </Head>
       <main className="flex min-h-svh flex-col items-center justify-center bg-background p-6 md:p-10 transition-colors duration-500">
         <div className="w-full max-w-sm md:max-w-5xl">
           <LoginForm />

@@ -434,6 +434,7 @@ export default function FormJurnalUmum({
                                                                 size="icon"
                                                                 onClick={() => removeRow(index)}
                                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                                aria-label="Hapus Baris"
                                                             >
                                                                 <Trash2 className="h-4 w-4" />
                                                             </Button>

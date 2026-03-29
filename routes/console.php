@@ -8,4 +8,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-Schedule::command('app:create-new-fiscal-period')->everyMinute();
+Schedule::command('app:create-new-fiscal-period')->daily();
+
+Schedule::command('queue:work --stop-when-empty')->everyMinute()->withoutOverlapping();

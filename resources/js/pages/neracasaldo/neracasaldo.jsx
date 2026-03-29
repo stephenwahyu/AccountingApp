@@ -65,6 +65,7 @@ const AccountRow = ({ account, level = 0 }) => {
                                 size="icon"
                                 onClick={() => setIsExpanded(!isExpanded)}
                                 className="h-7 w-7"
+                                aria-label={isExpanded ? "Sembunyikan Sub-akun" : "Tampilkan Sub-akun"}
                             >
                                 {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                             </Button>

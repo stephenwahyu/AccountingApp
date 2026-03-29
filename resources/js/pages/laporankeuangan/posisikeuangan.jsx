@@ -84,21 +84,23 @@ export default function PosisiKeuanganList({ periods = [] }) {
           </div>
 
           <Tabs value="/laporan-keuangan/posisi-keuangan" onValueChange={handleTabChange}>
-            <TabsList>
-              <TabsTrigger value="/laporan-keuangan">Semua</TabsTrigger>
-              <TabsTrigger value="/laporan-keuangan/posisi-keuangan">
-                Posisi Keuangan
-              </TabsTrigger>
-              <TabsTrigger value="/laporan-keuangan/laba-rugi">
-                Laba Rugi
-              </TabsTrigger>
-              <TabsTrigger value="/laporan-keuangan/arus-kas">
-                Arus Kas
-              </TabsTrigger>
-              <TabsTrigger value="/laporan-keuangan/perubahan-ekuitas">
-                Perubahan Ekuitas
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto pb-2">
+              <TabsList className="justify-start min-w-max">
+                <TabsTrigger value="/laporan-keuangan">Semua</TabsTrigger>
+                <TabsTrigger value="/laporan-keuangan/posisi-keuangan">
+                  Posisi Keuangan
+                </TabsTrigger>
+                <TabsTrigger value="/laporan-keuangan/laba-rugi">
+                  Laba Rugi
+                </TabsTrigger>
+                <TabsTrigger value="/laporan-keuangan/arus-kas">
+                  Arus Kas
+                </TabsTrigger>
+                <TabsTrigger value="/laporan-keuangan/perubahan-ekuitas">
+                  Perubahan Ekuitas
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </Tabs>
 
           <Card>
@@ -167,8 +169,8 @@ export default function PosisiKeuanganList({ periods = [] }) {
                                   variant="ghost"
                                   size="icon"
                                   className="h-8 w-8"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
+                                  aria-label="Menu Aksi"
+                                >                                  <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
@@ -228,6 +230,7 @@ export default function PosisiKeuanganList({ periods = [] }) {
                         className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage(1)}
                         disabled={currentPage === 1}
+                        aria-label="Halaman Pertama"
                       >
                         <ChevronLeft className="h-4 w-4" />
                         <ChevronLeft className="h-4 w-4 -ml-2.5" />
@@ -238,6 +241,7 @@ export default function PosisiKeuanganList({ periods = [] }) {
                         className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage((prev) => prev - 1)}
                         disabled={currentPage === 1}
+                        aria-label="Halaman Sebelumnya"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </Button>
@@ -247,6 +251,7 @@ export default function PosisiKeuanganList({ periods = [] }) {
                         className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage((prev) => prev + 1)}
                         disabled={currentPage === totalPages}
+                        aria-label="Halaman Berikutnya"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -256,6 +261,7 @@ export default function PosisiKeuanganList({ periods = [] }) {
                         className="h-8 w-8 bg-accent"
                         onClick={() => setCurrentPage(totalPages)}
                         disabled={currentPage === totalPages}
+                        aria-label="Halaman Terakhir"
                       >
                         <ChevronRight className="h-4 w-4" />
                         <ChevronRight className="h-4 w-4 -ml-2.5" />

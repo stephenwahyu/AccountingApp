@@ -1,11 +1,6 @@
 import { AppLayouts } from "@/pages/layouts/app-layout";
 import { Head, Deferred } from "@inertiajs/react";
-import { RevenueExpenseChart } from "./components/RevenueExpenseChart";
-import { CashFlowChart } from "./components/CashFlowChart";
-import { CashEquivalentBalance } from "./components/CashEquivalentBalance";
-import { QuickShortcuts } from "./components/QuickShortcuts";
-import { StatsCards } from "./components/StatsCards";
-import { RecentJournals } from "./components/RecentJournals";
+import React from "react";
 import {
     Select,
     SelectContent,
@@ -17,6 +12,12 @@ import { router } from "@inertiajs/react";
 import { CalendarDays } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { QuickShortcuts } from "./components/QuickShortcuts";
+import { StatsCards } from "./components/StatsCards";
+import { RecentJournals } from "./components/RecentJournals";
+import { CashEquivalentBalance } from "./components/CashEquivalentBalance";
+import { RevenueExpenseChart } from "./components/RevenueExpenseChart";
+import { CashFlowChart } from "./components/CashFlowChart";
 
 const breadcrumbs = [
     {
@@ -103,7 +104,9 @@ export default function Dashboard({
 
     return (
         <>
-            <Head title="Dashboard" />
+            <Head>
+                <title>Dashboard</title>
+            </Head>
             <AppLayouts breadcrumbs={breadcrumbs}>
                 <div className="flex flex-col gap-8 pb-8">
                     {/* Header Section */}

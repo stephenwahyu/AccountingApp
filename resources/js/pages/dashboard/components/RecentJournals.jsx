@@ -41,17 +41,11 @@ export function RecentJournals({ journals }) {
                     <div className="overflow-x-auto">
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>No. Jurnal</TableHead>
-                                    <TableHead>Tanggal</TableHead>
-                                    <TableHead>Tipe</TableHead>
-                                    <TableHead className="text-right">Aksi</TableHead>
-                                </TableRow>
+                                <TableRow><TableHead>No. Jurnal</TableHead><TableHead>Tanggal</TableHead><TableHead>Tipe</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow>
                             </TableHeader>
                             <TableBody>
                                 {journals.map((journal) => (
-                                    <TableRow key={journal.id}>
-                                        <TableCell>
+                                    <TableRow key={journal.id}><TableCell>
                                             <div className="font-medium">{journal.entry_number}</div>
                                             <div className="hidden text-sm text-muted-foreground md:inline">
                                                 {journal.penerima || '-'}
@@ -69,7 +63,7 @@ export function RecentJournals({ journals }) {
                                                     <ArrowUpRight className="h-4 w-4" />
                                                 </Link>
                                             </Button>
-                                        </TableCell>                                    </TableRow>
+                                        </TableCell></TableRow>
                                 ))}
                             </TableBody>
                         </Table>

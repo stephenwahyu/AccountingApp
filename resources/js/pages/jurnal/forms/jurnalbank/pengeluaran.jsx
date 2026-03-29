@@ -158,8 +158,18 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
 
   const accountOptions = useMemo(() => {
     const tree = buildTree(accounts);
-    return flattenTreeForSelect(tree).filter(opt => !opt.is_cash_account);
-  }, [accounts]);
+    const allOptions = flattenTreeForSelect(tree);
+    
+    // Get IDs of accounts already in the journal details to ensure they are always visible
+    const existingAccountIds = new Set(data.details.map(d => d.account_id));
+    
+    return allOptions.filter(opt => 
+      !opt.is_cash_account || 
+      opt.is_cash_account === 0 || 
+      opt.is_cash_account === "0" || 
+      existingAccountIds.has(opt.value)
+    );
+  }, [accounts, data.details]);
 
   const bankAccountOptions = bankAccounts.map((acc) => ({
     value: acc.id.toString(),
@@ -436,6 +446,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                                                 size="icon"
                                                 onClick={() => removeRow(index)}
                                                 className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                                aria-label="Hapus Baris"
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>

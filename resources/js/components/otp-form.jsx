@@ -104,10 +104,12 @@ export function OTPForm({ token, email, className, ...props }) {
             <div className="flex flex-col items-center text-center gap-6">
                 <img
                     src="/logo.webp"
-                    alt="Logo"
-                    width={48}
-                    height={48}
-                    className="h-12 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110"
+                    srcSet="/logo-sm.webp 80w, /logo.webp 160w"
+                    sizes="80px"
+                    alt="Logo PT. SPR Trada"
+                    width={80}
+                    height={80}
+                    className="h-20 w-auto object-contain transition-transform hover:scale-105 duration-300 dark:brightness-110 mb-2"
                 />
                 <div className="space-y-1">
                     <p className="text-xl font-bold text-foreground tracking-tight leading-tight transition-colors duration-500">Sistem Akuntansi</p>

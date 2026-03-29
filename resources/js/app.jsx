@@ -1,5 +1,6 @@
 import "./bootstrap";
 import { createInertiaApp } from "@inertiajs/react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "@/components/ui/sonner";
 import { initializeTheme } from './hooks/use-appearance';

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FiscalPeriod;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class LaporanKeuanganService
@@ -10,6 +11,24 @@ class LaporanKeuanganService
     public function getPosisiKeuangan(FiscalPeriod $period)
     {
         $balances = $this->calculateBalancesForPeriod($period, true);
+
+        $startOfFiscalYear = $period->fiscal_year . '-01-01';
+        $profitPreviousYears = $this->getNetIncomeByDates(null, Carbon::parse($startOfFiscalYear)->subDay()->toDateString());
+        $profitCurrentYear = $this->getNetIncomeByDates($startOfFiscalYear, $period->end_date);
+
+        // Map balances to add previous years' profit to Laba Ditahan (3-2001)
+        // and ensure Laba Tahun Berjalan (3-2002) is handled manually
+        $balances = $balances->map(function ($item) use ($profitPreviousYears) {
+            if ($item->account_code === '3-2001') {
+                $item->balance = (float) $item->balance + (float) $profitPreviousYears;
+            }
+
+            return $item;
+        })->filter(function ($item) {
+            // Filter out 3-2002 from default equity balances to avoid double counting
+            // as we will add it manually as calculated current year profit
+            return $item->account_code !== '3-2002';
+        });
 
         $groupByCategory = function ($typeBalances) {
             return $typeBalances->groupBy('category_name')->map(function ($items, $categoryName) {
@@ -29,11 +48,10 @@ class LaporanKeuanganService
         $liabilitiesGrouped = $groupByCategory($liabilitiesBalances);
         $liabilitiesTotal = $liabilitiesBalances->sum('balance');
 
-        $cumulativeNetIncome = $this->calculateCumulativeNetIncome($period);
         $equityBalances = $balances->where('account_type', 'Ekuitas')->where('balance', '!=', 0);
         $equityGrouped = $groupByCategory($equityBalances);
 
-        if ($cumulativeNetIncome != 0) {
+        if ($profitCurrentYear != 0) {
             $found = false;
             foreach ($equityGrouped as &$group) {
                 if ($group['category_name'] === 'Laba (Rugi)' || $group['category_name'] === 'Modal') {
@@ -41,9 +59,9 @@ class LaporanKeuanganService
                         'account_id' => null,
                         'account_code' => '3-2002',
                         'account_name' => 'Laba Tahun Berjalan',
-                        'balance' => (float) $cumulativeNetIncome,
+                        'balance' => (float) $profitCurrentYear,
                     ];
-                    $group['total'] += (float) $cumulativeNetIncome;
+                    $group['total'] += (float) $profitCurrentYear;
                     $found = true;
                     break;
                 }
@@ -55,9 +73,9 @@ class LaporanKeuanganService
                         'account_id' => null,
                         'account_code' => '3-2002',
                         'account_name' => 'Laba Tahun Berjalan',
-                        'balance' => (float) $cumulativeNetIncome,
+                        'balance' => (float) $profitCurrentYear,
                     ]],
-                    'total' => (float) $cumulativeNetIncome,
+                    'total' => (float) $profitCurrentYear,
                 ];
             }
         }
@@ -79,6 +97,26 @@ class LaporanKeuanganService
                 'total' => $equityTotal,
             ],
         ];
+    }
+
+    private function getNetIncomeByDates(?string $startDate, string $endDate): float
+    {
+        $query = DB::table('journal_details as jd')
+            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
+            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
+            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
+            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
+            ->where('je.status', 'Posted')
+            ->whereIn('at.name', ['Pendapatan', 'Beban']);
+
+        if ($startDate) {
+            $query->where('je.entry_date', '>=', $startDate);
+        }
+
+        $query->where('je.entry_date', '<=', $endDate);
+
+        return (float) ($query->select(DB::raw('SUM(jd.credit - jd.debit) as net_balance'))
+            ->first()->net_balance ?? 0);
     }
 
     public function getLabaRugi(FiscalPeriod $period)
@@ -214,7 +252,10 @@ class LaporanKeuanganService
             ->where('je.entry_date', '<', $period->start_date)
             ->sum(DB::raw('jd.credit - jd.debit'));
 
-        $beginningBalance = $initialMigrationBalance + $previousEquityMutation;
+        // Also include accumulated profit (Net Income) from all previous periods up to start_date
+        $previousNetIncome = $this->getNetIncomeByDates(null, Carbon::parse($period->start_date)->subDay()->toDateString());
+
+        $beginningBalance = (float) $initialMigrationBalance + (float) $previousEquityMutation + (float) $previousNetIncome;
 
         $netIncomeReport = $this->getLabaRugi($period);
         $netIncome = $netIncomeReport['net_income'];
@@ -324,38 +365,5 @@ class LaporanKeuanganService
 
                 return $item;
             });
-    }
-
-    private function calculateCumulativeNetIncome(FiscalPeriod $period)
-    {
-        // Try to get from snapshots first
-        $snapshotIncome = DB::table('account_balances as ab')
-            ->join('accounts as a', 'ab.account_id', '=', 'a.id')
-            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
-            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->where('ab.fiscal_period_id', $period->id)
-            ->whereIn('at.name', ['Pendapatan', 'Beban'])
-            ->select(
-                DB::raw('SUM(ab.credit_total - ab.debit_total) as net_balance')
-            )
-            ->first()->net_balance;
-
-        if ($snapshotIncome !== null) {
-            return $snapshotIncome;
-        }
-
-        // Fallback to scanning journal entries
-        return DB::table('journal_details as jd')
-            ->join('journal_entries as je', 'jd.journal_entry_id', '=', 'je.id')
-            ->join('accounts as a', 'jd.account_id', '=', 'a.id')
-            ->join('account_categories as ac', 'a.account_category_id', '=', 'ac.id')
-            ->join('account_types as at', 'ac.account_type_id', '=', 'at.id')
-            ->where('je.status', 'Posted')
-            ->where('je.entry_date', '<=', $period->end_date)
-            ->whereIn('at.name', ['Pendapatan', 'Beban'])
-            ->select(
-                DB::raw('SUM(jd.credit - jd.debit) as net_balance')
-            )
-            ->first()->net_balance ?? 0;
     }
 }

@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
-use App\Models\JournalEntry;
 use App\Helpers\Terbilang;
+use App\Models\JournalEntry;
 use Dompdf\Dompdf;
 use Dompdf\Options;
 use Illuminate\Bus\Queueable;
@@ -54,12 +54,22 @@ class JournalPostedMail extends Mailable
     public function attachments(): array
     {
         // PDF Generation Logic (Same as JurnalPDFController)
-        $title = "Voucher Jurnal";
-        if ($this->journal->journal_type === 'Kas Masuk') $title = "Penerimaan Kas";
-        if ($this->journal->journal_type === 'Kas Keluar') $title = "Pengeluaran Kas";
-        if ($this->journal->journal_type === 'Bank Masuk') $title = "Penerimaan Bank";
-        if ($this->journal->journal_type === 'Bank Keluar') $title = "Pengeluaran Bank";
-        if ($this->journal->journal_type === 'Umum') $title = "Jurnal Umum";
+        $title = 'Voucher Jurnal';
+        if ($this->journal->journal_type === 'Kas Masuk') {
+            $title = 'Penerimaan Kas';
+        }
+        if ($this->journal->journal_type === 'Kas Keluar') {
+            $title = 'Pengeluaran Kas';
+        }
+        if ($this->journal->journal_type === 'Bank Masuk') {
+            $title = 'Penerimaan Bank';
+        }
+        if ($this->journal->journal_type === 'Bank Keluar') {
+            $title = 'Pengeluaran Bank';
+        }
+        if ($this->journal->journal_type === 'Umum') {
+            $title = 'Jurnal Umum';
+        }
 
         $total = 0;
         if (str_contains($this->journal->journal_type, 'Keluar') || $this->journal->journal_type === 'Umum') {
@@ -68,29 +78,38 @@ class JournalPostedMail extends Mailable
             $total = $this->journal->journalDetails->sum('credit');
         }
 
-        $terbilang = trim(Terbilang::make($total)) . " Rupiah";
+        $terbilang = trim(Terbilang::make($total)).' Rupiah';
+
+        // Filter out cash/bank accounts for Cash/Bank vouchers
+        $details = $this->journal->journalDetails;
+        if (str_contains($this->journal->journal_type, 'Kas') || str_contains($this->journal->journal_type, 'Bank')) {
+            $details = $this->journal->journalDetails->filter(function ($detail) {
+                return ! $detail->account->is_cash_account;
+            });
+        }
 
         $data = [
             'company_name' => config('app.company_name', 'PT. Sarana Pembangunan Riau'),
             'title' => $title,
             'journal' => $this->journal,
+            'details' => $details,
             'total' => $total,
             'terbilang' => $terbilang,
         ];
 
         $html = View::make('pdf.jurnal-voucher', $data)->render();
 
-        $options = new Options();
+        $options = new Options;
         $options->set('defaultFont', 'DejaVu Sans');
         $options->set('isRemoteEnabled', true);
-        
+
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
 
         return [
-            Attachment::fromData(fn () => $dompdf->output(), 'Voucher-' . $this->journal->entry_number . '.pdf')
+            Attachment::fromData(fn () => $dompdf->output(), 'Voucher-'.$this->journal->entry_number.'.pdf')
                 ->withMime('application/pdf'),
         ];
     }

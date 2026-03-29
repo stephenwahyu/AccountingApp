@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useForm, Link } from "@inertiajs/react";
 import { Loader2, Eye, EyeOff, Lock, Mail } from "lucide-react";
-import { useState } from "react";
 
 export function LoginForm({ className, ...props }) {
     const { data, setData, post, processing, errors } = useForm({
@@ -15,7 +15,7 @@ export function LoginForm({ className, ...props }) {
         remember: false,
     });
 
-    const [showPassword, setShowPassword] = useState(false);
+    const [showPassword, setShowPassword] = React.useState(false);
 
     function handleSubmit(e) {
         e.preventDefault();
@@ -33,6 +33,8 @@ export function LoginForm({ className, ...props }) {
                             <div className="flex flex-col items-center text-center gap-5">
                                 <img
                                     src="/logo.webp"
+                                    srcSet="/logo-sm.webp 80w, /logo.webp 160w"
+                                    sizes="80px"
                                     alt="Logo PT. SPR Trada"
                                     width={80}
                                     height={80}
@@ -149,10 +151,12 @@ export function LoginForm({ className, ...props }) {
                             <source media="(max-width: 767px)" srcSet="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" />
                             <img
                                 src="/image.webp"
+                                srcSet="/image-sm.webp 400w, /image.webp 650w"
+                                sizes="(max-width: 1024px) 400px, 650px"
                                 alt="Finance Illustration"
                                 width={600}
                                 height={800}
-                                fetchpriority="high"
+                                fetchPriority="high"
                                 loading="eager"
                                 className="h-full w-full object-cover opacity-90 transition-opacity hover:opacity-100 duration-500 dark:brightness-[0.8] dark:contrast-125"
                             />

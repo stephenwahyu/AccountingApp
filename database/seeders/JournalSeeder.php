@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class JournalSeeder extends Seeder
 {
@@ -145,7 +145,7 @@ class JournalSeeder extends Seeder
         '500.430' => '5-1001', // Biaya Overhead → HPP
 
         // ── Beban Administrasi & Umum (620.xxx) ──────────────────────────
-        '620'     => '5-3000', // Group header beban (dilewati jika saldo 0)
+        '620' => '5-3000', // Group header beban (dilewati jika saldo 0)
         '620.011' => '5-3101', // Gaji Direksi & Komisaris → Gaji Adm
         '620.012' => '5-3104', // THR/Tunjangan → THR & Bonus
         '620.014' => '5-3103', // Lembur → Tunjangan Karyawan
@@ -216,15 +216,15 @@ class JournalSeeder extends Seeder
     private array $accountCache = [];
 
     /** Cache 'YYYY-MM' → fiscal_period_id */
-    private array $periodCache  = [];
+    private array $periodCache = [];
 
     /** Statistik untuk laporan akhir */
     private array $stats = [
         'entries_inserted' => 0,
-        'entries_skipped'  => 0,
+        'entries_skipped' => 0,
         'details_inserted' => 0,
-        'details_skipped'  => 0,
-        'unmapped_codes'   => [],
+        'details_skipped' => 0,
+        'unmapped_codes' => [],
     ];
 
     // =========================================================================
@@ -239,13 +239,13 @@ class JournalSeeder extends Seeder
         $allHeaders = $this->loadCsv(database_path('seeders/data/acc_iftjurnalhdr.csv'));
         $allDetails = $this->loadCsv(database_path('seeders/data/acc_iftjurnaldtl.csv'));
 
-        $this->command->info('  Header jurnal (total)  : ' . count($allHeaders) . ' baris');
-        $this->command->info('  Detail jurnal (total)  : ' . count($allDetails) . ' baris');
+        $this->command->info('  Header jurnal (total)  : '.count($allHeaders).' baris');
+        $this->command->info('  Detail jurnal (total)  : '.count($allDetails).' baris');
 
         // ── 2. Filter hanya SPR TRADA (dep_kode = TR) ───────────────────────
         $headers = array_filter(
             $allHeaders,
-            fn($row) => strtoupper(trim($row['dep_kode'])) === self::FILTER_DEP_KODE
+            fn ($row) => strtoupper(trim($row['dep_kode'])) === self::FILTER_DEP_KODE
         );
         $headers = array_values($headers);
 
@@ -254,16 +254,16 @@ class JournalSeeder extends Seeder
 
         $details = array_filter(
             $allDetails,
-            fn($row) => isset($tradaNobktSet[trim($row['jur_nobkt'])])
+            fn ($row) => isset($tradaNobktSet[trim($row['jur_nobkt'])])
         );
         $details = array_values($details);
 
-        $this->command->info('  Header jurnal (Trada)  : ' . count($headers) . ' baris');
-        $this->command->info('  Detail jurnal (Trada)  : ' . count($details) . ' baris');
+        $this->command->info('  Header jurnal (Trada)  : '.count($headers).' baris');
+        $this->command->info('  Detail jurnal (Trada)  : '.count($details).' baris');
 
         // ── 3. Bangun cache ──────────────────────────────────────────────────
         $this->buildAccountCache();
-        $this->command->info('  Account cache : ' . count($this->accountCache) . ' akun dimuat');
+        $this->command->info('  Account cache : '.count($this->accountCache).' akun dimuat');
 
         // ── 4. Kelompokkan detail berdasarkan jur_nobkt ──────────────────────
         $detailsByNobkt = [];
@@ -275,12 +275,13 @@ class JournalSeeder extends Seeder
         $defaultUserId = DB::table('users')->value('id');
         if (! $defaultUserId) {
             $this->command->error('  Tabel users kosong. Jalankan UserSeeder terlebih dahulu.');
+
             return;
         }
 
         // ── 6. Proses per chunk ──────────────────────────────────────────────
         $chunks = array_chunk($headers, 100);
-        $total  = count($chunks);
+        $total = count($chunks);
 
         DB::disableQueryLog();
 
@@ -293,7 +294,7 @@ class JournalSeeder extends Seeder
                 DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();
-                $this->command->error("  Chunk " . ($idx + 1) . " GAGAL: " . $e->getMessage());
+                $this->command->error('  Chunk '.($idx + 1).' GAGAL: '.$e->getMessage());
                 throw $e;
             }
 
@@ -324,88 +325,131 @@ class JournalSeeder extends Seeder
         // Idempoten: lewati jika entry_number sudah ada
         if (DB::table('journal_entries')->where('entry_number', $nobkt)->exists()) {
             $this->stats['entries_skipped']++;
+
             return;
         }
 
-        $entryDate   = $this->parseDate($hdr['jur_tgl']);
+        $entryDate = $this->parseDate($hdr['jur_tgl']);
         $journalType = self::TYPE_MAP[strtoupper(trim($hdr['jur_type']))] ?? 'Umum';
-        $isPosted    = strtoupper(trim($hdr['jur_post'])) === 'T';
-        $fiscalId    = $this->getFiscalPeriodId($entryDate);
+        $isPosted = strtoupper(trim($hdr['jur_post'])) === 'T';
+        $fiscalId = $this->getFiscalPeriodId($entryDate);
 
         // Tentukan penerima: utamakan jur_pihak1, fallback ke jur_pihak2
         $penerima = $this->cleanString($hdr['jur_pihak1'])
             ?? $this->cleanString($hdr['jur_pihak2']);
 
         $entryId = DB::table('journal_entries')->insertGetId([
-            'entry_date'       => $entryDate,
-            'entry_number'     => $nobkt,
-            'penerima'         => $penerima,
-            'journal_type'     => $journalType,
-            'status'           => $isPosted ? 'Posted' : 'Draft',
+            'entry_date' => $entryDate,
+            'entry_number' => $nobkt,
+            'penerima' => $penerima,
+            'journal_type' => $journalType,
+            'status' => $isPosted ? 'Posted' : 'Draft',
             'fiscal_period_id' => $fiscalId,
-            'user_id'          => $defaultUserId,
-            'posted_at'        => $isPosted ? $this->parseTimestamp($hdr['jur_tglpos'], '00:00:00') : null,
-            'posted_by'        => $isPosted ? $defaultUserId : null,
-            'created_at'       => $this->parseTimestamp($hdr['tgl_c'], $hdr['time_c']),
-            'updated_at'       => $this->parseTimestamp($hdr['tgl_m'], $hdr['time_m']),
+            'user_id' => $defaultUserId,
+            'posted_at' => $isPosted ? $this->parseTimestamp($hdr['jur_tglpos'], '00:00:00') : null,
+            'posted_by' => $isPosted ? $defaultUserId : null,
+            'created_at' => $this->parseTimestamp($hdr['tgl_c'], $hdr['time_c']),
+            'updated_at' => $this->parseTimestamp($hdr['tgl_m'], $hdr['time_m']),
         ]);
 
         $this->stats['entries_inserted']++;
 
-        // Proses detail milik header ini
-        foreach ($detailsByNobkt[$nobkt] ?? [] as $dtl) {
-            $this->processDetail($dtl, $entryId);
-        }
+        // Proses detail milik header ini — NET per rek_kode terlebih dahulu
+        // agar nilai negatif dari sistem lama (potongan gaji, koreksi) tidak
+        // menghasilkan posisi bank/beban yang terbalik (bank debet di BK, dsb).
+        $rawDetails = $detailsByNobkt[$nobkt] ?? [];
+        $this->processDetails($rawDetails, $entryId);
     }
 
     // =========================================================================
-    //  PROSES SATU DETAIL
+    //  PROSES DETAIL — NET PER AKUN SEBELUM INSERT
+    // =========================================================================
+    //
+    //  Sistem lama menyimpan potongan (mis. BPJS karyawan, angsuran) sebagai
+    //  nilai NEGATIF pada kolom jur_debet atau jur_kredit, bukan sebagai baris
+    //  terpisah dengan posisi yang benar.  Jika langsung di-swap (negatif →
+    //  sisi lain), hasilnya bank muncul di DEBET pada jurnal Bank Keluar dan
+    //  beban muncul di KREDIT — keduanya terbalik secara akuntansi.
+    //
+    //  Solusi: NET semua baris per rek_kode dalam satu jurnal terlebih dahulu.
+    //  Formula: net = Σ jur_debet − Σ jur_kredit
+    //    net > 0  → INSERT sebagai DEBIT
+    //    net < 0  → INSERT sebagai KREDIT (abs value)
+    //    net = 0  → SKIP (saling hapus)
+    //
     // =========================================================================
 
-    private function processDetail(array $dtl, int $entryId): void
+    private function processDetails(array $rawDetails, int $entryId): void
     {
-        $rekKode = trim($dtl['rek_kode']);
-        $debit  = round((float) $dtl['jur_debet'], 2);
-        $credit = round((float) $dtl['jur_kredit'], 2);
+        // ── 1. Net per rek_kode ─────────────────────────────────────────────
+        // Struktur: rek_kode → ['net' => float, 'ket' => string, 'tgl_c' => ..., ...]
+        $netMap = [];
 
-        // Normalisasi nilai negatif dari sistem lama
-        if ($debit < 0) {
-            $credit = abs($debit);
-            $debit  = 0;
-        }
+        foreach ($rawDetails as $dtl) {
+            $rekKode = trim($dtl['rek_kode']);
+            $debit = (float) $dtl['jur_debet'];
+            $credit = (float) $dtl['jur_kredit'];
 
-        if ($credit < 0) {
-            $debit  = abs($credit);
-            $credit = 0;
-        }
-
-        // Lewati baris yang kedua-duanya = 0 (melanggar CHECK constraint)
-        if ($debit === 0.0 && $credit === 0.0) {
-            $this->stats['details_skipped']++;
-            return;
-        }
-
-        $accountId = $this->resolveAccountId($rekKode);
-
-        if ($accountId === null) {
-            $this->stats['details_skipped']++;
-            if (! in_array($rekKode, $this->stats['unmapped_codes'], true)) {
-                $this->stats['unmapped_codes'][] = $rekKode;
+            if (! isset($netMap[$rekKode])) {
+                $netMap[$rekKode] = [
+                    'net' => 0.0,
+                    'ket' => '',
+                    'tgl_c' => $dtl['tgl_c'],
+                    'time_c' => $dtl['time_c'],
+                    'tgl_m' => $dtl['tgl_m'],
+                    'time_m' => $dtl['time_m'],
+                ];
             }
-            return;
+
+            // net positif = DEBIT, net negatif = KREDIT
+            $netMap[$rekKode]['net'] += $debit - $credit;
+
+            // Ambil keterangan pertama yang tidak kosong
+            if ($netMap[$rekKode]['ket'] === '') {
+                $ket = trim($dtl['jur_ket']);
+                if ($ket !== '') {
+                    $netMap[$rekKode]['ket'] = $ket;
+                }
+            }
         }
 
-        DB::table('journal_details')->insert([
-            'journal_entry_id' => $entryId,
-            'account_id'       => $accountId,
-            'description'      => $this->cleanString($dtl['jur_ket']),
-            'debit'            => $debit,
-            'credit'           => $credit,
-            'created_at'       => $this->parseTimestamp($dtl['tgl_c'], $dtl['time_c']),
-            'updated_at'       => $this->parseTimestamp($dtl['tgl_m'], $dtl['time_m']),
-        ]);
+        // ── 2. Insert satu baris per akun ───────────────────────────────────
+        foreach ($netMap as $rekKode => $data) {
+            $net = round($data['net'], 2);
 
-        $this->stats['details_inserted']++;
+            if ($net === 0.0) {
+                // Saling hapus — skip (mis. transfer yang dikoreksi penuh)
+                $this->stats['details_skipped']++;
+
+                continue;
+            }
+
+            $debit = $net > 0 ? $net : 0.0;
+            $credit = $net < 0 ? abs($net) : 0.0;
+
+            $accountId = $this->resolveAccountId($rekKode);
+
+            if ($accountId === null) {
+                $this->stats['details_skipped']++;
+                if (! in_array($rekKode, $this->stats['unmapped_codes'], true)) {
+                    $this->stats['unmapped_codes'][] = $rekKode;
+                }
+
+                continue;
+            }
+
+            DB::table('journal_details')->insert([
+                'journal_entry_id' => $entryId,
+                'account_id' => $accountId,
+                'description' => $this->cleanString($data['ket']),
+                'debit' => $debit,
+                'credit' => $credit,
+                'created_at' => $this->parseTimestamp($data['tgl_c'], $data['time_c']),
+                'updated_at' => $this->parseTimestamp($data['tgl_m'], $data['time_m']),
+            ]);
+
+            $this->stats['details_inserted']++;
+        }
     }
 
     // =========================================================================
@@ -424,6 +468,7 @@ class JournalSeeder extends Seeder
         if ($newCode) {
             return $this->accountCache[$newCode] ?? null;
         }
+
         return $this->accountCache[$rekKode] ?? null;
     }
 
@@ -470,6 +515,7 @@ class JournalSeeder extends Seeder
         if (empty($val) || $val === '0000-00-00') {
             return now()->toDateString();
         }
+
         return Carbon::parse($val)->toDateString();
     }
 
@@ -491,6 +537,7 @@ class JournalSeeder extends Seeder
     private function cleanString(?string $val): ?string
     {
         $val = trim((string) $val);
+
         return $val !== '' ? $val : null;
     }
 
@@ -501,13 +548,14 @@ class JournalSeeder extends Seeder
             throw new \RuntimeException("File CSV tidak ditemukan: {$path}");
         }
 
-        $rows   = [];
+        $rows = [];
         $handle = fopen($path, 'r');
         $header = null;
 
         while (($line = fgetcsv($handle, 0, ',', '"')) !== false) {
             if ($header === null) {
                 $header = $line;
+
                 continue;
             }
             while (count($line) < count($header)) {
@@ -517,6 +565,7 @@ class JournalSeeder extends Seeder
         }
 
         fclose($handle);
+
         return $rows;
     }
 
@@ -527,14 +576,14 @@ class JournalSeeder extends Seeder
         $this->command->info('═══════════════════════════════════════════════════════');
         $this->command->info('  SELESAI — Ringkasan Hasil (SPR TRADA / dep_kode = TR)');
         $this->command->info('───────────────────────────────────────────────────────');
-        $this->command->info('  Journal Entries diinsert : ' . $this->stats['entries_inserted']);
-        $this->command->info('  Journal Entries dilewati : ' . $this->stats['entries_skipped'] . ' (sudah ada / duplikat)');
-        $this->command->info('  Journal Details diinsert : ' . $this->stats['details_inserted']);
-        $this->command->info('  Journal Details dilewati : ' . $this->stats['details_skipped']);
+        $this->command->info('  Journal Entries diinsert : '.$this->stats['entries_inserted']);
+        $this->command->info('  Journal Entries dilewati : '.$this->stats['entries_skipped'].' (sudah ada / duplikat)');
+        $this->command->info('  Journal Details diinsert : '.$this->stats['details_inserted']);
+        $this->command->info('  Journal Details dilewati : '.$this->stats['details_skipped']);
 
         if (! empty($this->stats['unmapped_codes'])) {
             $this->command->warn('');
-            $this->command->warn('  ⚠  Kode rekening TIDAK TERPETAKAN (' . count($this->stats['unmapped_codes']) . ' kode):');
+            $this->command->warn('  ⚠  Kode rekening TIDAK TERPETAKAN ('.count($this->stats['unmapped_codes']).' kode):');
             foreach ($this->stats['unmapped_codes'] as $code) {
                 $this->command->warn("     - {$code}");
             }

@@ -23,10 +23,14 @@ class JurnalController extends Controller
 
         $getTypeWeight = function ($type) {
             switch ($type) {
-                case 'monthly': return 1;
-                case 'quarterly': return 2;
-                case 'annually': return 3;
-                default: return 4;
+                case 'monthly':
+                    return 1;
+                case 'quarterly':
+                    return 2;
+                case 'annually':
+                    return 3;
+                default:
+                    return 4;
             }
         };
 
@@ -124,8 +128,8 @@ class JurnalController extends Controller
             'details' => 'required|array|min:2',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -169,13 +173,14 @@ class JurnalController extends Controller
 
             // Create journal details
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0 || $detail['credit'] > 0) {
+                $net = $detail['debit'] - $detail['credit'];
+                if ($net != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => $detail['credit'],
+                        'debit' => $net > 0 ? $net : 0,
+                        'credit' => $net < 0 ? abs($net) : 0,
                     ]);
                 }
             }
@@ -255,7 +260,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -285,13 +290,13 @@ class JurnalController extends Controller
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['credit'] > 0) {
+                if ($detail['credit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => 0,
-                        'credit' => $detail['credit'],
+                        'debit' => $detail['credit'] < 0 ? abs($detail['credit']) : 0,
+                        'credit' => $detail['credit'] > 0 ? $detail['credit'] : 0,
                     ]);
                     $totalCredit += $detail['credit'];
                 }
@@ -350,7 +355,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -386,13 +391,13 @@ class JurnalController extends Controller
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0) {
+                if ($detail['debit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => 0,
+                        'debit' => $detail['debit'] > 0 ? $detail['debit'] : 0,
+                        'credit' => $detail['debit'] < 0 ? abs($detail['debit']) : 0,
                     ]);
                     $totalDebit += $detail['debit'];
                 }
@@ -409,7 +414,7 @@ class JurnalController extends Controller
 
             DB::commit();
 
-            return redirect()->route('jurnal.kas')->with('success', 'Pengeluaran Kas berhasil diperbarui');
+            return redirect()->route('jurnal.kas')->with('success', 'Pengeluaran Kas berhasil ditambahkan');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -482,7 +487,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -512,13 +517,13 @@ class JurnalController extends Controller
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['credit'] > 0) {
+                if ($detail['credit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => 0,
-                        'credit' => $detail['credit'],
+                        'debit' => $detail['credit'] < 0 ? abs($detail['credit']) : 0,
+                        'credit' => $detail['credit'] > 0 ? $detail['credit'] : 0,
                     ]);
                     $totalCredit += $detail['credit'];
                 }
@@ -576,7 +581,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -612,13 +617,13 @@ class JurnalController extends Controller
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0) {
+                if ($detail['debit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => 0,
+                        'debit' => $detail['debit'] > 0 ? $detail['debit'] : 0,
+                        'credit' => $detail['debit'] < 0 ? abs($detail['debit']) : 0,
                     ]);
                     $totalDebit += $detail['debit'];
                 }
@@ -761,8 +766,8 @@ class JurnalController extends Controller
             'details' => 'required|array|min:2',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|in:Draft,Posted',
         ]);
 
@@ -797,13 +802,14 @@ class JurnalController extends Controller
             $journal->journalDetails()->delete();
 
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0 || $detail['credit'] > 0) {
+                $net = $detail['debit'] - $detail['credit'];
+                if ($net != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => $detail['credit'],
+                        'debit' => $net > 0 ? $net : 0,
+                        'credit' => $net < 0 ? abs($net) : 0,
                     ]);
                 }
             }
@@ -821,10 +827,6 @@ class JurnalController extends Controller
     // Edit Pemasukan Kas
     public function kasPemasukanEdit(JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
-        // }
-
         $accounts = Account::withCount('children')
             ->where('is_active', true)
             ->orderBy('account_code')
@@ -839,15 +841,29 @@ class JurnalController extends Controller
 
         $journal->load('journalDetails.account');
 
-        // Cari akun kas (yang debit)
-        $cashDetail = $journal->journalDetails->firstWhere('debit', '>', 0);
+        // Cari akun kas utama (yang debit, is_cash_account)
+        $cashDetail = $journal->journalDetails->filter(function ($detail) {
+            return $detail->debit > 0
+                && $detail->account->is_cash_account;
+        })->first();
+
+        // Fallback jika tidak ditemukan yang debit, cari yang is_cash_account saja
+        if (! $cashDetail) {
+            $cashDetail = $journal->journalDetails->filter(function ($detail) {
+                return $detail->account->is_cash_account;
+            })->first();
+        }
+
         $cashAccountId = $cashDetail ? $cashDetail->account_id : null;
 
-        // Ambil detail kredit (bukan kas)
-        $creditDetails = $journal->journalDetails->where('credit', '>', 0);
+        // Ambil detail lainnya (kecuali baris akun kas utama yang terpilih)
+        // Jika ada beberapa baris dengan akun yang sama, kita hanya ingin mengecualikan satu baris "header"
+        $details = $journal->journalDetails->reject(function ($detail) use ($cashDetail) {
+            return $cashDetail && $detail->id === $cashDetail->id;
+        });
 
         return Inertia::render('jurnal/forms/jurnalkas/pemasukan', [
-            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $creditDetails, 'credit'),
+            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $details, 'credit'),
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
             'periods' => $this->getOpenSortedPeriods(),
@@ -870,7 +886,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -891,13 +907,13 @@ class JurnalController extends Controller
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['credit'] > 0) {
+                if ($detail['credit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => 0,
-                        'credit' => $detail['credit'],
+                        'debit' => $detail['credit'] < 0 ? abs($detail['credit']) : 0,
+                        'credit' => $detail['credit'] > 0 ? $detail['credit'] : 0,
                     ]);
                     $totalCredit += $detail['credit'];
                 }
@@ -924,10 +940,6 @@ class JurnalController extends Controller
     // Edit Pengeluaran Kas
     public function kasPengeluaranEdit(JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return redirect()->route('jurnal.kas')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
-        // }
-
         $accounts = Account::withCount('children')
             ->where('is_active', true)
             ->orderBy('account_code')
@@ -942,15 +954,28 @@ class JurnalController extends Controller
 
         $journal->load('journalDetails.account');
 
-        // Cari akun kas (yang kredit)
-        $cashDetail = $journal->journalDetails->firstWhere('credit', '>', 0);
+        // Cari akun kas utama (yang kredit, is_cash_account)
+        $cashDetail = $journal->journalDetails->filter(function ($detail) {
+            return $detail->credit > 0
+                && $detail->account->is_cash_account;
+        })->first();
+
+        // Fallback jika tidak ditemukan yang kredit, cari yang is_cash_account saja
+        if (! $cashDetail) {
+            $cashDetail = $journal->journalDetails->filter(function ($detail) {
+                return $detail->account->is_cash_account;
+            })->first();
+        }
+
         $cashAccountId = $cashDetail ? $cashDetail->account_id : null;
 
-        // Ambil detail debit (bukan kas)
-        $debitDetails = $journal->journalDetails->where('debit', '>', 0);
+        // Ambil detail lainnya (kecuali baris akun kas utama yang terpilih)
+        $details = $journal->journalDetails->reject(function ($detail) use ($cashDetail) {
+            return $cashDetail && $detail->id === $cashDetail->id;
+        });
 
         return Inertia::render('jurnal/forms/jurnalkas/pengeluaran', [
-            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $debitDetails, 'debit'),
+            'journal' => $this->getJournalDataForEdit($journal, $cashAccountId, $details, 'debit'),
             'accounts' => $accounts,
             'cashAccounts' => $cashAccounts,
             'periods' => $this->getOpenSortedPeriods(),
@@ -973,7 +998,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -1000,13 +1025,13 @@ class JurnalController extends Controller
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0) {
+                if ($detail['debit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => 0,
+                        'debit' => $detail['debit'] > 0 ? $detail['debit'] : 0,
+                        'credit' => $detail['debit'] < 0 ? abs($detail['debit']) : 0,
                     ]);
                     $totalDebit += $detail['debit'];
                 }
@@ -1033,10 +1058,6 @@ class JurnalController extends Controller
     // Edit Pemasukan Bank
     public function bankPemasukanEdit(JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
-        // }
-
         $accounts = Account::withCount('children')
             ->where('is_active', true)
             ->orderBy('account_code')
@@ -1051,15 +1072,28 @@ class JurnalController extends Controller
 
         $journal->load('journalDetails.account');
 
-        // Cari akun bank (yang debit)
-        $bankDetail = $journal->journalDetails->firstWhere('debit', '>', 0);
+        // Cari akun bank utama (yang debit, is_cash_account)
+        $bankDetail = $journal->journalDetails->filter(function ($detail) {
+            return $detail->debit > 0
+                && $detail->account->is_cash_account;
+        })->first();
+
+        // Fallback jika tidak ditemukan yang debit, cari yang is_cash_account saja
+        if (! $bankDetail) {
+            $bankDetail = $journal->journalDetails->filter(function ($detail) {
+                return $detail->account->is_cash_account;
+            })->first();
+        }
+
         $bankAccountId = $bankDetail ? $bankDetail->account_id : null;
 
-        // Ambil detail kredit (bukan bank)
-        $creditDetails = $journal->journalDetails->where('credit', '>', 0);
+        // Ambil detail lainnya (kecuali baris akun bank utama yang terpilih)
+        $details = $journal->journalDetails->reject(function ($detail) use ($bankDetail) {
+            return $bankDetail && $detail->id === $bankDetail->id;
+        });
 
         return Inertia::render('jurnal/forms/jurnalbank/pemasukan', [
-            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $creditDetails, 'credit'),
+            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $details, 'credit'),
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
             'periods' => $this->getOpenSortedPeriods(),
@@ -1082,7 +1116,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.credit' => 'required|numeric|min:0',
+            'details.*.credit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -1103,13 +1137,13 @@ class JurnalController extends Controller
 
             $totalCredit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['credit'] > 0) {
+                if ($detail['credit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => 0,
-                        'credit' => $detail['credit'],
+                        'debit' => $detail['credit'] < 0 ? abs($detail['credit']) : 0,
+                        'credit' => $detail['credit'] > 0 ? $detail['credit'] : 0,
                     ]);
                     $totalCredit += $detail['credit'];
                 }
@@ -1136,10 +1170,6 @@ class JurnalController extends Controller
     // Edit Pengeluaran Bank
     public function bankPengeluaranEdit(JournalEntry $journal)
     {
-        // if ($journal->status === 'Posted') {
-        //     return redirect()->route('jurnal.bank')->with('error', 'Jurnal yang sudah di-posting tidak dapat diubah.');
-        // }
-
         $accounts = Account::withCount('children')
             ->where('is_active', true)
             ->orderBy('account_code')
@@ -1154,15 +1184,28 @@ class JurnalController extends Controller
 
         $journal->load('journalDetails.account');
 
-        // Cari akun bank (yang kredit)
-        $bankDetail = $journal->journalDetails->firstWhere('credit', '>', 0);
+        // Cari akun bank utama (yang kredit, is_cash_account)
+        $bankDetail = $journal->journalDetails->filter(function ($detail) {
+            return $detail->credit > 0
+                && $detail->account->is_cash_account;
+        })->first();
+
+        // Fallback jika tidak ditemukan yang kredit, cari yang is_cash_account saja
+        if (! $bankDetail) {
+            $bankDetail = $journal->journalDetails->filter(function ($detail) {
+                return $detail->account->is_cash_account;
+            })->first();
+        }
+
         $bankAccountId = $bankDetail ? $bankDetail->account_id : null;
 
-        // Ambil detail debit (bukan bank)
-        $debitDetails = $journal->journalDetails->where('debit', '>', 0);
+        // Ambil detail lainnya (kecuali baris akun bank utama yang terpilih)
+        $details = $journal->journalDetails->reject(function ($detail) use ($bankDetail) {
+            return $bankDetail && $detail->id === $bankDetail->id;
+        });
 
         return Inertia::render('jurnal/forms/jurnalbank/pengeluaran', [
-            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $debitDetails, 'debit'),
+            'journal' => $this->getJournalDataForEdit($journal, $bankAccountId, $details, 'debit'),
             'accounts' => $accounts,
             'bankAccounts' => $bankAccounts,
             'periods' => $this->getOpenSortedPeriods(),
@@ -1185,7 +1228,7 @@ class JurnalController extends Controller
             'details' => 'required|array|min:1',
             'details.*.account_id' => 'required|exists:accounts,id',
             'details.*.description' => 'nullable|string',
-            'details.*.debit' => 'required|numeric|min:0',
+            'details.*.debit' => 'required|numeric',
             'status' => 'required|string|in:Draft,Posted',
         ]);
 
@@ -1212,13 +1255,13 @@ class JurnalController extends Controller
 
             $totalDebit = 0;
             foreach ($validated['details'] as $detail) {
-                if ($detail['debit'] > 0) {
+                if ($detail['debit'] != 0) {
                     JournalDetail::create([
                         'journal_entry_id' => $journal->id,
                         'account_id' => $detail['account_id'],
                         'description' => $detail['description'],
-                        'debit' => $detail['debit'],
-                        'credit' => 0,
+                        'debit' => $detail['debit'] > 0 ? $detail['debit'] : 0,
+                        'credit' => $detail['debit'] < 0 ? abs($detail['debit']) : 0,
                     ]);
                     $totalDebit += $detail['debit'];
                 }
@@ -1507,14 +1550,20 @@ class JurnalController extends Controller
             'fiscal_period_id' => $journal->fiscal_period_id,
             'penerima' => $journal->penerima,
             'status' => $journal->status,
-            'cash_account_id' => $mainAccountId, // Disesuaikan untuk kas/bank
-            'bank_account_id' => $mainAccountId, // Disesuaikan untuk kas/bank
+            'cash_account_id' => $mainAccountId,
+            'bank_account_id' => $mainAccountId,
             'details' => $details->map(function ($detail) use ($amountField) {
+                // Hitung nilai neto: jika pengeluaran (amountField=debit) maka debit - credit.
+                // Jika pemasukan (amountField=credit) maka credit - debit.
+                $amount = ($amountField === 'debit')
+                    ? ($detail->debit - $detail->credit)
+                    : ($detail->credit - $detail->debit);
+
                 return [
                     'id' => $detail->id,
                     'account_id' => $detail->account_id,
                     'description' => $detail->description,
-                    $amountField => (float) $detail->{$amountField},
+                    $amountField => (float) $amount,
                 ];
             })->values()->toArray(),
         ];

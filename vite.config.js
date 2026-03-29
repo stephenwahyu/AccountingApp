@@ -13,6 +13,8 @@ export default defineConfig({
         tailwindcss(),
     ],
     build: {
+        minify: "esbuild",
+        cssMinify: true,
         rollupOptions: {
             output: {
                 manualChunks: {
