@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -38,9 +38,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, MoreVertical, Plus, Search, FileDown } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { parseSafeDate } from "@/lib/utils";
+
+const DeleteConfirmDialog = lazy(() => import("@/components/delete-confirm-dialog").then(m => ({ default: m.DeleteConfirmDialog })));
 
 const breadcrumbs = [
   { title: "Jurnal", href: "/jurnal" },
@@ -187,13 +188,15 @@ export default function JurnalKas({ journals = [], periods = [], initialFilters 
     <>
       <Head title="Jurnal - Jurnal Kas" />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <DeleteConfirmDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          onConfirm={handleConfirmDelete}
-          title="Hapus Jurnal"
-          description={journalToDelete ? `Apakah Anda yakin ingin menghapus jurnal ${journalToDelete.entry_number}?` : ""}
-        />
+        <Suspense fallback={null}>
+          <DeleteConfirmDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            onConfirm={handleConfirmDelete}
+            title="Hapus Jurnal"
+            description={journalToDelete ? `Apakah Anda yakin ingin menghapus jurnal ${journalToDelete.entry_number}?` : ""}
+          />
+        </Suspense>
         <div className="flex flex-col gap-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>

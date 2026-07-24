@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,11 +28,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Loader2, AlertCircle } from "lucide-react";
 import { cn, parseSafeDate, generateUniqueId } from "@/lib/utils";
 import { toast } from "sonner";
+
+const DatePicker = lazy(() => import("@/components/ui/date-picker").then(module => ({ default: module.DatePicker })));
+const Combobox = lazy(() => import("@/components/ui/combobox").then(module => ({ default: module.Combobox })));
 
 const buildTree = (accounts) => {
     const accountsById = {};
@@ -235,7 +236,7 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
         },
         onError: (errors) => {
             setErrors(errors);
-            toast.error("Gagal menyimpan pengeluaran bank. Harap periksa kembali inputan Anda.");
+            toast.error(errors.error || "Terjadi kesalahan. Mohon periksa kembali data yang Anda masukkan.");
             setProcessing(false);
             setSubmittedStatus(null);
         },
@@ -285,13 +286,15 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
                         <div className="grid gap-2">
                             <Label htmlFor="entry_date" className="text-xs uppercase tracking-wider text-muted-foreground">Tanggal Entri</Label>
-                            <DatePicker
-                                date={data.entry_date}
-                                setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
-                                disabled={disabledDates}
-                                defaultMonth={selectedPeriod ? parseSafeDate(selectedPeriod.start_date) : undefined}
-                                id="entry_date"
-                            />
+                            <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
+                                <DatePicker
+                                    date={data.entry_date}
+                                    setDate={(date) => setData(prev => ({...prev, entry_date: date}))}
+                                    disabled={disabledDates}
+                                    defaultMonth={selectedPeriod ? parseSafeDate(selectedPeriod.start_date) : undefined}
+                                    id="entry_date"
+                                />
+                            </Suspense>
                             {errors.entry_date && <p className="text-xs text-destructive">{errors.entry_date}</p>}
                         </div>
                         <div className="grid gap-2 lg:col-span-2">
@@ -411,14 +414,16 @@ export default function FormPengeluaranBank({ journal = null, accounts = [], per
                                 {data.details.map((detail, index) => (
                                 <TableRow key={detail.temp_id} className="hover:bg-muted/5 transition-colors">
                                     <TableCell className="pl-6 py-3">
-                                        <Combobox
-                                            options={accountOptions}
-                                            value={detail.account_id}
-                                            onSelect={(value) => updateDetail(index, "account_id", value)}
-                                            placeholder="Pilih Akun"
-                                            searchPlaceholder="Cari akun..."
-                                            emptyPlaceholder="Akun tidak ditemukan."
-                                        />
+                                        <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
+                                            <Combobox
+                                                options={accountOptions}
+                                                value={detail.account_id}
+                                                onSelect={(value) => updateDetail(index, "account_id", value)}
+                                                placeholder="Pilih Akun"
+                                                searchPlaceholder="Cari akun..."
+                                                emptyPlaceholder="Akun tidak ditemukan."
+                                            />
+                                        </Suspense>
                                     </TableCell>
                                     <TableCell className="py-3">
                                         <Input

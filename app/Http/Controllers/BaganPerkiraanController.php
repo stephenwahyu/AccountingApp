@@ -100,9 +100,8 @@ class BaganPerkiraanController extends Controller
 
     public function storeAkun(Request $request)
     {
-        $data = $request->all();
-        if (isset($data['parent_id']) && $data['parent_id'] === 'null') {
-            $data['parent_id'] = null;
+        if ($request->parent_id === 'null') {
+            $request->merge(['parent_id' => null]);
         }
 
         $request->validate([
@@ -116,7 +115,7 @@ class BaganPerkiraanController extends Controller
             'is_active' => 'required|boolean',
         ]);
 
-        Account::create($data);
+        Account::create($request->all());
 
         return redirect()->route('bagan-perkiraan.akun')->with('success', 'Akun berhasil dibuat.');
     }
@@ -144,9 +143,8 @@ class BaganPerkiraanController extends Controller
 
     public function updateAkun(Request $request, Account $account)
     {
-        $data = $request->all();
-        if (isset($data['parent_id']) && $data['parent_id'] === 'null') {
-            $data['parent_id'] = null;
+        if ($request->parent_id === 'null') {
+            $request->merge(['parent_id' => null]);
         }
 
         $request->validate([
@@ -160,7 +158,7 @@ class BaganPerkiraanController extends Controller
             'is_active' => 'required|boolean',
         ]);
 
-        $account->update($data);
+        $account->update($request->all());
 
         return redirect()->route('bagan-perkiraan.akun')->with('success', 'Akun berhasil diperbarui.');
     }

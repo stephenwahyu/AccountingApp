@@ -5,7 +5,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { usePage } from "@inertiajs/react";
 
-export function AppLayouts({ children, breadcrumbs = [] }) {
+export default function AppLayouts({ children, breadcrumbs = [] }) {
   const { flash } = usePage().props;
 
   useEffect(() => {

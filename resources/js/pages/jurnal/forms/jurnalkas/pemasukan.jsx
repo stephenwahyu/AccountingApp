@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import PropTypes from "prop-types";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -28,11 +28,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { DatePicker } from "@/components/ui/date-picker";
-import { Combobox } from "@/components/ui/combobox";
 import { Plus, Trash2, Save, X, Loader2 } from "lucide-react";
 import { cn, parseSafeDate, generateUniqueId } from "@/lib/utils";
 import { toast } from "sonner";
+
+const DatePicker = lazy(() => import("@/components/ui/date-picker").then(module => ({ default: module.DatePicker })));
+const Combobox = lazy(() => import("@/components/ui/combobox").then(module => ({ default: module.Combobox })));
 
 const buildTree = (accounts) => {
     const accountsById = {};
@@ -230,7 +231,7 @@ export default function FormPemasukanKas({ journal = null, accounts = [], period
         },
         onError: (errors) => {
             setErrors(errors);
-            toast.error("Gagal menyimpan pemasukan kas. Harap periksa kembali inputan Anda.");
+            toast.error(errors.error || "Terjadi kesalahan. Mohon periksa kembali data yang Anda masukkan.");
             setProcessing(false);
             setSubmittedStatus(null);
         },

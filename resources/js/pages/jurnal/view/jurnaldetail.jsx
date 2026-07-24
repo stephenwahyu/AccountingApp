@@ -1,6 +1,6 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,8 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Pencil, Trash2, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
 import { parseSafeDate } from "@/lib/utils";
+
+const DeleteConfirmDialog = lazy(() => import("@/components/delete-confirm-dialog").then(module => ({ default: module.DeleteConfirmDialog })));
 
 export default function ViewDetailJurnal({ journal }) {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
@@ -111,13 +112,15 @@ export default function ViewDetailJurnal({ journal }) {
     <>
       <Head title={`Detail Jurnal - ${journal.entry_number}`} />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <DeleteConfirmDialog 
-            open={isDeleteDialogOpen} 
-            onOpenChange={setIsDeleteDialogOpen} 
-            onConfirm={handleDelete}
-            title="Hapus Jurnal"
-            description={`Apakah Anda yakin ingin menghapus jurnal ${journal.entry_number}?`}
-        />
+        <Suspense fallback={null}>
+            <DeleteConfirmDialog 
+                open={isDeleteDialogOpen} 
+                onOpenChange={setIsDeleteDialogOpen} 
+                onConfirm={handleDelete}
+                title="Hapus Jurnal"
+                description={`Apakah Anda yakin ingin menghapus jurnal ${journal.entry_number}?`}
+            />
+        </Suspense>
         <div className="flex flex-col gap-6 @container">
           <div className="flex flex-col @lg:flex-row items-start @lg:items-center justify-between gap-4">
             <div className="flex items-center gap-4">

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Head } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";

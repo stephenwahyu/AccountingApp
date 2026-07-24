@@ -118,7 +118,7 @@ export function OTPForm({ token, email, className, ...props }) {
             </div>
 
             {/* Card */}
-            <Card className="w-full max-w-[450px] overflow-hidden p-0 shadow-2xl rounded-2xl border-border transition-colors duration-500">
+            <Card className="w-full max-w-112.5 overflow-hidden p-0 shadow-2xl rounded-2xl border-border transition-colors duration-500">
                 <CardContent className="p-8 md:p-12 bg-card transition-colors duration-500">
                     <form onSubmit={handleSubmit}>
                         <div className="flex flex-col gap-8">

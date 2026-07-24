@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import PropTypes from "prop-types";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -235,7 +235,7 @@ export default function FormPengeluaranKas({ journal = null, accounts = [], peri
         },
         onError: (errors) => {
             setErrors(errors);
-            toast.error("Gagal menyimpan pengeluaran kas. Harap periksa kembali inputan Anda.");
+            toast.error(errors.error || "Terjadi kesalahan. Mohon periksa kembali data yang Anda masukkan.");
             setProcessing(false);
             setSubmittedStatus(null);
         },

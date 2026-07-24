@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { AppLayouts } from '@/pages/layouts/app-layout';
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ const flattenTreeForSelect = (nodes, level = 0, options = []) => {
 
 export default function FormAkun({ account = null, categories = [], accounts = [], cashFlowActivities = [] }) {
     const isEdit = !!account;
-    const { data, setData, post, put, processing, errors } = useForm({
+    const { data, setData, post, put, processing, errors, transform } = useForm({
         account_code: account?.account_code || '',
         account_name: account?.account_name || '',
         account_category_id: account?.account_category_id?.toString() || '',
@@ -55,6 +55,12 @@ export default function FormAkun({ account = null, categories = [], accounts = [
         is_cash_account: account ? !!account.is_cash_account : false,
         cash_flow_activity_id: account?.cash_flow_activity_id?.toString() || '',
     });
+
+    transform((data) => ({
+        ...data,
+        parent_id: data.parent_id === 'null' ? null : data.parent_id,
+        cash_flow_activity_id: data.is_cash_account && data.cash_flow_activity_id !== '' ? data.cash_flow_activity_id : null,
+    }));
 
     const accountOptions = useMemo(() => {
         let availableAccounts = accounts;
@@ -88,19 +94,13 @@ export default function FormAkun({ account = null, categories = [], accounts = [
         
         const options = {
             preserveScroll: true,
-            onError: () => toast.error("Terjadi kesalahan validasi. Harap periksa kembali form Anda."),
-        };
-
-        const dataToSend = {
-            ...data,
-            parent_id: data.parent_id === 'null' ? null : data.parent_id,
-            cash_flow_activity_id: data.is_cash_account && data.cash_flow_activity_id !== '' ? data.cash_flow_activity_id : null,
+            onError: (errors) => toast.error(errors.error || "Terjadi kesalahan validasi. Harap periksa kembali form Anda."),
         };
 
         if (isEdit) {
-            put(url, { ...options, data: dataToSend });
+            put(url, options);
         } else {
-            post(url, { ...options, data: dataToSend });
+            post(url, options);
         }
     };
 

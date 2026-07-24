@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -27,7 +27,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { MoreVertical, Plus, Search } from "lucide-react";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+
+const DeleteConfirmDialog = lazy(() => import("@/components/delete-confirm-dialog").then(m => ({ default: m.DeleteConfirmDialog })));
 
 const breadcrumbs = [
   { title: "Bagan Perkiraan", href: route('bagan-perkiraan.index') },
@@ -79,13 +80,15 @@ export default function TipeAkunList({ types = [] }) {
     <>
       <Head title="Bagan Perkiraan - Tipe Akun" />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <DeleteConfirmDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          onConfirm={handleConfirmDelete}
-          title="Hapus Tipe Akun"
-          description={typeToDelete ? `Apakah Anda yakin ingin menghapus tipe akun ${typeToDelete.name}? Seluruh kategori dan akun di bawah tipe ini juga akan terpengaruh.` : ""}
-        />
+        <Suspense fallback={null}>
+          <DeleteConfirmDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+            onConfirm={handleConfirmDelete}
+            title="Hapus Tipe Akun"
+            description={typeToDelete ? `Apakah Anda yakin ingin menghapus tipe akun ${typeToDelete.name}? Seluruh kategori dan akun di bawah tipe ini juga akan terpengaruh.` : ""}
+          />
+        </Suspense>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>

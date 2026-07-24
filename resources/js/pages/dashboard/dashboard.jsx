@@ -1,6 +1,6 @@
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import { Head, Deferred } from "@inertiajs/react";
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
     Select,
     SelectContent,
@@ -16,8 +16,10 @@ import { QuickShortcuts } from "./components/QuickShortcuts";
 import { StatsCards } from "./components/StatsCards";
 import { RecentJournals } from "./components/RecentJournals";
 import { CashEquivalentBalance } from "./components/CashEquivalentBalance";
-import { RevenueExpenseChart } from "./components/RevenueExpenseChart";
-import { CashFlowChart } from "./components/CashFlowChart";
+
+// Lazy load heavy chart components
+const RevenueExpenseChart = lazy(() => import("./components/RevenueExpenseChart"));
+const CashFlowChart = lazy(() => import("./components/CashFlowChart"));
 
 const breadcrumbs = [
     {
@@ -156,15 +158,19 @@ export default function Dashboard({
                         {/* Charts Column */}
                         <div className="xl:col-span-2 space-y-6">
                             <Deferred data={['stats', 'revenueExpenseChart']} fallback={<ChartSkeleton />}>
-                                <RevenueExpenseChart
-                                    revenue={stats?.revenue || 0}
-                                    expense={stats?.expense || 0}
-                                    data={revenueExpenseChart}
-                                />
+                                <Suspense fallback={<ChartSkeleton />}>
+                                    <RevenueExpenseChart
+                                        revenue={stats?.revenue || 0}
+                                        expense={stats?.expense || 0}
+                                        data={revenueExpenseChart}
+                                    />
+                                </Suspense>
                             </Deferred>
                             
                             <Deferred data="cashFlowChart" fallback={<ChartSkeleton />}>
-                                <CashFlowChart data={cashFlowChart} />
+                                <Suspense fallback={<ChartSkeleton />}>
+                                    <CashFlowChart data={cashFlowChart} />
+                                </Suspense>
                             </Deferred>
                         </div>
 

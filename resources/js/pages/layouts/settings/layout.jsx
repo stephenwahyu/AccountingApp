@@ -2,7 +2,8 @@ import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Link, usePage } from '@inertiajs/react';
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
+import { Separator } from '@/components/ui/separator';
 
 const sidebarNavItems = [
     {
@@ -51,7 +52,13 @@ export default function SettingsLayout({ children }) {
                         ))}
                     </nav>
                 </aside>
+                <Separator className="block lg:hidden my-4" />
 
+                {/* Desktop → vertical */}
+                <Separator
+                    orientation="vertical"
+                    className="hidden lg:block h-auto"
+                />
                 <div className="flex-1 max-w-2xl">
                     {children}
                 </div>

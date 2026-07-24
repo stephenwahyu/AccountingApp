@@ -21,10 +21,11 @@
     </script>
     @viteReactRefresh
     @vite(['resources/js/app.jsx', 'resources/css/app.css'])
-    <link rel="preload" as="image" href="/logo-sm.webp" type="image/webp" fetchpriority="high">
+    <link rel="preload" as="image" imagesrcset="/logo-sm.webp 80w, /logo.webp 160w" imagesizes="80px"
+        fetchpriority="high">
     @if (Route::is('login') || Route::is('password.*'))
-        <link rel="preload" as="image" href="/image.webp" type="image/webp" fetchpriority="high"
-            media="(min-width: 768px)">
+        <link rel="preload" as="image" imagesrcset="/image-sm.webp 400w, /image.webp 650w"
+            imagesizes="(max-width: 1024px) 400px, 650px" fetchpriority="high" media="(min-width: 768px)">
     @endif
     {{-- <title>{{ config('app.name', 'Accounting App') }}</title> --}}
     <link rel="icon" type="image/webp" href="{{ asset('logo.webp') }}">

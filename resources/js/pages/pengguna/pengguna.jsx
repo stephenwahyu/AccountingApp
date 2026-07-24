@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import { Head, Link, router } from "@inertiajs/react";
-import { AppLayouts } from "@/pages/layouts/app-layout";
+import AppLayouts from "@/pages/layouts/app-layout";
 import {
   Table,
   TableBody,
@@ -27,7 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { MoreVertical, Plus, Search, Users } from "lucide-react";
-import { DeleteConfirmDialog } from "@/components/delete-confirm-dialog";
+
+const DeleteConfirmDialog = lazy(() => import("@/components/delete-confirm-dialog").then(module => ({ default: module.DeleteConfirmDialog })));
 
 const breadcrumbs = [
   { title: "Pengguna", href: "/pengguna" },
@@ -89,13 +90,15 @@ export default function PenggunaList({ users = [] }) {
     <>
       <Head title="Manajemen Pengguna" />
       <AppLayouts breadcrumbs={breadcrumbs}>
-        <DeleteConfirmDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          onConfirm={handleConfirmDelete}
-          title="Hapus Pengguna"
-          description={userToDelete ? `Apakah Anda yakin ingin menghapus pengguna ${userToDelete.name}? Akun ini tidak akan bisa diakses kembali.` : ""}
-        />
+        <Suspense fallback={null}>
+            <DeleteConfirmDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={setIsDeleteDialogOpen}
+                onConfirm={handleConfirmDelete}
+                title="Hapus Pengguna"
+                description={userToDelete ? `Apakah Anda yakin ingin menghapus pengguna ${userToDelete.name}? Akun ini tidak akan bisa diakses kembali.` : ""}
+            />
+        </Suspense>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
